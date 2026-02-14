@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="DurableAgent.Core.Tests/DurableAgent.Core.Tests.csproj" />
+  <Project Path="DurableAgent.Core/DurableAgent.Core.csproj" />
+  <Project Path="DurableAgent.Functions.Tests/DurableAgent.Functions.Tests.csproj" />
+  <Project Path="DurableAgent.Functions/DurableAgent.Functions.csproj" />
+</Solution>

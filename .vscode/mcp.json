@@ -1,0 +1,32 @@
+{
+	"servers": {
+		"context7": {
+			"type": "http",
+			"url": "https://mcp.context7.com/mcp",
+			"headers": {
+				"CONTEXT7_API_KEY": "${input:context7-key}"
+			}
+		},
+		"com.microsoft/azure": {
+			"type": "stdio",
+			"command": "dnx",
+			"args": [
+				"Azure.Mcp@2.0.0-beta.16",
+				"--yes",
+				"--",
+				"server",
+				"start"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "2.0.0-beta.16"
+		}
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "context7-key",
+			"description": "Context7 API Key",
+			"password": true
+		}
+	]
+}
