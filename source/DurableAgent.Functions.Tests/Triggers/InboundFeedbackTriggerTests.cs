@@ -13,11 +13,30 @@ public class InboundFeedbackTriggerTests
     private readonly ILogger<InboundFeedbackTrigger> _logger = A.Fake<ILogger<InboundFeedbackTrigger>>();
     private readonly DurableTaskClient _durableClient = A.Fake<DurableTaskClient>();
 
+    private static FeedbackMessage CreateTestFeedback() => new()
+    {
+        FeedbackId = "fbk-10021",
+        StoreId = "store-014",
+        OrderId = "ord-77812",
+        Customer = new CustomerInfo
+        {
+            PreferredName = "Aidan",
+            FirstName = "Aidan",
+            LastName = "Smith",
+            Email = "aidan@example.com",
+            PhoneNumber = "555-0100",
+            PreferredContactMethod = ContactMethod.Email
+        },
+        Channel = "kiosk",
+        Rating = 5,
+        Comment = "Mint Condition is unreal. Best froyo I've had. Staff was super nice!"
+    };
+
     [Fact]
     public async Task WhenValidMessageReceived_ThenSchedulesOrchestration()
     {
         // Arrange
-        var feedback = new FeedbackMessage { Id = "fb-100", Content = "Good job" };
+        var feedback = CreateTestFeedback();
         var body = BinaryData.FromObjectAsJson(feedback);
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-1");
 
@@ -42,7 +61,11 @@ public class InboundFeedbackTriggerTests
 
         Assert.Equal("FeedbackOrchestrator", actualName.Name);
         Assert.NotNull(actualInput);
-        Assert.Equal("fb-100", actualInput.Id);
-        Assert.Equal("Good job", actualInput.Content);
+        Assert.Equal("fbk-10021", actualInput.FeedbackId);
+        Assert.Equal("Mint Condition is unreal. Best froyo I've had. Staff was super nice!", actualInput.Comment);
+        Assert.Equal("store-014", actualInput.StoreId);
+        Assert.Equal(5, actualInput.Rating);
+        Assert.NotNull(actualInput.Customer);
+        Assert.Equal("Aidan", actualInput.Customer.PreferredName);
     }
 }

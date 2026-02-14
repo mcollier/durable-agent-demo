@@ -4,42 +4,91 @@ namespace DurableAgent.Core.Tests.Models;
 
 public class FeedbackMessageTests
 {
+    private static CustomerInfo CreateTestCustomer() => new()
+    {
+        PreferredName = "Aidan",
+        FirstName = "Aidan",
+        LastName = "Smith",
+        Email = "aidan@example.com",
+        PhoneNumber = "555-0100",
+        PreferredContactMethod = ContactMethod.Email
+    };
+
     [Fact]
     public void WhenCreatedWithRequiredProperties_ThenPropertiesAreSet()
     {
+        var customer = CreateTestCustomer();
+
         var message = new FeedbackMessage
         {
-            Id = "fb-001",
-            Content = "Great service!"
+            FeedbackId = "fbk-10021",
+            StoreId = "store-014",
+            OrderId = "ord-77812",
+            Customer = customer,
+            Channel = "kiosk",
+            Rating = 5,
+            Comment = "Mint Condition is unreal. Best froyo I've had."
         };
 
-        Assert.Equal("fb-001", message.Id);
-        Assert.Equal("Great service!", message.Content);
+        Assert.Equal("fbk-10021", message.FeedbackId);
+        Assert.Equal("store-014", message.StoreId);
+        Assert.Equal("ord-77812", message.OrderId);
+        Assert.Equal(customer, message.Customer);
+        Assert.Equal("kiosk", message.Channel);
+        Assert.Equal(5, message.Rating);
+        Assert.Equal("Mint Condition is unreal. Best froyo I've had.", message.Comment);
     }
 
     [Fact]
-    public void WhenTimestampNotProvided_ThenDefaultsToUtcNow()
+    public void WhenSubmittedAtNotProvided_ThenDefaultsToUtcNow()
     {
         var before = DateTimeOffset.UtcNow;
 
         var message = new FeedbackMessage
         {
-            Id = "fb-002",
-            Content = "Test"
+            FeedbackId = "fbk-002",
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = CreateTestCustomer(),
+            Channel = "web",
+            Rating = 3,
+            Comment = "Test"
         };
 
         var after = DateTimeOffset.UtcNow;
 
-        Assert.InRange(message.Timestamp, before, after);
+        Assert.InRange(message.SubmittedAt, before, after);
     }
 
     [Fact]
     public void WhenTwoMessagesHaveSameValues_ThenTheyAreEqual()
     {
         var timestamp = DateTimeOffset.UtcNow;
+        var customer = CreateTestCustomer();
 
-        var a = new FeedbackMessage { Id = "fb-003", Content = "Same", Timestamp = timestamp };
-        var b = new FeedbackMessage { Id = "fb-003", Content = "Same", Timestamp = timestamp };
+        var a = new FeedbackMessage
+        {
+            FeedbackId = "fbk-003",
+            SubmittedAt = timestamp,
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = customer,
+            Channel = "app",
+            Rating = 4,
+            Comment = "Same"
+        };
+
+        var b = new FeedbackMessage
+        {
+            FeedbackId = "fbk-003",
+            SubmittedAt = timestamp,
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = customer,
+            Channel = "app",
+            Rating = 4,
+            Comment = "Same"
+        };
 
         Assert.Equal(a, b);
     }
@@ -48,9 +97,31 @@ public class FeedbackMessageTests
     public void WhenTwoMessagesHaveDifferentIds_ThenTheyAreNotEqual()
     {
         var timestamp = DateTimeOffset.UtcNow;
+        var customer = CreateTestCustomer();
 
-        var a = new FeedbackMessage { Id = "fb-004", Content = "Same", Timestamp = timestamp };
-        var b = new FeedbackMessage { Id = "fb-005", Content = "Same", Timestamp = timestamp };
+        var a = new FeedbackMessage
+        {
+            FeedbackId = "fbk-004",
+            SubmittedAt = timestamp,
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = customer,
+            Channel = "kiosk",
+            Rating = 5,
+            Comment = "Same"
+        };
+
+        var b = new FeedbackMessage
+        {
+            FeedbackId = "fbk-005",
+            SubmittedAt = timestamp,
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = customer,
+            Channel = "kiosk",
+            Rating = 5,
+            Comment = "Same"
+        };
 
         Assert.NotEqual(a, b);
     }

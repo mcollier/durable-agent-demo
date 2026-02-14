@@ -21,7 +21,9 @@ source/
   Directory.Build.props                 # Shared: net10.0, nullable, implicit usings
   global.json                           # SDK pin: 10.0.102
   DurableAgent.Core/                    # Domain logic (zero cloud SDK deps)
-    Models/FeedbackMessage.cs           # sealed record with required properties
+    Models/FeedbackMessage.cs           # sealed record: FeedbackId, StoreId, OrderId, Customer, Channel, Rating, Comment
+    Models/CustomerInfo.cs              # sealed record: PreferredName, FirstName, LastName, Email, PhoneNumber, PreferredContactMethod
+    Models/ContactMethod.cs             # enum: Email, Phone (with JsonStringEnumConverter)
   DurableAgent.Functions/               # Azure Functions isolated worker project
     Program.cs                          # FunctionsApplication.CreateBuilder(args)
     Triggers/InboundFeedbackTrigger.cs  # ServiceBus trigger → starts orchestration

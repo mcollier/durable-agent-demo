@@ -21,13 +21,13 @@ public static class FeedbackOrchestrator
         ArgumentNullException.ThrowIfNull(input);
 
         var logger = context.CreateReplaySafeLogger(nameof(FeedbackOrchestrator));
-        logger.LogInformation("Processing feedback {FeedbackId}", input.Id);
+        logger.LogInformation("Processing feedback {FeedbackId}", input.FeedbackId);
 
         var result = await context.CallActivityAsync<string>(
             nameof(ProcessFeedbackActivity),
             input);
 
-        logger.LogInformation("Feedback {FeedbackId} processed: {Result}", input.Id, result);
+        logger.LogInformation("Feedback {FeedbackId} processed: {Result}", input.FeedbackId, result);
 
         return result;
     }

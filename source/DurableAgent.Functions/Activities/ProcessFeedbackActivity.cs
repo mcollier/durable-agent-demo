@@ -16,14 +16,16 @@ public static class ProcessFeedbackActivity
         FunctionContext executionContext)
     {
         ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfLessThan(input.Rating, 1, nameof(input.Rating));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(input.Rating, 5, nameof(input.Rating));
 
         var logger = executionContext.GetLogger(nameof(ProcessFeedbackActivity));
         logger.LogInformation(
-            "Processing feedback {FeedbackId}: {Content}",
-            input.Id,
-            input.Content);
+            "Processing feedback {FeedbackId}: {Comment}",
+            input.FeedbackId,
+            input.Comment);
 
         // Placeholder — replace with real business logic
-        return $"Processed feedback '{input.Id}' at {DateTimeOffset.UtcNow:O}";
+        return $"Processed feedback '{input.FeedbackId}' at {DateTimeOffset.UtcNow:O}";
     }
 }

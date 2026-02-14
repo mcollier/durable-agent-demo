@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DurableAgent.Functions.Triggers;
 
@@ -16,7 +17,8 @@ public sealed class InboundFeedbackTrigger(ILogger<InboundFeedbackTrigger> logge
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     [Function(nameof(InboundFeedbackTrigger))]
@@ -45,6 +47,6 @@ public sealed class InboundFeedbackTrigger(ILogger<InboundFeedbackTrigger> logge
         logger.LogInformation(
             "Started orchestration {InstanceId} for feedback {FeedbackId}",
             instanceId,
-            feedback.Id);
+            feedback.FeedbackId);
     }
 }
