@@ -18,3 +18,13 @@ param tags = {
   project: 'durable-agent-demo'
   environment: 'dev'
 }
+
+param modelName = 'gpt-4.1-mini'
+
+param modelFormat = 'OpenAI'
+
+param modelVersion = '2025-04-14'
+
+param modelSkuName = 'GlobalStandard'
+
+param modelCapacity = 1

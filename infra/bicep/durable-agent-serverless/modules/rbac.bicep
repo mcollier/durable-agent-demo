@@ -2,7 +2,8 @@
 // Module: RBAC Role Assignments
 // ──────────────────────────────────────────────────────────────────────────────
 // Assigns least-privilege roles to the Function App's managed identity for
-// secure, keyless access to Storage, Service Bus, and Durable Task Scheduler.
+// secure, keyless access to Storage, Service Bus, Durable Task Scheduler,
+// and AI Foundry (Cognitive Services).
 // ──────────────────────────────────────────────────────────────────────────────
 
 @description('Name of the Storage Account.')
@@ -13,6 +14,9 @@ param serviceBusNamespaceName string
 
 @description('Name of the Durable Task Scheduler.')
 param schedulerName string
+
+@description('Name of the AI Foundry (Cognitive Services) account.')
+param aiFoundryAccountName string
 
 @description('Name of the Function App (used for deterministic guid generation).')
 param functionAppName string
@@ -25,6 +29,7 @@ var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 var serviceBusDataReceiverRoleId = '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
 var serviceBusDataSenderRoleId = '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
 var durableTaskDataContributorRoleId = '0ad04412-c4d5-4796-b79c-f76d14c8d402'
+var cognitiveServicesOpenAIUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 
 // ─── Existing resource references ───────────────────────────────────────────
 
@@ -40,13 +45,20 @@ resource durableTaskSchedulerRef 'Microsoft.DurableTask/schedulers@2025-11-01' e
   name: schedulerName
 }
 
+resource aiFoundryAccountRef 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
+  name: aiFoundryAccountName
+}
+
 // ─── Storage Blob Data Contributor → Storage Account ────────────────────────
 resource storageBlobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccountName, storageBlobDataContributorRoleId, functionAppName)
   scope: storageAccountRef
   properties: {
     principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      storageBlobDataContributorRoleId
+    )
     principalType: 'ServicePrincipal'
   }
 }
@@ -79,7 +91,24 @@ resource durableTaskRoleAssignment 'Microsoft.Authorization/roleAssignments@2022
   scope: durableTaskSchedulerRef
   properties: {
     principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', durableTaskDataContributorRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      durableTaskDataContributorRoleId
+    )
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ─── Cognitive Services OpenAI User → AI Foundry Account ────────────────────
+resource aiFoundryOpenAIUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(aiFoundryAccountName, cognitiveServicesOpenAIUserRoleId, functionAppName)
+  scope: aiFoundryAccountRef
+  properties: {
+    principalId: principalId
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      cognitiveServicesOpenAIUserRoleId
+    )
     principalType: 'ServicePrincipal'
   }
 }

@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Deploys: Log Analytics Workspace, Application Insights, Storage Account,
 //          Service Bus Namespace, Durable Task Scheduler + Task Hub,
+//          AI Foundry (Cognitive Services) + Project + Model Deployment,
 //          App Service Plan (FC1), Function App (Flex Consumption).
 //          RBAC role assignments for managed identity.
 // ──────────────────────────────────────────────────────────────────────────────
@@ -39,6 +40,23 @@ param instanceMemoryMB int = 2048
 @description('Resource tags applied to all resources.')
 param tags object = {}
 
+// ─── AI Foundry Parameters ──────────────────────────────────────────────────
+
+@description('Name of the OpenAI model to deploy in AI Foundry.')
+param modelName string = 'gpt-4.1-mini'
+
+@description('Model format identifier (e.g. OpenAI).')
+param modelFormat string = 'OpenAI'
+
+@description('Model version string.')
+param modelVersion string = '2025-04-14'
+
+@description('SKU name for the model deployment (e.g. GlobalStandard, Standard).')
+param modelSkuName string = 'GlobalStandard'
+
+@description('Deployment capacity in TPM units.')
+param modelCapacity int = 1
+
 // ─── Variables ──────────────────────────────────────────────────────────────
 
 var resourceToken = toLower(uniqueString(subscription().subscriptionId, resourceGroupName, baseName))
@@ -53,8 +71,8 @@ var schedulerName = 'dts-${baseName}-${resourceToken}'
 var taskHubName = 'th-${baseName}-${resourceToken}'
 var appServicePlanName = 'asp-${baseName}-${resourceToken}'
 var functionAppName = 'func-${baseName}-${resourceToken}'
-
-
+var aiFoundryName = 'ai-${baseName}-${resourceToken}'
+var aiProjectName = '${baseName}-proj'
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Resource Group
@@ -134,6 +152,22 @@ module durableTask 'modules/durable-task.bicep' = {
     taskHubName: taskHubName
     location: location
     tags: tags
+  }
+}
+
+// ─── AI Foundry (Cognitive Services) + Project + Model Deployment ───────────
+module aiFoundry 'modules/ai-foundry.bicep' = {
+  scope: rg
+  params: {
+    aiFoundryName: aiFoundryName
+    aiProjectName: aiProjectName
+    location: location
+    tags: tags
+    modelName: modelName
+    modelFormat: modelFormat
+    modelVersion: modelVersion
+    modelSkuName: modelSkuName
+    modelCapacity: modelCapacity
   }
 }
 
@@ -220,6 +254,10 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
           // Durable Task Scheduler
           DURABLE_TASK_SCHEDULER_CONNECTION_STRING: durableTask.outputs.schedulerEndpoint
           TASKHUB_NAME: durableTask.outputs.taskHubName
+          // AI Foundry
+          AI_FOUNDRY_ENDPOINT: aiFoundry.outputs.accountEndpoint
+          AI_FOUNDRY_DEPLOYMENT_NAME: aiFoundry.outputs.deploymentName
+          AI_FOUNDRY_PROJECT_NAME: aiFoundry.outputs.projectName
         }
       }
     ]
@@ -236,6 +274,7 @@ module rbac 'modules/rbac.bicep' = {
     storageAccountName: storageAccountName
     serviceBusNamespaceName: serviceBusNamespaceName
     schedulerName: schedulerName
+    aiFoundryAccountName: aiFoundryName
     functionAppName: functionAppName
     principalId: functionApp.outputs.?systemAssignedMIPrincipalId ?? ''
   }
@@ -265,3 +304,15 @@ output applicationInsightsConnectionString string = applicationInsights.outputs.
 
 @description('Service Bus namespace name.')
 output serviceBusNamespaceName string = serviceBusNamespace.outputs.name
+
+@description('AI Foundry account endpoint URL.')
+output aiFoundryEndpoint string = aiFoundry.outputs.accountEndpoint
+
+@description('AI Foundry account name.')
+output aiFoundryAccountName string = aiFoundry.outputs.accountName
+
+@description('AI Foundry project name.')
+output aiFoundryProjectName string = aiFoundry.outputs.projectName
+
+@description('AI Foundry model deployment name.')
+output aiModelDeploymentName string = aiFoundry.outputs.deploymentName

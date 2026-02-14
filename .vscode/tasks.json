@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "clean (functions)",
+      "command": "dotnet",
+      "args": ["clean", "${workspaceFolder}/source/DurableAgent.Functions/DurableAgent.Functions.csproj", "--output", "${workspaceFolder}/source/DurableAgent.Functions/bin/output"],
+      "type": "process",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build (functions)",
+      "command": "dotnet",
+      "args": ["build", "${workspaceFolder}/source/DurableAgent.Functions/DurableAgent.Functions.csproj", "--output", "${workspaceFolder}/source/DurableAgent.Functions/bin/output"],
+      "type": "process",
+      "dependsOn": "clean (functions)",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "host start (functions)",
+      "type": "shell",
+      "command": "func host start --dotnet-isolated-debug",
+      "options": {
+        "cwd": "${workspaceFolder}/source/DurableAgent.Functions/bin/output"
+      },
+      "dependsOn": "build (functions)",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "azureFunctions",
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Azure Functions Core Tools.*$",
+          "endsPattern": "^.*Worker process started and initialized.*$"
+        }
+      }
+    }
+  ]
+}
