@@ -1,0 +1,38 @@
+name: dotnet-ci
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        working-directory: source
+        run: dotnet restore DurableAgent.slnx
+
+      - name: Build
+        working-directory: source
+        run: dotnet build DurableAgent.slnx --configuration Release --no-restore
+
+      - name: Test
+        working-directory: source
+        run: dotnet test DurableAgent.slnx --configuration Release --no-build
