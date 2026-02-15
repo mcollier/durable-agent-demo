@@ -1,0 +1,63 @@
+@hostname=http://localhost:7071
+
+### Submit feedback - positive
+
+POST {{hostname}}/api/feedback HTTP/1.1
+Content-Type: application/json
+
+{
+    "storeId": "store-001",
+    "orderId": "ord-100",
+    "customer": {
+        "preferredName": "Milo Mustang",
+        "firstName": "Milo",
+        "lastName": "Mustang",
+        "email": "milo.mustang@example.com",
+        "phoneNumber": "555-0100",
+        "preferredContactMethod": "Email"
+    },
+    "channel": "web",
+    "rating": 4,
+    "comment": "Great froyo! The staff was friendly and the flavors were delicious. Will definitely come back!"
+}
+
+### Submit feedback - negative
+POST {{hostname}}/api/feedback HTTP/1.1
+Content-Type: application/json
+
+{
+    "storeId": "store-002",
+    "orderId": "ord-101",
+    "customer": {
+        "preferredName": "Milo Mustang",
+        "firstName": "Milo",
+        "lastName": "Mustang",
+        "email": "milo.mustang@example.com",
+        "phoneNumber": "555-0101",
+        "preferredContactMethod": "Email"
+    },
+    "channel": "web",
+    "rating": 2,
+    "comment": "The froyo was melted and the staff was rude. Very disappointed."
+}
+
+### Submit feedback - store does not exist
+POST {{hostname}}/api/feedback HTTP/1.1
+Content-Type: application/json
+
+{
+    "storeId": "store-999",
+    "orderId": "ord-102",
+    "customer": {
+        "preferredName": "Milo Mustang",
+        "firstName": "Milo",
+        "lastName": "Mustang",
+        "email": "milo.mustang@example.com",
+        "phoneNumber": "555-0102",
+        "preferredContactMethod": "Email"
+    },
+    "channel": "web",
+    "rating": 3,
+    "comment": "The froyo was okay, but the store was unclean."
+}
+
