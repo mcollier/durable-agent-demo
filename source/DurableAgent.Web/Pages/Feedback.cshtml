@@ -1,0 +1,149 @@
+@page
+@model FeedbackModel
+@{
+    ViewData["Title"] = "Customer Feedback";
+}
+
+<div class="froyo-card">
+    <div class="text-center mb-4">
+        <div class="decorative-scoop">🍦 🍨 🍧</div>
+        <h1 class="froyo-heading">We Value Your Feedback!</h1>
+        <p class="lead">Tell us about your Froyo Foundry experience</p>
+    </div>
+
+    @if (Model.IsSuccess)
+    {
+        <div class="alert alert-success" role="alert">
+            <h4 class="alert-heading">✨ Thank You! ✨</h4>
+            <p>Your feedback has been successfully submitted. We appreciate you taking the time to share your experience with us!</p>
+            <hr>
+            <p class="mb-0">We'll use your feedback to make Froyo Foundry even better. 🍦</p>
+        </div>
+        <div class="text-center mt-4">
+            <a asp-page="/Index" class="froyo-btn-primary">Return Home</a>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                <strong>Error:</strong> @Model.ErrorMessage
+            </div>
+        }
+
+        @if (Model.ValidationErrors.Any())
+        {
+            <div class="alert alert-danger" role="alert">
+                <strong>Please correct the following errors:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach (var error in Model.ValidationErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="StoreId" class="form-label">Store ID *</label>
+                    <input asp-for="StoreId" class="form-control" placeholder="e.g., STORE-001" required />
+                    <span asp-validation-for="StoreId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="OrderId" class="form-label">Order ID *</label>
+                    <input asp-for="OrderId" class="form-control" placeholder="e.g., ORD-12345" required />
+                    <span asp-validation-for="OrderId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <h3 class="froyo-heading mb-3">Your Information</h3>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PreferredName" class="form-label">Preferred Name *</label>
+                    <input asp-for="PreferredName" class="form-control" placeholder="How should we address you?" required />
+                    <span asp-validation-for="PreferredName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="FirstName" class="form-label">First Name *</label>
+                    <input asp-for="FirstName" class="form-control" required />
+                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LastName" class="form-label">Last Name *</label>
+                    <input asp-for="LastName" class="form-control" required />
+                    <span asp-validation-for="LastName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Email" class="form-label">Email Address *</label>
+                    <input asp-for="Email" type="email" class="form-control" placeholder="your@email.com" required />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PhoneNumber" class="form-label">Phone Number *</label>
+                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="(555) 123-4567" required />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PreferredContactMethod" class="form-label">Preferred Contact Method *</label>
+                    <select asp-for="PreferredContactMethod" class="form-select" required>
+                        <option value="Email">Email</option>
+                        <option value="Phone">Phone</option>
+                    </select>
+                    <span asp-validation-for="PreferredContactMethod" class="text-danger"></span>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <h3 class="froyo-heading mb-3">Your Experience</h3>
+
+            <div class="mb-4">
+                <label class="form-label d-block text-center">How would you rate your experience? *</label>
+                <div class="star-rating">
+                    <input type="radio" asp-for="Rating" value="5" id="star5" required />
+                    <label for="star5" title="5 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="4" id="star4" />
+                    <label for="star4" title="4 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="3" id="star3" />
+                    <label for="star3" title="3 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="2" id="star2" />
+                    <label for="star2" title="2 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="1" id="star1" />
+                    <label for="star1" title="1 star">⭐</label>
+                </div>
+                <span asp-validation-for="Rating" class="text-danger d-block text-center"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Comment" class="form-label">Tell us about your experience *</label>
+                <textarea asp-for="Comment" class="form-control" rows="5" 
+                          placeholder="Share your thoughts about our froyo, service, or anything else..." required></textarea>
+                <span asp-validation-for="Comment" class="text-danger"></span>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="froyo-btn-primary">
+                    Submit Feedback 🍦
+                </button>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
