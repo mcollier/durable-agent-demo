@@ -9,7 +9,7 @@ This is an **Azure serverless event-driven project** using Azure Functions (Flex
 ## Repository Structure
 
 ```
-infra/bicep/durable-agent-serverless/   # Bicep IaC
+infra/bicep/                            # Bicep IaC
   main.bicep                            # Subscription-scoped orchestrator (4 phases)
   main.bicepparam                       # Parameters (baseName, region, tags)
   deploy.sh                             # CLI wrapper: deploy / what-if / delete
@@ -107,13 +107,13 @@ public async Task RunAsync(
 ## Infrastructure Deployment
 
 ```bash
-./infra/bicep/durable-agent-serverless/deploy.sh      # Deploy
-./infra/bicep/durable-agent-serverless/deploy.sh -w    # What-if (preview)
-./infra/bicep/durable-agent-serverless/deploy.sh -d    # Delete
-./infra/bicep/durable-agent-serverless/deploy.sh -l westus2  # Override location
+./infra/bicep/deploy.sh      # Deploy
+./infra/bicep/deploy.sh -w    # What-if (preview)
+./infra/bicep/deploy.sh -d    # Delete
+./infra/bicep/deploy.sh -l westus2  # Override location
 ```
 
-Validate Bicep: `az bicep build --file infra/bicep/durable-agent-serverless/main.bicep --stdout`
+Validate Bicep: `az bicep build --file infra/bicep/main.bicep --stdout`
 
 ## Planning Workflow
 

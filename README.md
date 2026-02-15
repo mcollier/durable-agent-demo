@@ -32,7 +32,7 @@ All inter-service communication uses **system-assigned managed identity** with R
 ## Project Structure
 
 ```
-infra/bicep/durable-agent-serverless/   # Azure Bicep infrastructure-as-code
+infra/bicep/                            # Azure Bicep infrastructure-as-code
   main.bicep                            # Subscription-scoped deployment (4 phases)
   main.bicepparam                       # Parameters (baseName, region, tags)
   deploy.sh                             # CLI wrapper: deploy / what-if / delete
@@ -86,22 +86,22 @@ dotnet test DurableAgent.slnx
 az login
 
 # Preview changes (what-if)
-./infra/bicep/durable-agent-serverless/deploy.sh -w
+./infra/bicep/deploy.sh -w
 
 # Deploy
-./infra/bicep/durable-agent-serverless/deploy.sh
+./infra/bicep/deploy.sh
 
 # Override region
-./infra/bicep/durable-agent-serverless/deploy.sh -l westus2
+./infra/bicep/deploy.sh -l westus2
 
 # Delete resources
-./infra/bicep/durable-agent-serverless/deploy.sh -d
+./infra/bicep/deploy.sh -d
 ```
 
 ### Validate Bicep
 
 ```bash
-az bicep build --file infra/bicep/durable-agent-serverless/main.bicep --stdout
+az bicep build --file infra/bicep/main.bicep --stdout
 ```
 
 ## Data Flow

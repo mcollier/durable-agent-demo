@@ -4,7 +4,7 @@ Create an Azure Functions (Flex Consumption / FC1) app that reads from a Service
 
 **Steps**
 1. Infra: add queue definition to Service Bus namespace (depends on existing namespace module)
-   - Update `infra/bicep/durable-agent-serverless/main.bicep`
+   - Update `infra/bicep/main.bicep`
    - In the existing `serviceBusNamespace` AVM module (`br/public:avm/res/service-bus/namespace:0.16.1`), add `queues` parameter with explicit production-ready properties:
      ```bicep
      queues: [
@@ -17,10 +17,10 @@ Create an Azure Functions (Flex Consumption / FC1) app that reads from a Service
      ]
      ```
 2. Infra: align Function runtime to .NET 10
-   - Update `infra/bicep/durable-agent-serverless/main.bicepparam`
+   - Update `infra/bicep/main.bicepparam`
    - Change `functionRuntimeVersion` from `9.0` to `10.0`
 3. Infra: add queue name as an app setting (avoid hardcoding in code)
-   - Update `infra/bicep/durable-agent-serverless/main.bicep`
+   - Update `infra/bicep/main.bicep`
    - Add `SERVICEBUS_QUEUE_NAME: 'inbound-feedback'` inside the existing `configs[0].properties` block (alongside the other app settings, ~line 195)
 4. App: scaffold solution/projects under `source/` (parallel with steps 1–3)
    - Create `source/global.json` to pin SDK version:
@@ -80,9 +80,9 @@ Create an Azure Functions (Flex Consumption / FC1) app that reads from a Service
    - Add Core test(s) only if meaningful (keep minimal)
 
 **Relevant files**
-- `infra/bicep/durable-agent-serverless/main.bicep` — add `queues` param to Service Bus namespace module; add `SERVICEBUS_QUEUE_NAME` to existing `configs[0].properties`
-- `infra/bicep/durable-agent-serverless/main.bicepparam` — set `functionRuntimeVersion` to `10.0`
-- `infra/bicep/durable-agent-serverless/modules/rbac.bicep` — no changes expected (already has Service Bus Data Receiver/Sender)
+- `infra/bicep/main.bicep` — add `queues` param to Service Bus namespace module; add `SERVICEBUS_QUEUE_NAME` to existing `configs[0].properties`
+- `infra/bicep/main.bicepparam` — set `functionRuntimeVersion` to `10.0`
+- `infra/bicep/modules/rbac.bicep` — no changes expected (already has Service Bus Data Receiver/Sender)
 - `source/global.json` — pin .NET SDK version for reproducible builds
 - `source/Directory.Build.props` — shared TFM, nullable, and implicit usings
 - `source/DurableAgent.sln` — solution file
@@ -92,10 +92,10 @@ Create an Azure Functions (Flex Consumption / FC1) app that reads from a Service
 - `source/DurableAgent.Core.Tests/` — xUnit tests for Core project
 
 **Verification**
-- Bicep: `bicep build infra/bicep/durable-agent-serverless/main.bicep --stdout`
+- Bicep: `bicep build infra/bicep/main.bicep --stdout`
 - .NET: `dotnet build source/DurableAgent.sln`
 - Tests: `dotnet test source/DurableAgent.sln`
-- Optional infra preview: `./infra/bicep/durable-agent-serverless/deploy.sh -w` (confirm queue creation + runtime update)
+- Optional infra preview: `./infra/bicep/deploy.sh -w` (confirm queue creation + runtime update)
 
 **Decisions**
 - Queue name: `inbound-feedback`

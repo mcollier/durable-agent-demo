@@ -284,7 +284,7 @@ Option A is recommended because the AI Foundry account, project, and model deplo
 ### Module Structure
 
 ```
-infra/bicep/durable-agent-serverless/
+infra/bicep/
 ├── main.bicep                  # Add module call + parameters + outputs
 ├── main.bicepparam             # Add AI Foundry parameters
 └── modules/
