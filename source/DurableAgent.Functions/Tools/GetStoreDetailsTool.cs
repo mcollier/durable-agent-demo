@@ -11,7 +11,7 @@ namespace DurableAgent.Functions.Tools;
 public static class GetStoreDetailsTool
 {
     [Description("Gets details for a specific store by store ID. Returns JSON with store name, address, phone, email, manager, and timezone.")]
-    public static string GetStoreDetails(string storeId)
+    public static string GetStoreDetails([Description("The ID of the store to retrieve details for.")] string storeId)
     {
         Store[] stores =
         [

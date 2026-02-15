@@ -186,7 +186,6 @@ ChatOptions chatOptions = new()
         AIFunctionFactory.Create(OpenCustomerServiceCaseTool.OpenCustomerServiceCase),
         AIFunctionFactory.Create(RedactPiiTool.RedactPII),
     ],
-    // MaxOutputTokens = 10000,
     Instructions = promptMarkdown,
     ResponseFormat = ChatResponseFormat.ForJsonSchema(
         schema: schema,
