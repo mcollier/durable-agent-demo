@@ -2,48 +2,85 @@
 
 ## Project Overview
 
-This is an **Azure serverless event-driven project** using Azure Functions (Flex Consumption), Durable Task Scheduler, Service Bus, and supporting resources. Infrastructure is defined in Azure Bicep (`infra/`), application code in C#/.NET 10 (`source/`).
+A serverless, event-driven application demonstrating **[Durable Agents](https://learn.microsoft.com/en-us/agent-framework/integrations/azure-functions?pivots=programming-language-csharp)** — the integration of the **Microsoft Agent Framework** with **Azure Durable Functions** to create stateful AI agents that persist conversation state, survive failures, and orchestrate multi-agent workflows with reliable execution guarantees.
 
-**Data flow:** Service Bus queue (`inbound-feedback`) → `InboundFeedbackTrigger` → `FeedbackOrchestrator` → `ProcessFeedbackActivity`
+The project uses **Azure Functions (Flex Consumption)** with the **Durable Task Scheduler** to host an Azure OpenAI-backed AI agent that analyzes customer feedback for **Froyo Foundry**, a fictional frozen yogurt chain. Customer feedback arrives via **Azure Service Bus** or an **HTTP endpoint**, is processed by a `CustomerServiceAgent` with tool-calling capabilities, and flows through an extensible activity pipeline — secured entirely with managed identity (zero secrets).
+
+Infrastructure is defined in Azure Bicep (`infra/`), application code in C#/.NET 10 (`source/`).
+
+**Data flow:** HTTP POST /api/feedback → Service Bus queue (`inbound-feedback`) → `InboundFeedbackTrigger` → `FeedbackOrchestrator` (with `CustomerServiceAgent` AI) → `ProcessFeedbackActivity` → optional `SendEscalationEmailActivity`
 
 ## Repository Structure
 
 ```
-infra/bicep/                            # Bicep IaC
-  main.bicep                            # Subscription-scoped orchestrator (4 phases)
+infra/bicep/                            # Azure Bicep infrastructure-as-code
+  main.bicep                            # Subscription-scoped deployment (4 phases)
   main.bicepparam                       # Parameters (baseName, region, tags)
   deploy.sh                             # CLI wrapper: deploy / what-if / delete
   modules/
-    durable-task.bicep                  # Raw: Scheduler + TaskHub (no AVM exists)
-    rbac.bicep                          # RBAC for managed identity (4 roles)
+    ai-foundry.bicep                    # Azure AI Foundry (Cognitive Services)
+    durable-task.bicep                  # Durable Task Scheduler + TaskHub
+    rbac.bicep                          # RBAC role assignments
+
 source/
-  DurableAgent.slnx                     # .NET 10 XML solution file (not .sln)
-  Directory.Build.props                 # Shared: net10.0, nullable, implicit usings
-  global.json                           # SDK pin: 10.0.102
+  DurableAgent.slnx                     # .NET 10 XML solution file
+  Directory.Build.props                 # Shared build properties
+  global.json                           # SDK version pin (10.0.102)
   DurableAgent.Core/                    # Domain logic (zero cloud SDK deps)
-    Models/FeedbackMessage.cs           # sealed record: FeedbackId, StoreId, OrderId, Customer, Channel, Rating, Comment
-    Models/CustomerInfo.cs              # sealed record: PreferredName, FirstName, LastName, Email, PhoneNumber, PreferredContactMethod
-    Models/ContactMethod.cs             # enum: Email, Phone (with JsonStringEnumConverter)
-  DurableAgent.Functions/               # Azure Functions isolated worker project
-    Program.cs                          # FunctionsApplication.CreateBuilder(args)
-    Triggers/InboundFeedbackTrigger.cs  # ServiceBus trigger → starts orchestration
-    Orchestrations/FeedbackOrchestrator.cs  # [OrchestrationTrigger] static class
-    Activities/ProcessFeedbackActivity.cs   # [ActivityTrigger] static class
-    host.json                           # Durable Task azureManaged + tracing V2
+    Models/
+      ContactMethod.cs                  # Enum: Email, Phone
+      CustomerInfo.cs                   # Sealed record: customer details
+      FeedbackMessage.cs                # Sealed record: inbound feedback DTO
+      FeedbackResult.cs                 # Sealed record: AI analysis result (with nested types)
+      Flavor.cs                         # Sealed record: frozen yogurt flavor
+      Store.cs                          # Sealed record: store details
+  DurableAgent.Functions/               # Azure Functions isolated worker
+    Program.cs                          # App entry point, AI agent + DI config
+    host.json                           # Durable Task + Service Bus config
+    Triggers/
+      InboundFeedbackTrigger.cs         # Service Bus trigger → starts orchestration
+      SubmitFeedbackTrigger.cs          # HTTP POST /api/feedback → enqueues to Service Bus
+    Orchestrations/
+      FeedbackOrchestrator.cs           # Durable orchestrator with AI agent
+    Activities/
+      ProcessFeedbackActivity.cs        # Processes feedback after AI analysis
+      SendEscalationEmailActivity.cs    # Sends escalation for human-review cases
+    Services/
+      IFeedbackQueueSender.cs           # Queue sender abstraction
+      ServiceBusFeedbackQueueSender.cs  # Service Bus implementation
+    Models/
+      FeedbackSubmissionRequest.cs      # HTTP request DTO with validation
+      SendEscalationEmailInput.cs       # Escalation activity input
+    Tools/                              # AI agent tool functions
+      GenerateCouponCodeTool.cs         # Generates coupon codes
+      GetCurrentUtcDateTimeTool.cs      # Returns current UTC timestamp
+      GetStoreDetailsTool.cs            # Looks up store info by ID
+      ListFlavorsTool.cs                # Lists available flavors
+      OpenCustomerServiceCaseTool.cs    # Opens a customer service case
+      RedactPiiTool.cs                  # Redacts PII from text
   DurableAgent.Core.Tests/              # xUnit tests for Core
   DurableAgent.Functions.Tests/         # xUnit + FakeItEasy tests for Functions
+
 docs/
-  bicep-planning-files/                 # Infra plans (YAML resource blocks)
-    INFRA.durable-agent-serverless.md   # Canonical infra plan
-  plan-durableAgentServerless.md        # App implementation plan
-.github/agents/                         # Copilot agent definitions
-  bicep-plan.agent.md                   # Plans infra → docs/bicep-planning-files/
-  bicep-impl.agent.md                   # Implements Bicep from plans
-  csharp-expert.agent.md                # .NET development guidance
+  plan-durableAgentServerless.md        # Application implementation plan
+  bicep-planning-files/                 # Infrastructure plans
+
+.github/
+  agents/                               # Custom Copilot agents
+    bicep-plan.agent.md                 # Plans infra → docs/bicep-planning-files/
+    bicep-impl.agent.md                 # Implements Bicep from plans
+    csharp-expert.agent.md              # .NET development guidance
+  skills/git-commit/                    # Git commit skill for conventional commits
+  workflows/dotnet-ci.yml               # CI: build and test on push/PR
+  copilot-instructions.md               # This file — repository-wide Copilot context
 ```
 
 ## Architecture & Key Decisions
 
+- **[Durable Agents](https://learn.microsoft.com/en-us/agent-framework/integrations/azure-functions?pivots=programming-language-csharp)** — Microsoft Agent Framework + Azure Durable Functions for stateful AI agents with automatic state persistence, failure recovery, and deterministic orchestrations
+- **DurableAIAgent orchestration** — The orchestrator uses `context.GetAgent()` to get a `DurableAIAgent` wrapper that checkpoints agent calls within the durable orchestration framework
+- **Structured AI output** — Azure OpenAI with `ChatResponseFormat.ForJsonSchema` produces typed `FeedbackResult` responses including sentiment, risk assessment, recommended actions, and optional coupons
+- **AI tool calling** — The agent has 6 tool functions (store lookup, coupon generation, case management, PII redaction, etc.) that it invokes autonomously during analysis
 - **Subscription-scoped deployment** (`targetScope = 'subscription'` in main.bicep) — creates the resource group, then deploys into it.
 - **4-phase deployment**: (1) Foundation (Log Analytics, Storage, Service Bus, Durable Task), (2) Monitoring (App Insights), (3) Compute (FC1 plan + Function App), (4) RBAC.
 - **Azure Verified Modules (AVM)** via `br/public:avm/res/...` for standard resources. Raw Bicep only for `Microsoft.DurableTask/schedulers@2025-11-01` (no AVM exists).
@@ -51,15 +88,34 @@ docs/
 - **Flex Consumption (FC1)**: Function App uses `functionAppConfig` with blob-based deployment storage via `SystemAssignedIdentity`.
 - Resource names are deterministic: `{prefix}-{baseName}-{uniqueString}` pattern using `resourceToken`.
 
+## Azure Resources
+
+| Resource | SKU / Tier | Purpose |
+|---|---|---|
+| Azure Functions | Flex Consumption (FC1) | Serverless compute with per-execution billing |
+| Durable Task Scheduler | Consumption | Managed backend for durable orchestrations |
+| Azure AI Foundry | Cognitive Services | Azure OpenAI endpoint for AI agent |
+| Azure Service Bus | Standard | Reliable async messaging (queues/topics) |
+| Azure Storage Account | Standard LRS | Function runtime deployment artifacts |
+| Application Insights | Workspace-based | Monitoring, diagnostics, and telemetry |
+| Log Analytics Workspace | PerGB2018 | Backing store for Application Insights |
+
 ## Durable Functions Pattern
 
 Uses the **function-based (static method)** pattern for the isolated worker model — NOT the class-based `[DurableTask]` / `TaskOrchestrator<>` pattern:
 
 ```csharp
-// Orchestrator — static class + [OrchestrationTrigger]
+// Orchestrator — static class + [OrchestrationTrigger] with AI agent
 [Function(nameof(FeedbackOrchestrator))]
 public static async Task<string> RunAsync(
     [OrchestrationTrigger] TaskOrchestrationContext context, FeedbackMessage input)
+{
+    // Get DurableAIAgent wrapper that checkpoints agent calls
+    var agent = context.GetAgent("CustomerServiceAgent");
+    var session = await agent.CreateSessionAsync();
+    var result = await session.RunAsync<FeedbackResult>(input);
+    // ... call activities
+}
 
 // Activity — static class + [ActivityTrigger]
 [Function(nameof(ProcessFeedbackActivity))]
@@ -70,10 +126,19 @@ public static string Run([ActivityTrigger] FeedbackMessage input, FunctionContex
 public async Task RunAsync(
     [ServiceBusTrigger(...)] ServiceBusReceivedMessage message,
     [DurableClient] DurableTaskClient durableClient, CancellationToken cancellationToken)
+
+// AI Agent Tool — static class with [FunctionInvocation] method
+public static class GenerateCouponCodeTool
+{
+    [FunctionInvocation("Generate a coupon code...")]
+    public static async Task<string> RunAsync(...)
+}
 ```
 
 - Trigger classes use **primary constructor DI** (`sealed class Foo(ILogger<Foo> logger)`).
 - Orchestrators/activities are **static classes** — no DI, use `context.CreateReplaySafeLogger()` or `FunctionContext.GetLogger()`.
+- **AI agent tools** are static classes with `[FunctionInvocation]` attributes that define the tool description for the AI model.
+- **DurableAIAgent** provides the wrapper for agent calls in orchestrations: `context.GetAgent(name)` → `CreateSessionAsync()` → `RunAsync<TResult>()`.
 - Durable Task storage provider is `"azureManaged"` in host.json with `connectionStringName: "DURABLE_TASK_SCHEDULER_CONNECTION_STRING"`.
 
 ## C#/.NET Conventions
@@ -82,9 +147,12 @@ public async Task RunAsync(
 - `Directory.Build.props` centralizes TFM, nullable, and implicit usings for all 4 projects.
 - **Namespace convention**: `DurableAgent.{Project}.{Folder}` — matches directory structure.
 - **Functions project** depends on Core; Core has zero cloud SDK references.
-- **DTOs**: `sealed record` with `required` properties (e.g., `FeedbackMessage`).
+- **DTOs**: `sealed record` with `required` properties (e.g., `FeedbackMessage`, `FeedbackResult`, `CustomerInfo`, `Store`, `Flavor`).
+- **Enums**: Use `JsonStringEnumConverter` for JSON serialization (e.g., `ContactMethod`).
+- **AI Models**: `FeedbackResult` is a nested sealed record structure with `Sentiment`, `RiskAssessment`, `RecommendedAction`, and optional `CouponDetails`.
 - **Guard clauses**: `ArgumentNullException.ThrowIfNull(param)` at method entry.
 - **Entry point**: `FunctionsApplication.CreateBuilder(args)` in Program.cs (not `HostApplicationBuilder`).
+- **AI agent registration**: Register agents in Program.cs with `builder.RegisterDurableAgent<TAgent>(name)` and configure tools with `[FunctionInvocation]` attributes.
 
 ## Testing
 
@@ -98,7 +166,7 @@ public async Task RunAsync(
 ## Bicep Conventions
 
 - Use AVM modules from `br/public:avm/res/...` whenever available. Check [AVM index](https://aka.ms/avm/index).
-- Raw Bicep (explicit API versions) in `modules/` for resources without AVM.
+- Raw Bicep (explicit API versions) in `modules/` for resources without AVM (`durable-task.bicep`, `ai-foundry.bicep`).
 - RBAC in `modules/rbac.bicep`, scoped to individual resources via `existing` references.
 - `guid(resourceName, roleId, principalName)` for deterministic role assignment names.
 - Parameters use `@description`, `@allowed`, `@minLength`/`@maxLength` decorators.
@@ -124,9 +192,11 @@ Infrastructure changes follow a **plan-then-implement** pattern:
 
 ## CI/CD (GitHub Actions)
 
-- **Not yet implemented.** Workflows will live in `.github/workflows/`.
-- Expected: Bicep validate/what-if on PR, deploy on merge to `main`, .NET build/test on PR.
-- Use `azure/login` with OIDC federated credentials (no stored secrets).
+- **Workflow**: `.github/workflows/dotnet-ci.yml` — runs on push/PR to `main`.
+- Performs: .NET restore, build, and test for all projects in the solution.
+- Uses .NET 10 SDK.
+- Future: Add Bicep validate/what-if on PR, deploy on merge to `main`.
+- Use `azure/login` with OIDC federated credentials (no stored secrets) for deployment workflows.
 
 ## Dev Environment
 
