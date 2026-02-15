@@ -125,4 +125,78 @@ public class FeedbackMessageTests
 
         Assert.NotEqual(a, b);
     }
+
+    [Fact]
+    public void WhenMessageToStringCalled_ThenContainsTypeName()
+    {
+        var message = new FeedbackMessage
+        {
+            FeedbackId = "fbk-006",
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = CreateTestCustomer(),
+            Channel = "web",
+            Rating = 3,
+            Comment = "Test"
+        };
+
+        var str = message.ToString();
+
+        Assert.Contains("FeedbackMessage", str);
+        Assert.Contains("fbk-006", str);
+    }
+
+    [Fact]
+    public void WhenMessageGetHashCodeCalled_ThenEqualObjectsHaveSameHash()
+    {
+        var timestamp = DateTimeOffset.UtcNow;
+        var customer = CreateTestCustomer();
+
+        var a = new FeedbackMessage
+        {
+            FeedbackId = "fbk-007",
+            SubmittedAt = timestamp,
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = customer,
+            Channel = "web",
+            Rating = 4,
+            Comment = "Hash test"
+        };
+
+        var b = new FeedbackMessage
+        {
+            FeedbackId = "fbk-007",
+            SubmittedAt = timestamp,
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = customer,
+            Channel = "web",
+            Rating = 4,
+            Comment = "Hash test"
+        };
+
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+    }
+
+    [Fact]
+    public void WhenMessageCopiedWithNewRating_ThenOnlyRatingChanges()
+    {
+        var original = new FeedbackMessage
+        {
+            FeedbackId = "fbk-008",
+            StoreId = "store-001",
+            OrderId = "ord-001",
+            Customer = CreateTestCustomer(),
+            Channel = "web",
+            Rating = 5,
+            Comment = "Original"
+        };
+
+        var copy = original with { Rating = 1 };
+
+        Assert.Equal(1, copy.Rating);
+        Assert.Equal(original.FeedbackId, copy.FeedbackId);
+        Assert.NotEqual(original, copy);
+    }
 }

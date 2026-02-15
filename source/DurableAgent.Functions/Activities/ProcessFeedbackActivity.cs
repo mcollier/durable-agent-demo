@@ -25,7 +25,8 @@ public static class ProcessFeedbackActivity
             input.FeedbackId,
             input.Comment);
 
-        // Placeholder — replace with real business logic
+        // TODO: Replace with real business logic
+        
         return $"Processed feedback '{input.FeedbackId}' at {DateTimeOffset.UtcNow:O}";
     }
 }

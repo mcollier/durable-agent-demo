@@ -1,5 +1,6 @@
 using DurableAgent.Core.Models;
 using DurableAgent.Functions.Activities;
+using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DurableTask;
 using Microsoft.Azure.Functions.Worker;
@@ -25,10 +26,6 @@ public static class FeedbackOrchestrator
         var logger = context.CreateReplaySafeLogger(nameof(FeedbackOrchestrator));
         logger.LogInformation("Processing feedback {FeedbackId}", input.FeedbackId);
 
-        // var result = await context.CallActivityAsync<string>(
-        //     nameof(ProcessFeedbackActivity),
-        //     input);
-
         FeedbackMessage feedback = context.GetInput<FeedbackMessage>() 
             ?? throw new InvalidOperationException("Orchestration input is null or invalid.");
 
@@ -39,6 +36,24 @@ public static class FeedbackOrchestrator
             message: $"Analyze this customer feedback and provide a summary and sentiment rating: {feedback}",
             session: agentSession);
 
+        FeedbackResult feedbackResult = agentResponse.Result;
+
+        // check if the feedback result requires human following
+        if (feedbackResult.FollowUp?.RequiresHuman == true)
+        {
+            logger.LogWarning("Feedback {FeedbackId} requires human review. Escalating.", feedback.FeedbackId);
+
+            // Send an escalation email to customer service management
+            await context.CallActivityAsync<string>(
+                nameof(SendEscalationEmailActivity),
+                new SendEscalationEmailInput
+                {
+                    FeedbackId = feedback.FeedbackId,
+                    CaseId = feedbackResult.FollowUp?.CaseId ?? string.Empty,
+                    Details = $"Sentiment: {feedbackResult.Sentiment}, Risk: {feedbackResult.Risk}, Action: {feedbackResult.Action}, Message: {feedbackResult.Message.Subject} - {feedbackResult.Message.Body}"
+                });
+        }
+
         var result = await context.CallActivityAsync<string>(
             nameof(ProcessFeedbackActivity),
             input);
@@ -48,3 +63,4 @@ public static class FeedbackOrchestrator
         return result;
     }
 }
+

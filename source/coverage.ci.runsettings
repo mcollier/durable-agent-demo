@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Used by CI (GitHub Actions) with coverlet / XPlat Code Coverage. -->
+<!-- Local VS Code coverage uses coverage.runsettings instead. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[DurableAgent.Core]*,[DurableAgent.Functions]*</Include>
+          <Exclude>[*]DurableAgent.Functions.DirectFunctionExecutor,[*]DurableAgent.Functions.FunctionExecutorAutoStartup,[*]DurableAgent.Functions.FunctionExecutorHostBuilderExtensions,[*]DurableAgent.Functions.FunctionMetadataProviderAutoStartup,[*]DurableAgent.Functions.GeneratedFunctionMetadataProvider,[*]DurableAgent.Functions.WorkerExtensionStartupCodeExecutor,[*]DurableAgent.Functions.WorkerHostBuilderFunctionMetadataProviderExtension,[*]DurableAgent.Functions.Orchestrations.FeedbackOrchestrator,[*]Program</Exclude>
+          <ExcludeByAttribute>ExcludeFromCodeCoverage</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

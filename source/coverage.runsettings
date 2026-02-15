@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Used by VS Code interactive coverage (Microsoft Code Coverage collector). -->
+<!-- CI uses coverage.ci.runsettings instead (coverlet / XPlat Code Coverage). -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <CodeCoverage>
+            <ModulePaths>
+              <Include>
+                <ModulePath>.*DurableAgent\.Core\.dll$</ModulePath>
+                <ModulePath>.*DurableAgent\.Functions\.dll$</ModulePath>
+              </Include>
+            </ModulePaths>
+            <Functions>
+              <Exclude>
+                <!-- Exclude auto-generated SDK classes -->
+                <Function>.*DirectFunctionExecutor.*</Function>
+                <Function>.*FunctionExecutorAutoStartup.*</Function>
+                <Function>.*FunctionExecutorHostBuilderExtensions.*</Function>
+                <Function>.*FunctionMetadataProviderAutoStartup.*</Function>
+                <Function>.*GeneratedFunctionMetadataProvider.*</Function>
+                <Function>.*WorkerExtensionStartupCodeExecutor.*</Function>
+                <Function>.*WorkerHostBuilderFunctionMetadataProviderExtension.*</Function>
+                <!-- Exclude Program.cs top-level statements (composition root) -->
+                <Function>.*Program\.&lt;Main&gt;\$.*</Function>
+                <Function>.*Program\..*</Function>
+                <!-- Exclude FeedbackOrchestrator (integration code requiring full Durable Task + Agents runtime) -->
+                <Function>.*FeedbackOrchestrator.*</Function>
+              </Exclude>
+            </Functions>
+            <Attributes>
+              <Exclude>
+                <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+              </Exclude>
+            </Attributes>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

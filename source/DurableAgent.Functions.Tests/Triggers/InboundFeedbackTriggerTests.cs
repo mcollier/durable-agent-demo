@@ -68,4 +68,41 @@ public class InboundFeedbackTriggerTests
         Assert.NotNull(actualInput.Customer);
         Assert.Equal("Aidan", actualInput.Customer.PreferredName);
     }
+
+    [Fact]
+    public async Task WhenMessageIsNull_ThenThrowsArgumentNullException()
+    {
+        var trigger = new InboundFeedbackTrigger(_logger);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            trigger.RunAsync(null!, _durableClient, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task WhenDurableClientIsNull_ThenThrowsArgumentNullException()
+    {
+        var body = BinaryData.FromObjectAsJson(CreateTestFeedback());
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-2");
+        var trigger = new InboundFeedbackTrigger(_logger);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            trigger.RunAsync(message, null!, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task WhenMessageBodyIsNullFeedback_ThenLogsWarningAndReturns()
+    {
+        // Arrange — body that deserializes to null
+        var body = BinaryData.FromString("null");
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-null");
+        var trigger = new InboundFeedbackTrigger(_logger);
+
+        // Act — should not throw, should log warning and return early
+        await trigger.RunAsync(message, _durableClient, CancellationToken.None);
+
+        // Assert — no orchestration was scheduled
+        var scheduleCalls = Fake.GetCalls(_durableClient)
+            .Where(c => c.Method.Name == nameof(DurableTaskClient.ScheduleNewOrchestrationInstanceAsync));
+        Assert.Empty(scheduleCalls);
+    }
 }
