@@ -10,29 +10,17 @@ The demo scenario is **Froyo Foundry**, a fictional frozen yogurt chain that pro
 
 ## Architecture
 
-```
-                                 ┌──── HTTP POST /api/feedback ────┐
-                                 │                                 │
-                                 ▼                                 │
-                          SubmitFeedbackTrigger                    │
-                                 │                                 │
-                                 ▼                                 │
-External Producer ──► Service Bus Queue ──► InboundFeedbackTrigger │
-                        (inbound-feedback)         │               │
-                                                   ▼               │
-                                      FeedbackOrchestrator         │
-                                      (Durable Orchestration)      │
-                                            │          │           │
-                                            ▼          ▼           │
-                                  CustomerService   ProcessFeedbackActivity
-                                   (DurableAIAgent)       │
-                                    │                      │
-                                    ▼                      │
-                              FeedbackResult               │
-                                    │                      │
-                              (if escalation needed)       │
-                                    ▼                      │
-                          SendEscalationEmailActivity      │
+```mermaid
+flowchart TD
+    Http[HTTP POST /api/feedback] --> Submit[SubmitFeedbackTrigger]
+    Submit --> Queue[Service Bus Queue<br/>inbound-feedback]
+    Producer[External Producer] --> Queue
+    Queue --> Inbound[InboundFeedbackTrigger]
+    Inbound --> Orchestrator[FeedbackOrchestrator<br/>Durable Orchestration]
+    Orchestrator --> Agent[CustomerServiceAgent<br/>DurableAIAgent]
+    Orchestrator --> Process[ProcessFeedbackActivity]
+    Agent --> Result[FeedbackResult]
+    Result -->|if escalation needed| Escalate[SendEscalationEmailActivity]
 ```
 
 All inter-service communication uses **system-assigned managed identity** with RBAC — no connection strings, SAS tokens, or shared keys.
