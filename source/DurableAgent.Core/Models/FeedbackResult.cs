@@ -26,9 +26,6 @@ public sealed record FeedbackResult
     /// <summary>Follow-up disposition for the feedback.</summary>
     public required FollowUp FollowUp { get; init; }
 
-    /// <summary>Tool calls made by the agent during processing.</summary>
-    public IReadOnlyList<ToolCallRecord> ToolCalls { get; init; } = [];
-
     /// <summary>Agent confidence score (0.0–1.0).</summary>
     public required double Confidence { get; init; }
 }
@@ -87,14 +84,3 @@ public sealed record FollowUp
     public string? CaseId { get; init; }
 }
 
-/// <summary>
-/// Record of a tool call made by the agent during processing.
-/// </summary>
-public sealed record ToolCallRecord
-{
-    /// <summary>Name of the tool that was invoked.</summary>
-    public required string ToolName { get; init; }
-
-    /// <summary>Reference identifier for the tool result.</summary>
-    public required string ResultRef { get; init; }
-}
