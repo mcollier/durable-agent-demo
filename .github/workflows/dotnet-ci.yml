@@ -33,6 +33,26 @@ jobs:
         working-directory: source
         run: dotnet build DurableAgent.slnx --configuration Release --no-restore
 
-      - name: Test
+      - name: Test with coverage
         working-directory: source
-        run: dotnet test DurableAgent.slnx --configuration Release --no-build
+        run: >-
+          dotnet test DurableAgent.slnx
+          --configuration Release
+          --no-build
+          --settings coverage.ci.runsettings
+          --results-directory ./TestResults
+
+      - name: Generate coverage report
+        if: always()
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"source/TestResults/**/coverage.cobertura.xml" \
+            -targetdir:source/TestResults/report \
+            -reporttypes:"MarkdownSummaryGithub;TextSummary" \
+            -assemblyfilters:"+DurableAgent.Core;+DurableAgent.Functions"
+
+          cat source/TestResults/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          echo ""
+          echo "=== Coverage Summary ==="
+          cat source/TestResults/report/Summary.txt
