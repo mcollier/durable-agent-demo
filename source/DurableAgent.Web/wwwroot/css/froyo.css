@@ -168,3 +168,24 @@ body {
     font-size: 3rem;
     margin: 1rem;
 }
+
+/* Tech-themed additions for software engineers */
+code {
+    background-color: rgba(139, 69, 19, 0.1);
+    color: var(--froyo-chocolate);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.9em;
+}
+
+.text-muted.small {
+    font-family: 'Courier New', Consolas, monospace;
+    color: var(--froyo-pistachio);
+}
+
+label small.text-muted {
+    font-family: 'Courier New', Consolas, monospace;
+    color: var(--froyo-pistachio);
+    font-weight: normal;
+}
