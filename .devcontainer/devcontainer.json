@@ -31,6 +31,7 @@
                 "azurite.azurite",
                 "github.vscode-github-actions",
                 "codezombiech.gitignore",
+                "humao.rest-client",
                 "ms-azuretools.vscode-bicep",
                 "ms-azuretools.vscode-azurefunctions",
                 "ms-dotnettools.csdevkit",
