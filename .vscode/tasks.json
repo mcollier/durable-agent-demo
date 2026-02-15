@@ -23,7 +23,7 @@
     {
       "label": "host start (functions)",
       "type": "shell",
-      "command": "func host start --dotnet-isolated-debug",
+      "command": "func host start",
       "options": {
         "cwd": "${workspaceFolder}/source/DurableAgent.Functions/bin/output"
       },

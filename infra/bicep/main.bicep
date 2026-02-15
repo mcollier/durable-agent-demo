@@ -42,6 +42,9 @@ param tags object = {}
 
 // ─── AI Foundry Parameters ──────────────────────────────────────────────────
 
+@description('Azure region for the AI Foundry account. Defaults to the main location. Override to use a region with available model quota.')
+param aiFoundryLocation string = location
+
 @description('Name of the OpenAI model to deploy in AI Foundry.')
 param modelName string = 'gpt-4.1-mini'
 
@@ -161,7 +164,7 @@ module aiFoundry 'modules/ai-foundry.bicep' = {
   params: {
     aiFoundryName: aiFoundryName
     aiProjectName: aiProjectName
-    location: location
+    location: aiFoundryLocation
     tags: tags
     modelName: modelName
     modelFormat: modelFormat

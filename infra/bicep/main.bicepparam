@@ -19,11 +19,13 @@ param tags = {
   environment: 'dev'
 }
 
-param modelName = 'gpt-5.2'
+param aiFoundryLocation = 'eastus2'
+
+param modelName = 'gpt-5.1'
 
 param modelFormat = 'OpenAI'
 
-param modelVersion = '2025-12-11'
+param modelVersion = '2025-11-13'
 
 param modelSkuName = 'GlobalStandard'
 
