@@ -140,11 +140,10 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
         ErrorMessage = null;
         IsSuccess = false;
 
-        // Reload stores and flavors for the dropdowns in case validation fails
-        await LoadStoresAndFlavorsAsync();
-
         if (!ModelState.IsValid)
         {
+            // Reload stores and flavors for the dropdowns when validation fails
+            await LoadStoresAndFlavorsAsync();
             return Page();
         }
 
