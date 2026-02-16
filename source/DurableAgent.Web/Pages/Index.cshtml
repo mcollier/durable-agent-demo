@@ -1,0 +1,31 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="hero-section">
+    <div class="decorative-scoop">🍦 💻 🍨 ⚡ 🍧</div>
+    <h1 class="display-4">Welcome to Froyo Foundry!</h1>
+    <p class="lead">Where Every Scoop is <code>async</code> Delicious!</p>
+    <p>Fuel your coding sessions with frozen yogurt. We debug recipes and deploy flavor. Your feedback helps us iterate faster! 🚀</p>
+    <a asp-page="/Feedback" class="froyo-btn-primary mt-3">git commit --feedback</a>
+</div>
+
+<div class="row text-center mt-4">
+    <div class="col-md-4">
+        <div class="decorative-scoop">🔧 🍓</div>
+        <h3 class="froyo-heading">Optimized Flavors</h3>
+        <p>Crafted with precision like your favorite algorithm - <code>O(delicious)</code></p>
+    </div>
+    <div class="col-md-4">
+        <div class="decorative-scoop">💚 😊</div>
+        <h3 class="froyo-heading">Developer Experience</h3>
+        <p>Your satisfaction is our highest priority. No breaking changes to your taste buds!</p>
+    </div>
+    <div class="col-md-4">
+        <div class="decorative-scoop">⚡ ⭐</div>
+        <h3 class="froyo-heading">Low Latency Service</h3>
+        <p>Fast serve times - because we know your <code>build</code> is still running</p>
+    </div>
+</div>

@@ -1,0 +1,150 @@
+@page
+@model FeedbackModel
+@{
+    ViewData["Title"] = "Customer Feedback";
+}
+
+<div class="froyo-card">
+    <div class="text-center mb-4">
+        <div class="decorative-scoop">🍦 💻 🍨 ⚡ 🍧</div>
+        <h1 class="froyo-heading">Push Your Feedback!</h1>
+        <p class="lead">Help us debug our service and optimize your experience</p>
+        <p class="text-muted small">// We promise this form is stateless and idempotent 😉</p>
+    </div>
+
+    @if (Model.IsSuccess)
+    {
+        <div class="alert alert-success" role="alert">
+            <h4 class="alert-heading">✨ Feedback Deployed Successfully! ✨</h4>
+            <p><code>HTTP 200 OK</code> - Your feedback has been merged into our main branch. Thanks for contributing to the codebase of deliciousness!</p>
+            <hr>
+            <p class="mb-0">We'll iterate on this feedback in our next sprint. 🍦 🚀</p>
+        </div>
+        <div class="text-center mt-4">
+            <a asp-page="/Index" class="froyo-btn-primary">cd ~/</a>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                <strong>Exception caught:</strong> @Model.ErrorMessage
+            </div>
+        }
+
+        @if (Model.ValidationErrors.Any())
+        {
+            <div class="alert alert-danger" role="alert">
+                <strong>Compilation errors detected:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach (var error in Model.ValidationErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post" asp-antiforgery="true">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="StoreId" class="form-label">Store ID * <small class="text-muted">// location identifier</small></label>
+                    <input asp-for="StoreId" class="form-control" placeholder="e.g., STORE-SFO-01 or dev.store.local" required />
+                    <span asp-validation-for="StoreId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="OrderId" class="form-label">Order ID * <small class="text-muted">// transaction hash</small></label>
+                    <input asp-for="OrderId" class="form-control" placeholder="e.g., ORD-A3F9C2 or uuid.v4()" required />
+                    <span asp-validation-for="OrderId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <h3 class="froyo-heading mb-3">Your Information <small class="text-muted">// user metadata</small></h3>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PreferredName" class="form-label">Preferred Name *</label>
+                    <input asp-for="PreferredName" class="form-control" placeholder="e.g., Alex, handle, or nickname" required />
+                    <span asp-validation-for="PreferredName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="FirstName" class="form-label">First Name *</label>
+                    <input asp-for="FirstName" class="form-control" placeholder="firstName" required />
+                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LastName" class="form-label">Last Name *</label>
+                    <input asp-for="LastName" class="form-control" placeholder="lastName" required />
+                    <span asp-validation-for="LastName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Email" class="form-label">Email Address *</label>
+                    <input asp-for="Email" type="email" class="form-control" placeholder="dev@example.com" required />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PhoneNumber" class="form-label">Phone Number *</label>
+                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+1-555-CODE-NOW" required />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PreferredContactMethod" class="form-label">Preferred Contact Method *</label>
+                    <select asp-for="PreferredContactMethod" class="form-select" required>
+                        <option value="Email">Email (async preferred)</option>
+                        <option value="Phone">Phone (real-time sync)</option>
+                    </select>
+                    <span asp-validation-for="PreferredContactMethod" class="text-danger"></span>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <h3 class="froyo-heading mb-3">Your Experience <small class="text-muted">// performance metrics</small></h3>
+
+            <div class="mb-4">
+                <label class="form-label d-block text-center">Rate our service <small class="text-muted">(1 = bug, 5 = feature)</small> *</label>
+                <div class="star-rating">
+                    <input type="radio" asp-for="Rating" value="5" id="star5" required />
+                    <label for="star5" title="5 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="4" id="star4" />
+                    <label for="star4" title="4 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="3" id="star3" />
+                    <label for="star3" title="3 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="2" id="star2" />
+                    <label for="star2" title="2 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="1" id="star1" />
+                    <label for="star1" title="1 star">⭐</label>
+                </div>
+                <span asp-validation-for="Rating" class="text-danger d-block text-center"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Comment" class="form-label">Your Feedback <small class="text-muted">// comments and logs</small> *</label>
+                <textarea asp-for="Comment" class="form-control" rows="5" 
+                          placeholder="/* Tell us what worked, what didn't, and how we can optimize your experience. Bug reports welcome! */" required></textarea>
+                <span asp-validation-for="Comment" class="text-danger"></span>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="froyo-btn-primary">
+                    git push origin feedback 🍦
+                </button>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
