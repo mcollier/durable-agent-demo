@@ -77,6 +77,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
     public List<string> ValidationErrors { get; set; } = [];
     public List<Store> Stores { get; set; } = [];
     public List<Flavor> Flavors { get; set; } = [];
+    public List<string> ApiLoadWarnings { get; set; } = [];
 
     public async Task OnGetAsync()
     {
@@ -85,6 +86,8 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
 
     private async Task LoadStoresAndFlavorsAsync()
     {
+        ApiLoadWarnings.Clear();
+        
         try
         {
             var storesUrl = configuration["AzureFunctions:StoresApiUrl"];
@@ -93,6 +96,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             if (string.IsNullOrWhiteSpace(storesUrl) || string.IsNullOrWhiteSpace(flavorsUrl))
             {
                 logger.LogWarning("Stores or Flavors API URL not configured");
+                ApiLoadWarnings.Add("Store and flavor selection is temporarily unavailable. Please try again later.");
                 return;
             }
 
@@ -107,10 +111,16 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
                     var storesJson = await storesResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
                     Stores = JsonSerializer.Deserialize<List<Store>>(storesJson, JsonOptions) ?? [];
                 }
+                else
+                {
+                    logger.LogWarning("Failed to load stores. Status: {StatusCode}", storesResponse.StatusCode);
+                    ApiLoadWarnings.Add("Unable to load store locations. Please try refreshing the page.");
+                }
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Failed to load stores");
+                ApiLoadWarnings.Add("Unable to load store locations. Please try refreshing the page.");
             }
 
             // Load flavors
@@ -122,15 +132,22 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
                     var flavorsJson = await flavorsResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
                     Flavors = JsonSerializer.Deserialize<List<Flavor>>(flavorsJson, JsonOptions) ?? [];
                 }
+                else
+                {
+                    logger.LogWarning("Failed to load flavors. Status: {StatusCode}", flavorsResponse.StatusCode);
+                    ApiLoadWarnings.Add("Unable to load flavor options. Please try refreshing the page.");
+                }
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Failed to load flavors");
+                ApiLoadWarnings.Add("Unable to load flavor options. Please try refreshing the page.");
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error loading stores and flavors");
+            ApiLoadWarnings.Add("An error occurred while loading form data. Please try refreshing the page.");
         }
     }
 
