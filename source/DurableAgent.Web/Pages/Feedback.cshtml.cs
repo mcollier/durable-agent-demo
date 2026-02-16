@@ -10,6 +10,9 @@ namespace DurableAgent.Web.Pages;
 
 public class FeedbackModel(IConfiguration configuration, IHttpClientFactory httpClientFactory, ILogger<FeedbackModel> logger) : PageModel
 {
+    private const string StoresLoadErrorMessage = "Unable to load store locations. Please try refreshing the page.";
+    private const string FlavorsLoadErrorMessage = "Unable to load flavor options. Please try refreshing the page.";
+    
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -77,7 +80,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
     public List<string> ValidationErrors { get; set; } = [];
     public List<Store> Stores { get; set; } = [];
     public List<Flavor> Flavors { get; set; } = [];
-    public List<string> ApiLoadWarnings { get; set; } = [];
+    public HashSet<string> ApiLoadWarnings { get; set; } = [];
 
     public async Task OnGetAsync()
     {
@@ -96,7 +99,15 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             if (string.IsNullOrWhiteSpace(storesUrl) || string.IsNullOrWhiteSpace(flavorsUrl))
             {
                 logger.LogWarning("Stores or Flavors API URL not configured");
-                ApiLoadWarnings.Add("Store and flavor selection is temporarily unavailable. Please try again later.");
+                // Don't add a warning here - let individual checks below handle it
+                if (string.IsNullOrWhiteSpace(storesUrl))
+                {
+                    ApiLoadWarnings.Add(StoresLoadErrorMessage);
+                }
+                if (string.IsNullOrWhiteSpace(flavorsUrl))
+                {
+                    ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
+                }
                 return;
             }
 
@@ -114,13 +125,13 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
                 else
                 {
                     logger.LogWarning("Failed to load stores. Status: {StatusCode}", storesResponse.StatusCode);
-                    ApiLoadWarnings.Add("Unable to load store locations. Please try refreshing the page.");
+                    ApiLoadWarnings.Add(StoresLoadErrorMessage);
                 }
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Failed to load stores");
-                ApiLoadWarnings.Add("Unable to load store locations. Please try refreshing the page.");
+                ApiLoadWarnings.Add(StoresLoadErrorMessage);
             }
 
             // Load flavors
@@ -135,13 +146,13 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
                 else
                 {
                     logger.LogWarning("Failed to load flavors. Status: {StatusCode}", flavorsResponse.StatusCode);
-                    ApiLoadWarnings.Add("Unable to load flavor options. Please try refreshing the page.");
+                    ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
                 }
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Failed to load flavors");
-                ApiLoadWarnings.Add("Unable to load flavor options. Please try refreshing the page.");
+                ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
             }
         }
         catch (Exception ex)
