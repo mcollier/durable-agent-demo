@@ -67,12 +67,71 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
     [StringLength(2000, MinimumLength = 10, ErrorMessage = "Comment must be between 10 and 2000 characters")]
     public string Comment { get; set; } = string.Empty;
 
+    [BindProperty]
+    [Required(ErrorMessage = "Flavor selection is required")]
+    [StringLength(50, ErrorMessage = "Flavor ID cannot exceed 50 characters")]
+    public string FlavorId { get; set; } = string.Empty;
+
     public bool IsSuccess { get; set; }
     public string? ErrorMessage { get; set; }
     public List<string> ValidationErrors { get; set; } = [];
+    public List<Store> Stores { get; set; } = [];
+    public List<Flavor> Flavors { get; set; } = [];
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
+        await LoadStoresAndFlavorsAsync();
+    }
+
+    private async Task LoadStoresAndFlavorsAsync()
+    {
+        try
+        {
+            var storesUrl = configuration["AzureFunctions:StoresApiUrl"];
+            var flavorsUrl = configuration["AzureFunctions:FlavorsApiUrl"];
+
+            if (string.IsNullOrWhiteSpace(storesUrl) || string.IsNullOrWhiteSpace(flavorsUrl))
+            {
+                logger.LogWarning("Stores or Flavors API URL not configured");
+                return;
+            }
+
+            var httpClient = httpClientFactory.CreateClient();
+
+            // Load stores
+            try
+            {
+                var storesResponse = await httpClient.GetAsync(storesUrl, HttpContext.RequestAborted);
+                if (storesResponse.IsSuccessStatusCode)
+                {
+                    var storesJson = await storesResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                    Stores = JsonSerializer.Deserialize<List<Store>>(storesJson, JsonOptions) ?? [];
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load stores");
+            }
+
+            // Load flavors
+            try
+            {
+                var flavorsResponse = await httpClient.GetAsync(flavorsUrl, HttpContext.RequestAborted);
+                if (flavorsResponse.IsSuccessStatusCode)
+                {
+                    var flavorsJson = await flavorsResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                    Flavors = JsonSerializer.Deserialize<List<Flavor>>(flavorsJson, JsonOptions) ?? [];
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load flavors");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading stores and flavors");
+        }
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -80,6 +139,9 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
         ValidationErrors.Clear();
         ErrorMessage = null;
         IsSuccess = false;
+
+        // Reload stores and flavors for the dropdowns in case validation fails
+        await LoadStoresAndFlavorsAsync();
 
         if (!ModelState.IsValid)
         {
@@ -101,7 +163,8 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             },
             channel = "web",
             rating = Rating,
-            comment = Comment
+            comment = Comment,
+            flavorId = FlavorId
         };
 
         try

@@ -49,8 +49,14 @@
         <form method="post" asp-antiforgery="true">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label asp-for="StoreId" class="form-label">Store ID * <small class="text-muted">// location identifier</small></label>
-                    <input asp-for="StoreId" class="form-control" placeholder="e.g., STORE-SFO-01 or dev.store.local" required />
+                    <label asp-for="StoreId" class="form-label">Store Location * <small class="text-muted">// where you visited</small></label>
+                    <select asp-for="StoreId" class="form-select" required>
+                        <option value="">-- Select a store --</option>
+                        @foreach (var store in Model.Stores)
+                        {
+                            <option value="@store.StoreId">@store.Name</option>
+                        }
+                    </select>
                     <span asp-validation-for="StoreId" class="text-danger"></span>
                 </div>
 
@@ -58,6 +64,20 @@
                     <label asp-for="OrderId" class="form-label">Order ID * <small class="text-muted">// transaction hash</small></label>
                     <input asp-for="OrderId" class="form-control" placeholder="e.g., ORD-A3F9C2 or uuid.v4()" required />
                     <span asp-validation-for="OrderId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label asp-for="FlavorId" class="form-label">Flavor You Tried * <small class="text-muted">// the one you compiled</small></label>
+                    <select asp-for="FlavorId" class="form-select" required>
+                        <option value="">-- Select a flavor --</option>
+                        @foreach (var flavor in Model.Flavors)
+                        {
+                            <option value="@flavor.FlavorId">@flavor.Name - @flavor.Description</option>
+                        }
+                    </select>
+                    <span asp-validation-for="FlavorId" class="text-danger"></span>
                 </div>
             </div>
 
