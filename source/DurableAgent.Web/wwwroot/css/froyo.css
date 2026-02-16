@@ -117,36 +117,17 @@ body {
     transition: all 0.2s;
 }
 
-.star-rating input[type="radio"]#star5:checked ~ label {
-    filter: grayscale(0%);
-    opacity: 1;
-    text-shadow: 0 0 10px rgba(255, 217, 106, 0.5);
-}
-
+/* Active state for all rating levels - consolidated selectors */
+.star-rating input[type="radio"]#star5:checked ~ label,
 .star-rating input[type="radio"]#star4:checked ~ label[for="star4"],
 .star-rating input[type="radio"]#star4:checked ~ label[for="star3"],
 .star-rating input[type="radio"]#star4:checked ~ label[for="star2"],
-.star-rating input[type="radio"]#star4:checked ~ label[for="star1"] {
-    filter: grayscale(0%);
-    opacity: 1;
-    text-shadow: 0 0 10px rgba(255, 217, 106, 0.5);
-}
-
+.star-rating input[type="radio"]#star4:checked ~ label[for="star1"],
 .star-rating input[type="radio"]#star3:checked ~ label[for="star3"],
 .star-rating input[type="radio"]#star3:checked ~ label[for="star2"],
-.star-rating input[type="radio"]#star3:checked ~ label[for="star1"] {
-    filter: grayscale(0%);
-    opacity: 1;
-    text-shadow: 0 0 10px rgba(255, 217, 106, 0.5);
-}
-
+.star-rating input[type="radio"]#star3:checked ~ label[for="star1"],
 .star-rating input[type="radio"]#star2:checked ~ label[for="star2"],
-.star-rating input[type="radio"]#star2:checked ~ label[for="star1"] {
-    filter: grayscale(0%);
-    opacity: 1;
-    text-shadow: 0 0 10px rgba(255, 217, 106, 0.5);
-}
-
+.star-rating input[type="radio"]#star2:checked ~ label[for="star1"],
 .star-rating input[type="radio"]#star1:checked ~ label[for="star1"] {
     filter: grayscale(0%);
     opacity: 1;
