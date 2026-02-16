@@ -46,7 +46,7 @@
             </div>
         }
 
-        <form method="post">
+        <form method="post" asp-antiforgery="true">
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="StoreId" class="form-label">Store ID * <small class="text-muted">// location identifier</small></label>
