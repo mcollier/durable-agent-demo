@@ -12,6 +12,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
 {
     private const string StoresLoadErrorMessage = "Unable to load store locations. Please try refreshing the page.";
     private const string FlavorsLoadErrorMessage = "Unable to load flavor options. Please try refreshing the page.";
+    private const string GenericLoadErrorMessage = "An error occurred while loading form data. Please try refreshing the page.";
     
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -99,7 +100,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             if (string.IsNullOrWhiteSpace(storesUrl) || string.IsNullOrWhiteSpace(flavorsUrl))
             {
                 logger.LogWarning("Stores or Flavors API URL not configured");
-                // Don't add a warning here - let individual checks below handle it
+                // Add specific warnings for each unconfigured URL
                 if (string.IsNullOrWhiteSpace(storesUrl))
                 {
                     ApiLoadWarnings.Add(StoresLoadErrorMessage);
@@ -158,7 +159,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
         catch (Exception ex)
         {
             logger.LogError(ex, "Error loading stores and flavors");
-            ApiLoadWarnings.Add("An error occurred while loading form data. Please try refreshing the page.");
+            ApiLoadWarnings.Add(GenericLoadErrorMessage);
         }
     }
 
