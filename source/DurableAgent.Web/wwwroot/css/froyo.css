@@ -99,6 +99,7 @@ body {
 
 .star-rating {
     display: flex;
+    flex-direction: row-reverse;
     gap: 0.5rem;
     justify-content: center;
     margin: 1rem 0;
@@ -111,24 +112,32 @@ body {
 .star-rating label {
     font-size: 2.5rem;
     cursor: pointer;
-    color: #ddd;
-    transition: color 0.2s;
+    filter: grayscale(100%);
+    opacity: 0.3;
+    transition: all 0.2s;
 }
 
-.star-rating label:hover,
-.star-rating label:hover ~ label,
-.star-rating input[type="radio"]:checked ~ label {
-    color: var(--froyo-mango);
+/* Active state for all rating levels - consolidated selectors */
+.star-rating input[type="radio"]#star5:checked ~ label,
+.star-rating input[type="radio"]#star4:checked ~ label[for="star4"],
+.star-rating input[type="radio"]#star4:checked ~ label[for="star3"],
+.star-rating input[type="radio"]#star4:checked ~ label[for="star2"],
+.star-rating input[type="radio"]#star4:checked ~ label[for="star1"],
+.star-rating input[type="radio"]#star3:checked ~ label[for="star3"],
+.star-rating input[type="radio"]#star3:checked ~ label[for="star2"],
+.star-rating input[type="radio"]#star3:checked ~ label[for="star1"],
+.star-rating input[type="radio"]#star2:checked ~ label[for="star2"],
+.star-rating input[type="radio"]#star2:checked ~ label[for="star1"],
+.star-rating input[type="radio"]#star1:checked ~ label[for="star1"] {
+    filter: grayscale(0%);
+    opacity: 1;
     text-shadow: 0 0 10px rgba(255, 217, 106, 0.5);
 }
 
-.star-rating {
-    flex-direction: row-reverse;
-    justify-content: center;
-}
-
+.star-rating label:hover,
 .star-rating label:hover ~ label {
-    color: var(--froyo-mango);
+    filter: grayscale(0%);
+    opacity: 1;
 }
 
 .alert-success {
