@@ -99,6 +99,7 @@ body {
 
 .star-rating {
     display: flex;
+    flex-direction: row-reverse;
     gap: 0.5rem;
     justify-content: center;
     margin: 1rem 0;
@@ -122,8 +123,16 @@ body {
     text-shadow: 0 0 10px rgba(255, 217, 106, 0.5);
 }
 
-.star-rating label:hover ~ label,
-.star-rating label:hover {
+.star-rating input[type="radio"]:checked {
+    + label {
+        filter: grayscale(0%);
+        opacity: 1;
+        text-shadow: 0 0 10px rgba(255, 217, 106, 0.5);
+    }
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label {
     filter: grayscale(0%);
     opacity: 1;
 }
