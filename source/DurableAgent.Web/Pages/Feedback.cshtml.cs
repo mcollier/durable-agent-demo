@@ -113,7 +113,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             var json = JsonSerializer.Serialize(feedbackRequest, JsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await httpClient.PostAsync(apiUrl, content);
+            var response = await httpClient.PostAsync(apiUrl, content, HttpContext.RequestAborted);
 
             if (response.IsSuccessStatusCode)
             {
@@ -123,7 +123,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync(HttpContext.RequestAborted);
                 
                 try
                 {
