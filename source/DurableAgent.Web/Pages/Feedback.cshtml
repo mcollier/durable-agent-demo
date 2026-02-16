@@ -115,16 +115,16 @@
             <div class="mb-4">
                 <label class="form-label d-block text-center">Rate our service <small class="text-muted">(1 = bug, 5 = feature)</small> *</label>
                 <div class="star-rating">
-                    <input type="radio" asp-for="Rating" value="5" id="star5" required />
-                    <label for="star5" title="5 stars">⭐</label>
-                    <input type="radio" asp-for="Rating" value="4" id="star4" />
-                    <label for="star4" title="4 stars">⭐</label>
-                    <input type="radio" asp-for="Rating" value="3" id="star3" />
-                    <label for="star3" title="3 stars">⭐</label>
+                    <input type="radio" asp-for="Rating" value="1" id="star1" required />
+                    <label for="star1" title="1 cone">🍦</label>
                     <input type="radio" asp-for="Rating" value="2" id="star2" />
-                    <label for="star2" title="2 stars">⭐</label>
-                    <input type="radio" asp-for="Rating" value="1" id="star1" />
-                    <label for="star1" title="1 star">⭐</label>
+                    <label for="star2" title="2 cones">🍦</label>
+                    <input type="radio" asp-for="Rating" value="3" id="star3" />
+                    <label for="star3" title="3 cones">🍦</label>
+                    <input type="radio" asp-for="Rating" value="4" id="star4" />
+                    <label for="star4" title="4 cones">🍦</label>
+                    <input type="radio" asp-for="Rating" value="5" id="star5" />
+                    <label for="star5" title="5 cones">🍦</label>
                 </div>
                 <span asp-validation-for="Rating" class="text-danger d-block text-center"></span>
             </div>
