@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace DurableAgent.Functions.Activities;
 
 /// <summary>
-/// Sends an escalation email to customer service management.
+/// Sends an escalation email to the customer who submitted feedback.
 /// </summary>
 public static class SendEscalationEmailActivity
 {
@@ -23,11 +23,12 @@ public static class SendEscalationEmailActivity
         // TODO: Implement actual email sending (e.g., SendGrid, SMTP, Graph API).
         
         logger.LogInformation(
-            "Sending escalation email for case {CaseId} (feedback {FeedbackId}): {Details}",
+            "Sending follow-up email for case {CaseId} (feedback {FeedbackId}) to {RecipientName} <{RecipientEmail}>",
             input.CaseId,
             input.FeedbackId,
-            input.Details);
+            input.RecipientName,
+            input.RecipientEmail);
 
-        return $"Email sent for case {input.CaseId}";
+        return $"Email sent to {input.RecipientEmail} for case {input.CaseId}";
     }
 }

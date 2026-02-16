@@ -14,7 +14,6 @@ public class FeedbackResultTests
         Assert.Equal("THANK_YOU", result.Action);
         Assert.Equal(0.95, result.Confidence);
         Assert.NotNull(result.Risk);
-        Assert.NotNull(result.Message);
         Assert.NotNull(result.FollowUp);
     }
 
@@ -86,19 +85,6 @@ public class FeedbackResultTests
     }
 
     [Fact]
-    public void WhenResponseMessageCreated_ThenPropertiesAreSet()
-    {
-        var msg = new ResponseMessage
-        {
-            Subject = "Thanks!",
-            Body = "We appreciate your feedback."
-        };
-
-        Assert.Equal("Thanks!", msg.Subject);
-        Assert.Equal("We appreciate your feedback.", msg.Body);
-    }
-
-    [Fact]
     public void WhenCouponDetailsCreated_ThenPropertiesAreSet()
     {
         var expires = DateTimeOffset.UtcNow.AddDays(30);
@@ -149,15 +135,6 @@ public class FeedbackResultTests
     }
 
     [Fact]
-    public void WhenTwoResponseMessagesHaveSameValues_ThenTheyAreEqual()
-    {
-        var a = new ResponseMessage { Subject = "Hi", Body = "Hello" };
-        var b = new ResponseMessage { Subject = "Hi", Body = "Hello" };
-
-        Assert.Equal(a, b);
-    }
-
-    [Fact]
     public void WhenTwoCouponDetailsHaveSameValues_ThenTheyAreEqual()
     {
         var expires = new DateTimeOffset(2026, 3, 15, 0, 0, 0, TimeSpan.Zero);
@@ -185,16 +162,6 @@ public class FeedbackResultTests
 
         Assert.True(copy.IsHealthOrSafety);
         Assert.False(copy.IsFoodQualityIssue);
-    }
-
-    [Fact]
-    public void WhenResponseMessageCopiedWithNewSubject_ThenOnlySubjectChanges()
-    {
-        var original = new ResponseMessage { Subject = "Old", Body = "Body" };
-        var copy = original with { Subject = "New" };
-
-        Assert.Equal("New", copy.Subject);
-        Assert.Equal("Body", copy.Body);
     }
 
     [Fact]
@@ -229,11 +196,6 @@ public class FeedbackResultTests
             Keywords = ["great", "love"]
         },
         Action = "THANK_YOU",
-        Message = new ResponseMessage
-        {
-            Subject = "Thanks for the feedback!",
-            Body = "We appreciate your kind words."
-        },
         Coupon = includeCoupon
             ? new CouponDetails
             {

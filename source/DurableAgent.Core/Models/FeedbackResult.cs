@@ -17,9 +17,6 @@ public sealed record FeedbackResult
     /// <summary>Recommended action code (e.g., "ISSUE_COUPON", "ESCALATE").</summary>
     public required string Action { get; init; }
 
-    /// <summary>Customer-facing message to send.</summary>
-    public required ResponseMessage Message { get; init; }
-
     /// <summary>Coupon details, if a coupon was generated.</summary>
     public CouponDetails? Coupon { get; init; }
 
@@ -43,18 +40,6 @@ public sealed record RiskAssessment
 
     /// <summary>Keywords that triggered the risk flags.</summary>
     public IReadOnlyList<string> Keywords { get; init; } = [];
-}
-
-/// <summary>
-/// Customer-facing message content.
-/// </summary>
-public sealed record ResponseMessage
-{
-    /// <summary>Message subject line.</summary>
-    public required string Subject { get; init; }
-
-    /// <summary>Message body text.</summary>
-    public required string Body { get; init; }
 }
 
 /// <summary>

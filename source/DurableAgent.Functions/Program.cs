@@ -74,12 +74,7 @@ string promptString = """
         - ISSUE_COUPON → if sentiment is neutral and no health/safety risk.
         - OPEN_CASE → if sentiment is negative OR any health/safety condition is true.
 
-    4. Generate a response message appropriate to the action:
-        - Positive: Fun, warm, brand-aligned, but professional.
-        - Neutral: Appreciative and include a 25% discount coupon.
-        - Negative/Health: Sincere apology and indicate a representative will review and reach out. Do not offer a coupon in health/safety cases.
-
-    5. Invoke tools to verify details and get necessary information to make decisions and populate the response:
+    4. Invoke tools to verify details and get necessary information to make decisions and populate the response:
         - ALWAYS call GetCurrentUtcDateTime, ListFlavors, and GetStoreDetails for every feedback event before making any decisions.
         - Use GetCurrentUtcDateTime to get the current time, validate the submittedAt timestamp, and compute coupon expiration.
         - Use ListFlavors to retrieve the full flavor catalog and validate any flavors referenced in the feedback.
@@ -88,18 +83,16 @@ string promptString = """
         - Use OpenCustomerServiceCase when action = OPEN_CASE.
         - Use RedactPII if the comment includes phone numbers, emails, or sensitive data before storing or referencing.
     
-    6. Determinism requirement:
+    5. Determinism requirement:
         - If tool results are provided, rely only on those results.
         - Do not invent store data, flavors, coupon codes, or case IDs.
         - Only use data from the input event and tool responses.
         - If the store or flavor mentioned in the feedback does not exist according to the tools, note that in the response but do not assume any details.
 
-    7. Tone guidelines:
-        - Friendly but professional.
-        - Never dismiss health-related claims.
-        - Never admit fault or legal liability.
-        - Never speculate about medical causes.
-        - Keep messages concise.
+    6. Tone guidelines:
+        - Always flag health-related claims — never downplay or dismiss them.
+        - Keep classification objective and data-driven.
+        - Do not include customer-facing language in the JSON output.
 
     Rules:
         - coupon must be null unless action = ISSUE_COUPON.
@@ -136,12 +129,7 @@ string promptMarkdown = """
     | Sentiment is neutral and no health/safety risk | `ISSUE_COUPON` |
     | Sentiment is negative **OR** any health/safety condition is true | `OPEN_CASE` |
 
-    ### 4. Generate a Response Message
-    - **Positive:** Fun, warm, brand-aligned, but professional.
-    - **Neutral:** Appreciative and include a 25% discount coupon.
-    - **Negative / Health:** Sincere apology and indicate a representative will review and reach out. Do **not** offer a coupon in health/safety cases.
-
-    ### 5. Invoke Tools
+    ### 4. Invoke Tools
 
     **ALWAYS call these three tools for every feedback event before making any decisions:**
 
@@ -154,18 +142,16 @@ string promptMarkdown = """
     | `OpenCustomerServiceCase` | When action = `OPEN_CASE`. |
     | `RedactPII` | If the comment includes phone numbers, emails, or sensitive data before storing or referencing. |
 
-    ### 6. Determinism Requirement
+    ### 5. Determinism Requirement
     - If tool results are provided, rely **only** on those results.
     - Do **not** invent store data, flavors, coupon codes, or case IDs.
     - Only use data from the input event and tool responses.
     - If the store or flavor mentioned in the feedback does not exist according to the tools, note that in the response but do not assume any details.
 
-    ### 7. Tone Guidelines
-    - Friendly but professional.
-    - Never dismiss health-related claims.
-    - Never admit fault or legal liability.
-    - Never speculate about medical causes.
-    - Keep messages concise.
+    ### 6. Tone Guidelines
+    - Always flag health-related claims — never downplay or dismiss them.
+    - Keep classification objective and data-driven.
+    - Do **not** include customer-facing language in the JSON output.
 
     ## Rules
     - `coupon` must be `null` unless action = `ISSUE_COUPON`.
@@ -204,8 +190,46 @@ AIAgent agent = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredent
         
     });
 
+AIAgent emailAgent = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
+    .GetChatClient(deploymentName)
+    .AsAIAgent(new ChatClientAgentOptions()
+    {
+        Name = "EmailAgent",
+        ChatOptions = new ChatOptions
+        {
+            Instructions = """
+                # Follow-Up Email Agent — Froyo Foundry
+
+                You write follow-up emails to customers who submitted feedback to Froyo Foundry.
+                You **MUST** return a JSON object matching the required schema — no free-form text outside the JSON.
+
+                ## Rules
+                - `recipientName` = the customer's preferred name from the input.
+                - `recipientEmail` = the customer's email address from the input.
+                - `body` = the full email body text (plain text, no HTML).
+
+                ## Tone Guidelines
+                - **Positive feedback:** Fun, warm, brand-aligned thank-you.
+                - **Neutral feedback:** Appreciative, mention the coupon if one was issued.
+                - **Negative / Health-related feedback:** Sincere apology, indicate a representative will review and reach out. Never dismiss health claims, never admit fault or legal liability, never speculate about medical causes.
+                - Keep messages concise and professional.
+
+                ## Determinism
+                - Use only the data provided in the input. Do not invent names, emails, or details.
+                - Do not include explanations outside the JSON.
+                """,
+            ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                schema: AIJsonUtilities.CreateJsonSchema(typeof(EmailResult)),
+                schemaName: "EmailResult",
+                schemaDescription: "A follow-up email to a customer who submitted feedback, containing recipient name, email, and message body."
+            )
+        }
+    });
+
 builder.ConfigureDurableAgents(options =>
-    options.AddAIAgent(agent)
+    options
+    .AddAIAgent(agent)
+    .AddAIAgent(emailAgent)
 );
 
 var app = builder.Build();
