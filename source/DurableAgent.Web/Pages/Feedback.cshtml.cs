@@ -266,12 +266,16 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
         {
             logger.LogError(ex, "HTTP error while submitting feedback");
             ErrorMessage = "Unable to connect to the feedback service. Please try again later.";
+            // Reload dropdowns for re-display
+            await LoadStoresAndFlavorsAsync();
             return Page();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unexpected error while submitting feedback");
             ErrorMessage = "An unexpected error occurred. Please try again later.";
+            // Reload dropdowns for re-display
+            await LoadStoresAndFlavorsAsync();
             return Page();
         }
     }
