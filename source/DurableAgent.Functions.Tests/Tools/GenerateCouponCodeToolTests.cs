@@ -5,7 +5,7 @@ namespace DurableAgent.Functions.Tests.Tools;
 public class GenerateCouponCodeToolTests
 {
     [Fact]
-    public void WhenCalled_ThenStartsWithFryoCouponPrefix()
+    public void WhenCalledWithDefaults_ThenStartsWithFryoCouponPrefix()
     {
         var result = GenerateCouponCodeTool.GenerateCouponCode();
 
@@ -13,12 +13,21 @@ public class GenerateCouponCodeToolTests
     }
 
     [Fact]
-    public void WhenCalled_ThenHasCorrectLength()
+    public void WhenCalledWithDefaults_ThenContainsDefaultDiscountAndExpiration()
     {
         var result = GenerateCouponCodeTool.GenerateCouponCode();
 
-        // "FRYOCUPON-" (10 chars) + 8-char GUID segment = 18 chars
-        Assert.Equal(18, result.Length);
+        // Default: 10% discount, 30-day expiration
+        Assert.EndsWith("-10PCT-30D", result);
+    }
+
+    [Fact]
+    public void WhenCalledWithCustomValues_ThenContainsSpecifiedDiscountAndExpiration()
+    {
+        var result = GenerateCouponCodeTool.GenerateCouponCode(discountPercent: 25, expirationDays: 60);
+
+        Assert.StartsWith("FRYOCUPON-", result);
+        Assert.EndsWith("-25PCT-60D", result);
     }
 
     [Fact]
@@ -31,11 +40,14 @@ public class GenerateCouponCodeToolTests
     }
 
     [Fact]
-    public void WhenCalled_ThenSuffixIsUppercase()
+    public void WhenCalled_ThenGuidSegmentIsUppercase()
     {
         var result = GenerateCouponCodeTool.GenerateCouponCode();
-        var suffix = result["FRYOCUPON-".Length..];
 
-        Assert.Equal(suffix.ToUpper(), suffix);
+        // Extract the 8-char GUID segment between "FRYOCUPON-" and "-10PCT-30D"
+        var guidSegment = result["FRYOCUPON-".Length..result.IndexOf("-10PCT")];
+
+        Assert.Equal(8, guidSegment.Length);
+        Assert.Equal(guidSegment.ToUpper(), guidSegment);
     }
 }
