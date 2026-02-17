@@ -22,10 +22,11 @@ public static class FeedbackOrchestrator
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(feedbackMessage);
-        
+
         var logger = context.CreateReplaySafeLogger(nameof(FeedbackOrchestrator));
         logger.LogInformation("Processing feedback {FeedbackId}", feedbackMessage.FeedbackId);
 
+        // Use CustomerServiceAgent to analyze feedback and determine if follow-up is needed
         DurableAIAgent customerServiceAgent = context.GetAgent("CustomerServiceAgent");
         AgentSession agentSession = await customerServiceAgent.CreateSessionAsync();
 
@@ -33,28 +34,24 @@ public static class FeedbackOrchestrator
         DurableAIAgent emailAgent = context.GetAgent("EmailAgent");
         AgentSession emailSession = await emailAgent.CreateSessionAsync();
 
-        if (context.IsReplaying)
-        {
-            logger.LogInformation("Replaying orchestration for feedback {FeedbackId}", feedbackMessage.FeedbackId);
-        }
-
         AgentResponse<FeedbackResult> agentResponse = await customerServiceAgent.RunAsync<FeedbackResult>(
             message: $"Analyze this customer feedback and provide a summary and sentiment rating: {feedbackMessage}",
             session: agentSession);
 
         FeedbackResult feedbackResult = agentResponse.Result;
 
-        DateTime sleepTime = context.CurrentUtcDateTime.AddMinutes(2);
-        await context.CreateTimer(sleepTime, CancellationToken.None);
+        if (context.IsReplaying)
+        {
+            Console.WriteLine($"***REPLAYING**** Received agent response for feedback {feedbackMessage.FeedbackId} during replay: {feedbackResult}");
+        }
 
         // Check if the feedback result requires human follow-up
         if (feedbackResult.FollowUp?.RequiresHuman == true)
         {
             logger.LogWarning("Feedback {FeedbackId} requires human review. Escalating.", feedbackMessage.FeedbackId);
-        }
 
-        // Simulate an exception to test retry logic in the orchestrator
-        // throw new Exception("Simulated exception in FeedbackOrchestrator for testing retry logic.");
+            bool humanReviewCompleted = await context.WaitForExternalEvent<bool>("HumanReviewCompleted");
+        }
 
         string emailPrompt = $"""
             Write a follow-up email to the customer who submitted the following feedback case:
