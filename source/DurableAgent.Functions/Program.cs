@@ -79,9 +79,13 @@ string promptString = """
         - Use GetCurrentUtcDateTime to get the current time, validate the submittedAt timestamp, and compute coupon expiration.
         - Use ListFlavors to retrieve the full flavor catalog and validate any flavors referenced in the feedback.
         - Use GetStoreDetails with the feedback's storeId to retrieve store information for the response.
-        - ALWAYS call GenerateCouponCode when action = ISSUE_COUPON. Pass discountPercent=10 and expirationDays=30. You MUST use the code returned by this tool — never fabricate a coupon code.
         - Use OpenCustomerServiceCase when action = OPEN_CASE.
         - Use RedactPII if the comment includes phone numbers, emails, or sensitive data before storing or referencing.
+        
+        CRITICAL — Coupon generation:
+        When action = ISSUE_COUPON, you MUST immediately call GenerateCouponCode(discountPercent=10, expirationDays=30) BEFORE producing the final JSON.
+        The tool returns a JSON object with code, discountPercent, and expiresAt. Copy those values directly into the coupon field.
+        A valid coupon code always starts with "FRYOCUPON-". If your response contains a coupon code not from this tool call, the response is invalid.
     
     5. Determinism requirement:
         - If tool results are provided, rely only on those results.
@@ -96,7 +100,7 @@ string promptString = """
 
     Rules:
         - coupon must be null unless action = ISSUE_COUPON.
-        - When action = ISSUE_COUPON, you MUST call GenerateCouponCode to obtain the code. Never generate a coupon code yourself.
+        - When action = ISSUE_COUPON, call GenerateCouponCode first, then populate the coupon object by copying the tool's returned code, discountPercent, and expiresAt values verbatim. Skipping the tool call is a rule violation.
         - followUp.requiresHuman must be true if action = OPEN_CASE.
         - confidence must be between 0.0 and 1.0.
         - Do not include explanations outside the JSON.
@@ -139,9 +143,13 @@ string promptMarkdown = """
     | `GetCurrentUtcDateTime` | **Every request.** Get the current time, validate the `submittedAt` timestamp, and compute coupon expiration. |
     | `ListFlavors` | **Every request.** Retrieve the full flavor catalog and validate any flavors referenced in the feedback. |
     | `GetStoreDetails` | **Every request.** Call with the feedback's `storeId` to retrieve store information for the response. |
-    | `GenerateCouponCode` | **REQUIRED when action = `ISSUE_COUPON`.** Call with `discountPercent=10` and `expirationDays=30`. You **MUST** use the code returned by this tool — never fabricate a coupon code. |
     | `OpenCustomerServiceCase` | When action = `OPEN_CASE`. |
     | `RedactPII` | If the comment includes phone numbers, emails, or sensitive data before storing or referencing. |
+
+    #### Coupon Generation — Critical
+    When you determine action = `ISSUE_COUPON`, you **MUST** immediately call `GenerateCouponCode(discountPercent=10, expirationDays=30)` **before** producing the final JSON.
+    The tool returns a JSON object with `code`, `discountPercent`, and `expiresAt`. Copy those values directly into the `coupon` field of your response.
+    A valid coupon code always starts with `FRYOCUPON-`. If your response contains a coupon code that did not come from this tool call, the response is **invalid** and will be rejected.
 
     ### 5. Determinism Requirement
     - If tool results are provided, rely **only** on those results.
@@ -154,9 +162,58 @@ string promptMarkdown = """
     - Keep classification objective and data-driven.
     - Do **not** include customer-facing language in the JSON output.
 
+    ## Example — ISSUE_COUPON Path
+
+    **Input:**
+    ```json
+    {
+      "feedbackId": "fb-90210",
+      "storeId": "store-003",
+      "customerName": "Jamie Rivera",
+      "customerEmail": "jamie@example.com",
+      "rating": 3,
+      "comment": "The mango tango was just okay, a bit icy. Not bad but expected better.",
+      "submittedAt": "2026-02-15T14:30:00Z"
+    }
+    ```
+
+    **Tool calls (in order):**
+
+    1. `GetCurrentUtcDateTime()` → `"2026-02-17T10:00:00.0000000Z"`
+    2. `ListFlavors()` → `[{"id":"flv-001","name":"Mango Tango",...}, ...]`
+    3. `GetStoreDetails("store-003")` → `{"storeId":"store-003","name":"Froyo Foundry - Westside",...}`
+    4. Sentiment = `"neutral"`, no health/safety risk → action = `ISSUE_COUPON`
+    5. `GenerateCouponCode(discountPercent=10, expirationDays=30)` → `{"code":"FRYOCUPON-A1B2C3D4","discountPercent":10,"expiresAt":"2026-03-19T10:00:00.0000000Z"}`
+
+    **Expected output:**
+    ```json
+    {
+      "feedbackId": "fb-90210",
+      "sentiment": "neutral",
+      "risk": {
+        "isHealthOrSafety": false,
+        "isFoodQualityIssue": true,
+        "keywords": ["icy"]
+      },
+      "action": "ISSUE_COUPON",
+      "coupon": {
+        "code": "FRYOCUPON-A1B2C3D4",
+        "discountPercent": 10,
+        "expiresAt": "2026-03-19T10:00:00.0000000Z"
+      },
+      "followUp": {
+        "requiresHuman": false,
+        "caseId": null
+      },
+      "confidence": 0.88
+    }
+    ```
+
+    Notice: `coupon.code` and `coupon.expiresAt` are copied verbatim from the `GenerateCouponCode` tool response — never invented.
+
     ## Rules
     - `coupon` must be `null` unless action = `ISSUE_COUPON`.
-    - When action = `ISSUE_COUPON`, you **MUST** call `GenerateCouponCode` to obtain the code. Never generate a coupon code yourself.
+    - When action = `ISSUE_COUPON`, call `GenerateCouponCode` first, then populate the `coupon` object by copying the tool's returned `code`, `discountPercent`, and `expiresAt` values verbatim. Skipping the tool call is a rule violation.
     - `followUp.requiresHuman` must be `true` if action = `OPEN_CASE`.
     - `confidence` must be between `0.0` and `1.0`.
     - Do **not** include explanations outside the JSON.
