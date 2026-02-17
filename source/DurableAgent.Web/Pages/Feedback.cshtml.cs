@@ -10,6 +10,10 @@ namespace DurableAgent.Web.Pages;
 
 public class FeedbackModel(IConfiguration configuration, IHttpClientFactory httpClientFactory, ILogger<FeedbackModel> logger) : PageModel
 {
+    private const string StoresLoadErrorMessage = "Unable to load store locations. Please try refreshing the page.";
+    private const string FlavorsLoadErrorMessage = "Unable to load flavor options. Please try refreshing the page.";
+    private const string GenericLoadErrorMessage = "An error occurred while loading form data. Please try refreshing the page.";
+    
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -67,12 +71,95 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
     [StringLength(2000, MinimumLength = 10, ErrorMessage = "Comment must be between 10 and 2000 characters")]
     public string Comment { get; set; } = string.Empty;
 
+    [BindProperty]
+    [StringLength(50, ErrorMessage = "Flavor ID cannot exceed 50 characters")]
+    public string? FlavorId { get; set; }
+
     public bool IsSuccess { get; set; }
     public string? ErrorMessage { get; set; }
     public List<string> ValidationErrors { get; set; } = [];
+    public List<Store> Stores { get; set; } = [];
+    public List<Flavor> Flavors { get; set; } = [];
+    public HashSet<string> ApiLoadWarnings { get; set; } = [];
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
+        await LoadStoresAndFlavorsAsync();
+    }
+
+    private async Task LoadStoresAndFlavorsAsync()
+    {
+        ApiLoadWarnings.Clear();
+        
+        try
+        {
+            var baseUrl = configuration["AzureFunctions:BaseUrl"];
+            var storesPath = configuration["AzureFunctions:StoresPath"] ?? "api/stores";
+            var flavorsPath = configuration["AzureFunctions:FlavorsPath"] ?? "api/flavors";
+
+            var hasBaseUrl = !string.IsNullOrWhiteSpace(baseUrl);
+
+            if (!hasBaseUrl)
+            {
+                logger.LogWarning("Azure Functions base URL not configured");
+                ApiLoadWarnings.Add(StoresLoadErrorMessage);
+                ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
+                return;
+            }
+
+            // baseUrl is guaranteed to be non-null here
+            var storesUrl = $"{baseUrl!.TrimEnd('/')}/{storesPath.TrimStart('/')}";
+            var flavorsUrl = $"{baseUrl!.TrimEnd('/')}/{flavorsPath.TrimStart('/')}";
+
+            var httpClient = httpClientFactory.CreateClient();
+
+            // Load stores
+            try
+            {
+                var storesResponse = await httpClient.GetAsync(storesUrl, HttpContext.RequestAborted);
+                if (storesResponse.IsSuccessStatusCode)
+                {
+                    var storesJson = await storesResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                    Stores = JsonSerializer.Deserialize<List<Store>>(storesJson, JsonOptions) ?? [];
+                }
+                else
+                {
+                    logger.LogWarning("Failed to load stores. Status: {StatusCode}", storesResponse.StatusCode);
+                    ApiLoadWarnings.Add(StoresLoadErrorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load stores");
+                ApiLoadWarnings.Add(StoresLoadErrorMessage);
+            }
+
+            // Load flavors
+            try
+            {
+                var flavorsResponse = await httpClient.GetAsync(flavorsUrl, HttpContext.RequestAborted);
+                if (flavorsResponse.IsSuccessStatusCode)
+                {
+                    var flavorsJson = await flavorsResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                    Flavors = JsonSerializer.Deserialize<List<Flavor>>(flavorsJson, JsonOptions) ?? [];
+                }
+                else
+                {
+                    logger.LogWarning("Failed to load flavors. Status: {StatusCode}", flavorsResponse.StatusCode);
+                    ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load flavors");
+                ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading stores and flavors");
+            ApiLoadWarnings.Add(GenericLoadErrorMessage);
+        }
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -83,6 +170,8 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
 
         if (!ModelState.IsValid)
         {
+            // Reload stores and flavors for the dropdowns when validation fails
+            await LoadStoresAndFlavorsAsync();
             return Page();
         }
 
@@ -101,13 +190,21 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             },
             channel = "web",
             rating = Rating,
-            comment = Comment
+            comment = Comment,
+            flavorId = FlavorId
         };
 
         try
         {
-            var apiUrl = configuration["AzureFunctions:FeedbackApiUrl"] 
-                ?? throw new InvalidOperationException("FeedbackApiUrl not configured");
+            var baseUrl = configuration["AzureFunctions:BaseUrl"];
+            var feedbackPath = configuration["AzureFunctions:FeedbackPath"] ?? "api/feedback";
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                throw new InvalidOperationException("Azure Functions base URL not configured");
+            }
+
+            var apiUrl = $"{baseUrl.TrimEnd('/')}/{feedbackPath.TrimStart('/')}";
 
             var httpClient = httpClientFactory.CreateClient();
             var json = JsonSerializer.Serialize(feedbackRequest, JsonOptions);
@@ -155,6 +252,8 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
                     ErrorMessage = "An unexpected error occurred while submitting your feedback.";
                 }
 
+                // Reload dropdowns for re-display
+                await LoadStoresAndFlavorsAsync();
                 return Page();
             }
         }
@@ -162,12 +261,16 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
         {
             logger.LogError(ex, "HTTP error while submitting feedback");
             ErrorMessage = "Unable to connect to the feedback service. Please try again later.";
+            // Reload dropdowns for re-display
+            await LoadStoresAndFlavorsAsync();
             return Page();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unexpected error while submitting feedback");
             ErrorMessage = "An unexpected error occurred. Please try again later.";
+            // Reload dropdowns for re-display
+            await LoadStoresAndFlavorsAsync();
             return Page();
         }
     }

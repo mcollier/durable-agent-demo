@@ -28,4 +28,7 @@ public sealed record FeedbackMessage
 
     /// <summary>Free-text feedback comment.</summary>
     public required string Comment { get; init; }
+
+    /// <summary>Identifier of the flavor the customer tried (optional).</summary>
+    public string? FlavorId { get; init; }
 }
