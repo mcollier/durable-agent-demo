@@ -21,7 +21,7 @@ public static class SendEscalationEmailActivity
         // throw new Exception("Simulated exception in SendEscalationEmailActivity for testing retry logic.");
 
         // TODO: Implement actual email sending (e.g., SendGrid, SMTP, Graph API).
-        
+
         logger.LogInformation(
             "Sending follow-up email for case {CaseId} (feedback {FeedbackId}) to {RecipientName} <{RecipientEmail}>",
             input.CaseId,
