@@ -51,7 +51,7 @@ public static class FeedbackOrchestrator
 
             bool humanReviewCompleted = await context.WaitForExternalEvent<bool>(HumanReviewCompletedEvent);
 
-            // TODO: Call activty function to get human review result.
+            // TODO: Call activity function to get human review result.
         }
 
         string couponInfo = feedbackResult.Coupon is { } coupon
