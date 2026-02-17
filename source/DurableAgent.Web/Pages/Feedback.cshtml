@@ -66,13 +66,21 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="StoreId" class="form-label">Store Location * <small class="text-muted">// where you visited</small></label>
-                    <select asp-for="StoreId" class="form-select" required>
-                        <option value="">-- Select a store --</option>
-                        @foreach (var store in Model.Stores)
-                        {
-                            <option value="@store.StoreId">@store.Name</option>
-                        }
-                    </select>
+                    @if (Model.Stores?.Any() == true)
+                    {
+                        <select asp-for="StoreId" class="form-select" required>
+                            <option value="">-- Select a store --</option>
+                            @foreach (var store in Model.Stores)
+                            {
+                                <option value="@store.StoreId">@store.Name</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <input asp-for="StoreId" class="form-control" placeholder="Enter store ID (e.g., store-001)" required />
+                        <small class="text-muted">Store list is currently unavailable. Please enter the store ID.</small>
+                    }
                     <span asp-validation-for="StoreId" class="text-danger"></span>
                 </div>
 
@@ -85,15 +93,24 @@
 
             <div class="row">
                 <div class="col-md-12 mb-3">
-                    <label asp-for="FlavorId" class="form-label">Flavor You Tried * <small class="text-muted">// the one you compiled</small></label>
-                    <select asp-for="FlavorId" class="form-select" required>
-                        <option value="">-- Select a flavor --</option>
-                        @foreach (var flavor in Model.Flavors)
-                        {
-                            <option value="@flavor.FlavorId">@flavor.Name - @flavor.Description</option>
-                        }
-                    </select>
-                    <span asp-validation-for="FlavorId" class="text-danger"></span>
+                    @if (Model.Flavors?.Any() == true)
+                    {
+                        <label asp-for="FlavorId" class="form-label">Flavor You Tried <small class="text-muted">// the one you compiled (optional)</small></label>
+                        <select asp-for="FlavorId" class="form-select">
+                            <option value="">-- Select a flavor (optional) --</option>
+                            @foreach (var flavor in Model.Flavors)
+                            {
+                                <option value="@flavor.FlavorId">@flavor.Name - @flavor.Description</option>
+                            }
+                        </select>
+                        <span asp-validation-for="FlavorId" class="text-danger"></span>
+                    }
+                    else
+                    {
+                        <label class="form-label">Flavor You Tried <small class="text-muted">// optional - flavors unavailable</small></label>
+                        <input asp-for="FlavorId" class="form-control" placeholder="Flavor list unavailable - you can submit without selecting a flavor" disabled />
+                        <small class="text-muted">Flavor information is currently unavailable. You can submit feedback without it.</small>
+                    }
                 </div>
             </div>
 

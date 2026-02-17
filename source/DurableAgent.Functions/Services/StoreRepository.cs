@@ -11,7 +11,7 @@ public static class StoreRepository
     /// <summary>
     /// Gets all available store locations.
     /// </summary>
-    public static IReadOnlyList<Store> GetAllStores() => Stores;
+    public static IReadOnlyList<Store> GetAllStores() => Array.AsReadOnly(Stores);
 
     /// <summary>
     /// Gets a specific store by its ID.

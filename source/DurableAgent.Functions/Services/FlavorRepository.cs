@@ -11,7 +11,7 @@ public static class FlavorRepository
     /// <summary>
     /// Gets all available flavors.
     /// </summary>
-    public static IReadOnlyList<Flavor> GetAllFlavors() => Flavors;
+    public static IReadOnlyList<Flavor> GetAllFlavors() => Array.AsReadOnly(Flavors);
 
     /// <summary>
     /// Gets a specific flavor by its ID.

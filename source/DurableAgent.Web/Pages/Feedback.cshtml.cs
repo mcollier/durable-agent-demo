@@ -72,9 +72,8 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
     public string Comment { get; set; } = string.Empty;
 
     [BindProperty]
-    [Required(ErrorMessage = "Flavor selection is required")]
     [StringLength(50, ErrorMessage = "Flavor ID cannot exceed 50 characters")]
-    public string FlavorId { get; set; } = string.Empty;
+    public string? FlavorId { get; set; }
 
     public bool IsSuccess { get; set; }
     public string? ErrorMessage { get; set; }
@@ -97,63 +96,75 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
             var storesUrl = configuration["AzureFunctions:StoresApiUrl"];
             var flavorsUrl = configuration["AzureFunctions:FlavorsApiUrl"];
 
-            if (string.IsNullOrWhiteSpace(storesUrl) || string.IsNullOrWhiteSpace(flavorsUrl))
+            var hasStoresUrl = !string.IsNullOrWhiteSpace(storesUrl);
+            var hasFlavorsUrl = !string.IsNullOrWhiteSpace(flavorsUrl);
+
+            if (!hasStoresUrl)
             {
-                logger.LogWarning("Stores or Flavors API URL not configured");
-                // Add specific warnings for each unconfigured URL
-                if (string.IsNullOrWhiteSpace(storesUrl))
-                {
-                    ApiLoadWarnings.Add(StoresLoadErrorMessage);
-                }
-                if (string.IsNullOrWhiteSpace(flavorsUrl))
-                {
-                    ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
-                }
+                logger.LogWarning("Stores API URL not configured");
+                ApiLoadWarnings.Add(StoresLoadErrorMessage);
+            }
+
+            if (!hasFlavorsUrl)
+            {
+                logger.LogWarning("Flavors API URL not configured");
+                ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
+            }
+
+            if (!hasStoresUrl && !hasFlavorsUrl)
+            {
+                // Nothing to load if both endpoints are missing
                 return;
             }
 
             var httpClient = httpClientFactory.CreateClient();
 
             // Load stores
-            try
+            if (hasStoresUrl)
             {
-                var storesResponse = await httpClient.GetAsync(storesUrl, HttpContext.RequestAborted);
-                if (storesResponse.IsSuccessStatusCode)
+                try
                 {
-                    var storesJson = await storesResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
-                    Stores = JsonSerializer.Deserialize<List<Store>>(storesJson, JsonOptions) ?? [];
+                    var storesResponse = await httpClient.GetAsync(storesUrl, HttpContext.RequestAborted);
+                    if (storesResponse.IsSuccessStatusCode)
+                    {
+                        var storesJson = await storesResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                        Stores = JsonSerializer.Deserialize<List<Store>>(storesJson, JsonOptions) ?? [];
+                    }
+                    else
+                    {
+                        logger.LogWarning("Failed to load stores. Status: {StatusCode}", storesResponse.StatusCode);
+                        ApiLoadWarnings.Add(StoresLoadErrorMessage);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    logger.LogWarning("Failed to load stores. Status: {StatusCode}", storesResponse.StatusCode);
+                    logger.LogWarning(ex, "Failed to load stores");
                     ApiLoadWarnings.Add(StoresLoadErrorMessage);
                 }
             }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to load stores");
-                ApiLoadWarnings.Add(StoresLoadErrorMessage);
-            }
 
             // Load flavors
-            try
+            if (hasFlavorsUrl)
             {
-                var flavorsResponse = await httpClient.GetAsync(flavorsUrl, HttpContext.RequestAborted);
-                if (flavorsResponse.IsSuccessStatusCode)
+                try
                 {
-                    var flavorsJson = await flavorsResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
-                    Flavors = JsonSerializer.Deserialize<List<Flavor>>(flavorsJson, JsonOptions) ?? [];
+                    var flavorsResponse = await httpClient.GetAsync(flavorsUrl, HttpContext.RequestAborted);
+                    if (flavorsResponse.IsSuccessStatusCode)
+                    {
+                        var flavorsJson = await flavorsResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                        Flavors = JsonSerializer.Deserialize<List<Flavor>>(flavorsJson, JsonOptions) ?? [];
+                    }
+                    else
+                    {
+                        logger.LogWarning("Failed to load flavors. Status: {StatusCode}", flavorsResponse.StatusCode);
+                        ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    logger.LogWarning("Failed to load flavors. Status: {StatusCode}", flavorsResponse.StatusCode);
+                    logger.LogWarning(ex, "Failed to load flavors");
                     ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to load flavors");
-                ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
             }
         }
         catch (Exception ex)
@@ -246,6 +257,8 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
                     ErrorMessage = "An unexpected error occurred while submitting your feedback.";
                 }
 
+                // Reload dropdowns for re-display
+                await LoadStoresAndFlavorsAsync();
                 return Page();
             }
         }
