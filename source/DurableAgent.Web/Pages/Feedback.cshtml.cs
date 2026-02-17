@@ -93,78 +93,66 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
         
         try
         {
-            var storesUrl = configuration["AzureFunctions:StoresApiUrl"];
-            var flavorsUrl = configuration["AzureFunctions:FlavorsApiUrl"];
+            var baseUrl = configuration["AzureFunctions:BaseUrl"];
+            var storesPath = configuration["AzureFunctions:StoresPath"] ?? "api/stores";
+            var flavorsPath = configuration["AzureFunctions:FlavorsPath"] ?? "api/flavors";
 
-            var hasStoresUrl = !string.IsNullOrWhiteSpace(storesUrl);
-            var hasFlavorsUrl = !string.IsNullOrWhiteSpace(flavorsUrl);
+            var hasBaseUrl = !string.IsNullOrWhiteSpace(baseUrl);
 
-            if (!hasStoresUrl)
+            if (!hasBaseUrl)
             {
-                logger.LogWarning("Stores API URL not configured");
+                logger.LogWarning("Azure Functions base URL not configured");
                 ApiLoadWarnings.Add(StoresLoadErrorMessage);
-            }
-
-            if (!hasFlavorsUrl)
-            {
-                logger.LogWarning("Flavors API URL not configured");
                 ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
-            }
-
-            if (!hasStoresUrl && !hasFlavorsUrl)
-            {
-                // Nothing to load if both endpoints are missing
                 return;
             }
+
+            // baseUrl is guaranteed to be non-null here
+            var storesUrl = $"{baseUrl!.TrimEnd('/')}/{storesPath.TrimStart('/')}";
+            var flavorsUrl = $"{baseUrl!.TrimEnd('/')}/{flavorsPath.TrimStart('/')}";
 
             var httpClient = httpClientFactory.CreateClient();
 
             // Load stores
-            if (hasStoresUrl)
+            try
             {
-                try
+                var storesResponse = await httpClient.GetAsync(storesUrl, HttpContext.RequestAborted);
+                if (storesResponse.IsSuccessStatusCode)
                 {
-                    var storesResponse = await httpClient.GetAsync(storesUrl, HttpContext.RequestAborted);
-                    if (storesResponse.IsSuccessStatusCode)
-                    {
-                        var storesJson = await storesResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
-                        Stores = JsonSerializer.Deserialize<List<Store>>(storesJson, JsonOptions) ?? [];
-                    }
-                    else
-                    {
-                        logger.LogWarning("Failed to load stores. Status: {StatusCode}", storesResponse.StatusCode);
-                        ApiLoadWarnings.Add(StoresLoadErrorMessage);
-                    }
+                    var storesJson = await storesResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                    Stores = JsonSerializer.Deserialize<List<Store>>(storesJson, JsonOptions) ?? [];
                 }
-                catch (Exception ex)
+                else
                 {
-                    logger.LogWarning(ex, "Failed to load stores");
+                    logger.LogWarning("Failed to load stores. Status: {StatusCode}", storesResponse.StatusCode);
                     ApiLoadWarnings.Add(StoresLoadErrorMessage);
                 }
             }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load stores");
+                ApiLoadWarnings.Add(StoresLoadErrorMessage);
+            }
 
             // Load flavors
-            if (hasFlavorsUrl)
+            try
             {
-                try
+                var flavorsResponse = await httpClient.GetAsync(flavorsUrl, HttpContext.RequestAborted);
+                if (flavorsResponse.IsSuccessStatusCode)
                 {
-                    var flavorsResponse = await httpClient.GetAsync(flavorsUrl, HttpContext.RequestAborted);
-                    if (flavorsResponse.IsSuccessStatusCode)
-                    {
-                        var flavorsJson = await flavorsResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
-                        Flavors = JsonSerializer.Deserialize<List<Flavor>>(flavorsJson, JsonOptions) ?? [];
-                    }
-                    else
-                    {
-                        logger.LogWarning("Failed to load flavors. Status: {StatusCode}", flavorsResponse.StatusCode);
-                        ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
-                    }
+                    var flavorsJson = await flavorsResponse.Content.ReadAsStringAsync(HttpContext.RequestAborted);
+                    Flavors = JsonSerializer.Deserialize<List<Flavor>>(flavorsJson, JsonOptions) ?? [];
                 }
-                catch (Exception ex)
+                else
                 {
-                    logger.LogWarning(ex, "Failed to load flavors");
+                    logger.LogWarning("Failed to load flavors. Status: {StatusCode}", flavorsResponse.StatusCode);
                     ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load flavors");
+                ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
             }
         }
         catch (Exception ex)
@@ -208,8 +196,15 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
 
         try
         {
-            var apiUrl = configuration["AzureFunctions:FeedbackApiUrl"] 
-                ?? throw new InvalidOperationException("FeedbackApiUrl not configured");
+            var baseUrl = configuration["AzureFunctions:BaseUrl"];
+            var feedbackPath = configuration["AzureFunctions:FeedbackPath"] ?? "api/feedback";
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                throw new InvalidOperationException("Azure Functions base URL not configured");
+            }
+
+            var apiUrl = $"{baseUrl.TrimEnd('/')}/{feedbackPath.TrimStart('/')}";
 
             var httpClient = httpClientFactory.CreateClient();
             var json = JsonSerializer.Serialize(feedbackRequest, JsonOptions);
