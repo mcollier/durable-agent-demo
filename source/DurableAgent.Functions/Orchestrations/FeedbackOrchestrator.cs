@@ -50,7 +50,17 @@ public static class FeedbackOrchestrator
             logger.LogWarning("Feedback {FeedbackId} requires human review. Escalating.", feedbackMessage.FeedbackId);
 
             bool humanReviewCompleted = await context.WaitForExternalEvent<bool>(HumanReviewCompletedEvent);
+
+            // TODO: Call activty function to get human review result.
         }
+
+        string couponInfo = feedbackResult.Coupon is { } coupon
+            ? $"""
+            - Coupon Code: {coupon.Code}
+            - Coupon Discount: {coupon.DiscountPercent}%
+            - Coupon Expires: {coupon.ExpiresAt:O}
+            """
+            : "- Coupon: None";
 
         string emailPrompt = $"""
             Write a follow-up email to the customer who submitted the following feedback case:
@@ -62,6 +72,7 @@ public static class FeedbackOrchestrator
             - Risk: Health/Safety={feedbackResult.Risk.IsHealthOrSafety}, FoodQuality={feedbackResult.Risk.IsFoodQualityIssue}
             - Keywords: {string.Join(", ", feedbackResult.Risk.Keywords)}
             - Action: {feedbackResult.Action}
+            {couponInfo}
             - Original Customer Comment: {feedbackMessage.Comment}
             """;
 

@@ -79,7 +79,7 @@ string promptString = """
         - Use GetCurrentUtcDateTime to get the current time, validate the submittedAt timestamp, and compute coupon expiration.
         - Use ListFlavors to retrieve the full flavor catalog and validate any flavors referenced in the feedback.
         - Use GetStoreDetails with the feedback's storeId to retrieve store information for the response.
-        - Use GenerateCouponCode when issuing a coupon.
+        - ALWAYS call GenerateCouponCode when action = ISSUE_COUPON. Pass discountPercent=10 and expirationDays=30. You MUST use the code returned by this tool — never fabricate a coupon code.
         - Use OpenCustomerServiceCase when action = OPEN_CASE.
         - Use RedactPII if the comment includes phone numbers, emails, or sensitive data before storing or referencing.
     
@@ -96,6 +96,7 @@ string promptString = """
 
     Rules:
         - coupon must be null unless action = ISSUE_COUPON.
+        - When action = ISSUE_COUPON, you MUST call GenerateCouponCode to obtain the code. Never generate a coupon code yourself.
         - followUp.requiresHuman must be true if action = OPEN_CASE.
         - confidence must be between 0.0 and 1.0.
         - Do not include explanations outside the JSON.
@@ -138,7 +139,7 @@ string promptMarkdown = """
     | `GetCurrentUtcDateTime` | **Every request.** Get the current time, validate the `submittedAt` timestamp, and compute coupon expiration. |
     | `ListFlavors` | **Every request.** Retrieve the full flavor catalog and validate any flavors referenced in the feedback. |
     | `GetStoreDetails` | **Every request.** Call with the feedback's `storeId` to retrieve store information for the response. |
-    | `GenerateCouponCode` | When issuing a coupon. |
+    | `GenerateCouponCode` | **REQUIRED when action = `ISSUE_COUPON`.** Call with `discountPercent=10` and `expirationDays=30`. You **MUST** use the code returned by this tool — never fabricate a coupon code. |
     | `OpenCustomerServiceCase` | When action = `OPEN_CASE`. |
     | `RedactPII` | If the comment includes phone numbers, emails, or sensitive data before storing or referencing. |
 
@@ -155,6 +156,7 @@ string promptMarkdown = """
 
     ## Rules
     - `coupon` must be `null` unless action = `ISSUE_COUPON`.
+    - When action = `ISSUE_COUPON`, you **MUST** call `GenerateCouponCode` to obtain the code. Never generate a coupon code yourself.
     - `followUp.requiresHuman` must be `true` if action = `OPEN_CASE`.
     - `confidence` must be between `0.0` and `1.0`.
     - Do **not** include explanations outside the JSON.
