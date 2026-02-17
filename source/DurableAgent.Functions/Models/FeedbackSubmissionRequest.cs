@@ -33,6 +33,9 @@ public sealed record FeedbackSubmissionRequest
     /// <summary>Free-text feedback comment.</summary>
     public string? Comment { get; init; }
 
+    /// <summary>Identifier of the flavor the customer tried (optional).</summary>
+    public string? FlavorId { get; init; }
+
     /// <summary>
     /// Validates the request and returns a list of validation errors (empty when valid).
     /// </summary>
@@ -86,5 +89,6 @@ public sealed record FeedbackSubmissionRequest
         Channel = Channel!,
         Rating = Rating!.Value,
         Comment = Comment!,
+        FlavorId = FlavorId,
     };
 }

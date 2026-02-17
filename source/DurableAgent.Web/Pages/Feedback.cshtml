@@ -4,6 +4,22 @@
     ViewData["Title"] = "Customer Feedback";
 }
 
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11">
+    @foreach (var warning in Model.ApiLoadWarnings)
+    {
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-warning text-dark">
+                <strong class="me-auto">⚠️ Warning</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                @warning
+            </div>
+        </div>
+    }
+</div>
+
 <div class="froyo-card">
     <div class="text-center mb-4">
         <div class="decorative-scoop">🍦 💻 🍨 ⚡ 🍧</div>
@@ -49,8 +65,22 @@
         <form method="post" asp-antiforgery="true">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label asp-for="StoreId" class="form-label">Store ID * <small class="text-muted">// location identifier</small></label>
-                    <input asp-for="StoreId" class="form-control" placeholder="e.g., STORE-SFO-01 or dev.store.local" required />
+                    <label asp-for="StoreId" class="form-label">Store Location * <small class="text-muted">// where you visited</small></label>
+                    @if (Model.Stores?.Any() == true)
+                    {
+                        <select asp-for="StoreId" class="form-select" required>
+                            <option value="">-- Select a store --</option>
+                            @foreach (var store in Model.Stores)
+                            {
+                                <option value="@store.StoreId">@store.Name</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <input asp-for="StoreId" class="form-control" placeholder="Enter store ID (e.g., store-001)" required />
+                        <small class="text-muted">Store list is currently unavailable. Please enter the store ID.</small>
+                    }
                     <span asp-validation-for="StoreId" class="text-danger"></span>
                 </div>
 
@@ -58,6 +88,29 @@
                     <label asp-for="OrderId" class="form-label">Order ID * <small class="text-muted">// transaction hash</small></label>
                     <input asp-for="OrderId" class="form-control" placeholder="e.g., ORD-A3F9C2 or uuid.v4()" required />
                     <span asp-validation-for="OrderId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    @if (Model.Flavors?.Any() == true)
+                    {
+                        <label asp-for="FlavorId" class="form-label">Flavor You Tried <small class="text-muted">// the one you compiled (optional)</small></label>
+                        <select asp-for="FlavorId" class="form-select">
+                            <option value="">-- Select a flavor (optional) --</option>
+                            @foreach (var flavor in Model.Flavors)
+                            {
+                                <option value="@flavor.FlavorId">@flavor.Name - @flavor.Description</option>
+                            }
+                        </select>
+                        <span asp-validation-for="FlavorId" class="text-danger"></span>
+                    }
+                    else
+                    {
+                        <label class="form-label">Flavor You Tried <small class="text-muted">// optional - flavors unavailable</small></label>
+                        <input asp-for="FlavorId" class="form-control" placeholder="Flavor list unavailable - you can submit without selecting a flavor" disabled />
+                        <small class="text-muted">Flavor information is currently unavailable. You can submit feedback without it.</small>
+                    }
                 </div>
             </div>
 
