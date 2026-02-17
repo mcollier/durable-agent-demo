@@ -1,11 +1,11 @@
 namespace DurableAgent.Functions.Models;
 
 /// <summary>
-/// Input for the <see cref="Activities.SendEscalationEmailActivity"/>.
+/// Input for the <see cref="Activities.SendCustomerEmailActivity"/>.
 /// </summary>
-public sealed record SendEscalationEmailInput
+public sealed record SendCustomerEmailInput
 {
-    /// <summary>Identifier of the feedback that triggered the escalation.</summary>
+    /// <summary>Identifier of the feedback that triggered the email.</summary>
     public required string FeedbackId { get; init; }
 
     /// <summary>Case ID created by the AI agent for tracking.</summary>

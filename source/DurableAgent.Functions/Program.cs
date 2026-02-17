@@ -180,18 +180,19 @@ ChatOptions chatOptions = new()
     )
 };
 
+// Create a shared chat client for both agents (same endpoint + deployment)
+var chatClient = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
+    .GetChatClient(deploymentName);
+
 // Create the AI agent following standard Microsoft Agent Framework patterns. The agent will be injected into the activity function
-AIAgent agent = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
-    .GetChatClient(deploymentName)
+AIAgent agent = chatClient
     .AsAIAgent(new ChatClientAgentOptions()
     {
         Name = "CustomerServiceAgent",
         ChatOptions = chatOptions,
-        
     });
 
-AIAgent emailAgent = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
-    .GetChatClient(deploymentName)
+AIAgent emailAgent = chatClient
     .AsAIAgent(new ChatClientAgentOptions()
     {
         Name = "EmailAgent",

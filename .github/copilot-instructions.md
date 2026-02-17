@@ -8,7 +8,7 @@ The project uses **Azure Functions (Flex Consumption)** with the **Durable Task 
 
 Infrastructure is defined in Azure Bicep (`infra/`), application code in C#/.NET 10 (`source/`).
 
-**Data flow:** HTTP POST /api/feedback → Service Bus queue (`inbound-feedback`) → `InboundFeedbackTrigger` → `FeedbackOrchestrator` (with `CustomerServiceAgent` AI) → `ProcessFeedbackActivity` → optional `SendEscalationEmailActivity`
+**Data flow:** HTTP POST /api/feedback → Service Bus queue (`inbound-feedback`) → `InboundFeedbackTrigger` → `FeedbackOrchestrator` (with `CustomerServiceAgent` AI + `EmailAgent`) → `SendCustomerEmailActivity` → `ProcessFeedbackActivity`
 
 ## Repository Structure
 
@@ -44,13 +44,13 @@ source/
       FeedbackOrchestrator.cs           # Durable orchestrator with AI agent
     Activities/
       ProcessFeedbackActivity.cs        # Processes feedback after AI analysis
-      SendEscalationEmailActivity.cs    # Sends escalation for human-review cases
+      SendCustomerEmailActivity.cs      # Sends follow-up email to the customer
     Services/
       IFeedbackQueueSender.cs           # Queue sender abstraction
       ServiceBusFeedbackQueueSender.cs  # Service Bus implementation
     Models/
       FeedbackSubmissionRequest.cs      # HTTP request DTO with validation
-      SendEscalationEmailInput.cs       # Escalation activity input
+      SendCustomerEmailInput.cs         # Customer email activity input
     Tools/                              # AI agent tool functions
       GenerateCouponCodeTool.cs         # Generates coupon codes
       GetCurrentUtcDateTimeTool.cs      # Returns current UTC timestamp

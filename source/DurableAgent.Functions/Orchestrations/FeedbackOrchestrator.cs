@@ -15,6 +15,9 @@ namespace DurableAgent.Functions.Orchestrations;
 /// </summary>
 public static class FeedbackOrchestrator
 {
+    /// <summary>External event name raised when a human reviewer completes their review.</summary>
+    internal const string HumanReviewCompletedEvent = "HumanReviewCompleted";
+    
     [Function(nameof(FeedbackOrchestrator))]
     public static async Task<string> RunAsync(
         [OrchestrationTrigger] TaskOrchestrationContext context,
@@ -30,27 +33,23 @@ public static class FeedbackOrchestrator
         DurableAIAgent customerServiceAgent = context.GetAgent("CustomerServiceAgent");
         AgentSession agentSession = await customerServiceAgent.CreateSessionAsync();
 
-        // Delegate email composition to the EmailAgent for every feedback submission
-        DurableAIAgent emailAgent = context.GetAgent("EmailAgent");
-        AgentSession emailSession = await emailAgent.CreateSessionAsync();
-
         AgentResponse<FeedbackResult> agentResponse = await customerServiceAgent.RunAsync<FeedbackResult>(
             message: $"Analyze this customer feedback and provide a summary and sentiment rating: {feedbackMessage}",
             session: agentSession);
 
         FeedbackResult feedbackResult = agentResponse.Result;
 
-        if (context.IsReplaying)
-        {
-            Console.WriteLine($"***REPLAYING**** Received agent response for feedback {feedbackMessage.FeedbackId} during replay: {feedbackResult}");
-        }
+        // if (context.IsReplaying)
+        // {
+        //     Console.WriteLine($"***REPLAYING**** Received agent response for feedback {feedbackMessage.FeedbackId} during replay: {feedbackResult}");
+        // }
 
         // Check if the feedback result requires human follow-up
         if (feedbackResult.FollowUp?.RequiresHuman == true)
         {
             logger.LogWarning("Feedback {FeedbackId} requires human review. Escalating.", feedbackMessage.FeedbackId);
 
-            bool humanReviewCompleted = await context.WaitForExternalEvent<bool>("HumanReviewCompleted");
+            bool humanReviewCompleted = await context.WaitForExternalEvent<bool>(HumanReviewCompletedEvent);
         }
 
         string emailPrompt = $"""
@@ -66,6 +65,10 @@ public static class FeedbackOrchestrator
             - Original Customer Comment: {feedbackMessage.Comment}
             """;
 
+        // Delegate email composition to the EmailAgent
+        DurableAIAgent emailAgent = context.GetAgent("EmailAgent");
+        AgentSession emailSession = await emailAgent.CreateSessionAsync();
+
         AgentResponse<EmailResult> emailResponse = await emailAgent.RunAsync<EmailResult>(
             message: emailPrompt,
             session: emailSession);
@@ -74,8 +77,8 @@ public static class FeedbackOrchestrator
 
         // Send the agent-composed follow-up email to the customer
         await context.CallActivityAsync<string>(
-            nameof(SendEscalationEmailActivity),
-            new SendEscalationEmailInput
+            nameof(SendCustomerEmailActivity),
+            new SendCustomerEmailInput
             {
                 FeedbackId = feedbackMessage.FeedbackId,
                 CaseId = feedbackResult.FollowUp?.CaseId ?? string.Empty,

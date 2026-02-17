@@ -5,20 +5,18 @@ using Microsoft.Extensions.Logging;
 namespace DurableAgent.Functions.Activities;
 
 /// <summary>
-/// Sends an escalation email to the customer who submitted feedback.
+/// Sends a follow-up email to the customer who submitted feedback.
 /// </summary>
-public static class SendEscalationEmailActivity
+public static class SendCustomerEmailActivity
 {
-    [Function(nameof(SendEscalationEmailActivity))]
+    [Function(nameof(SendCustomerEmailActivity))]
     public static string Run(
-        [ActivityTrigger] SendEscalationEmailInput input,
+        [ActivityTrigger] SendCustomerEmailInput input,
         FunctionContext executionContext)
     {
         ArgumentNullException.ThrowIfNull(input);
 
-        var logger = executionContext.GetLogger(nameof(SendEscalationEmailActivity));
-
-        // throw new Exception("Simulated exception in SendEscalationEmailActivity for testing retry logic.");
+        var logger = executionContext.GetLogger(nameof(SendCustomerEmailActivity));
 
         // TODO: Implement actual email sending (e.g., SendGrid, SMTP, Graph API).
 

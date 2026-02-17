@@ -20,7 +20,7 @@ flowchart TD
     Orchestrator --> Agent[CustomerServiceAgent<br/>DurableAIAgent]
     Orchestrator --> Process[ProcessFeedbackActivity]
     Agent --> Result[FeedbackResult]
-    Result -->|if escalation needed| Escalate[SendEscalationEmailActivity]
+    Result -->|follow-up email| Email[SendCustomerEmailActivity]
 ```
 
 All inter-service communication uses **system-assigned managed identity** with RBAC — no connection strings, SAS tokens, or shared keys.
@@ -71,13 +71,13 @@ source/
       FeedbackOrchestrator.cs           # Durable orchestrator with AI agent
     Activities/
       ProcessFeedbackActivity.cs        # Processes feedback after AI analysis
-      SendEscalationEmailActivity.cs    # Sends escalation for human-review cases
+      SendCustomerEmailActivity.cs      # Sends follow-up email to the customer
     Services/
       IFeedbackQueueSender.cs           # Queue sender abstraction
       ServiceBusFeedbackQueueSender.cs  # Service Bus implementation
     Models/
       FeedbackSubmissionRequest.cs      # HTTP request DTO with validation
-      SendEscalationEmailInput.cs       # Escalation activity input
+      SendCustomerEmailInput.cs         # Customer email activity input
     Tools/                              # AI agent tool functions
       GenerateCouponCodeTool.cs         # Generates coupon codes
       GetCurrentUtcDateTimeTool.cs      # Returns current UTC timestamp
@@ -146,7 +146,7 @@ az bicep build --file infra/bicep/main.bicep --stdout
 3. **`FeedbackOrchestrator`** (a durable orchestration) runs the workflow:
    - Uses `context.GetAgent("CustomerServiceAgent")` to obtain a `DurableAIAgent` — the durable wrapper that checkpoints agent calls within the orchestration.
    - Creates an `AgentSession` and calls `RunAsync<FeedbackResult>()` to analyze the feedback. The AI agent assesses sentiment, evaluates risk, recommends an action, and returns a structured `FeedbackResult` using tool-calling and JSON structured output.
-   - If the result indicates human follow-up is required (`FollowUp.RequiresHuman`), calls **`SendEscalationEmailActivity`** to escalate.
+   - Calls **`SendCustomerEmailActivity`** to send a follow-up email composed by the `EmailAgent`.
    - Calls **`ProcessFeedbackActivity`** to finalize processing.
    - All agent state and conversation history is automatically persisted by the Durable Task Scheduler, surviving failures and restarts.
 
