@@ -161,7 +161,6 @@ ChatOptions chatOptions = new()
         AIFunctionFactory.Create(ListFlavorsTool.ListFlavors),
         AIFunctionFactory.Create(GetStoreDetailsTool.GetStoreDetails),
         AIFunctionFactory.Create(OpenCustomerServiceCaseTool.OpenCustomerServiceCase),
-        // AIFunctionFactory.Create(RedactPiiTool.RedactPII),
     ],
     Instructions = promptMarkdown,
     ResponseFormat = ChatResponseFormat.ForJsonSchema(
