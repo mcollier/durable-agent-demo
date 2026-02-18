@@ -61,3 +61,22 @@ Content-Type: application/json
     "comment": "The froyo was okay, but the store was unclean."
 }
 
+### Submit feedback - neutral
+POST {{hostname}}/api/feedback HTTP/1.1
+Content-Type: application/json
+
+{
+    "storeId": "store-999",
+    "orderId": "ord-102",
+    "customer": {
+        "preferredName": "Milo Mustang",
+        "firstName": "Milo",
+        "lastName": "Mustang",
+        "email": "milo.mustang@example.com",
+        "phoneNumber": "555-0102",
+        "preferredContactMethod": "Email"
+    },
+    "channel": "web",
+    "rating": 2,
+    "comment": "The froyo was okay. The staff was very friendly."
+}
