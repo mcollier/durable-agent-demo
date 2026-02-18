@@ -112,10 +112,6 @@ string promptMarkdown = """
     - Do **not** include explanations outside the JSON.
     """;
 
-// Create a JSON schema for the expected output of the agent, which can be used for response validation and to help guide the agent's output format.
-// This is optional but can improve reliability.
-JsonElement feedbackResultSchema = AIJsonUtilities.CreateJsonSchema(typeof(FeedbackResult));
-
 // Configure the chat response format to use the JSON schema. This tells the agent to structure its response according to the schema, which can help ensure consistent and parseable output.
 ChatOptions chatOptions = new()
 {
