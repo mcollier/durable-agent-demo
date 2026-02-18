@@ -54,6 +54,8 @@ public static class FeedbackOrchestrator
             // TODO: Call activity function to get human review result.
         }
 
+        // Prepare email content based on agent analysis and delegate email composition to EmailAgent
+        // couponInfo is only included in the prompt if a coupon was generated, to avoid confusion for the agent.
         string couponInfo = feedbackResult.Coupon is { } coupon
             ? $"""
             - Coupon Code: {coupon.Code}
