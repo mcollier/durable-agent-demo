@@ -80,25 +80,6 @@ builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSende
 //         - Use OpenCustomerServiceCase when action = OPEN_CASE.
 //         - Use RedactPII if the comment includes phone numbers, emails, or sensitive data before storing or referencing.
     
-//     5. Determinism requirement:
-//         - If tool results are provided, rely only on those results.
-//         - Do not invent store data, flavors, coupon codes, or case IDs.
-//         - Only use data from the input event and tool responses.
-//         - If the store or flavor mentioned in the feedback does not exist according to the tools, note that in the response but do not assume any details.
-
-//     6. Tone guidelines:
-//         - Always flag health-related claims — never downplay or dismiss them.
-//         - Keep classification objective and data-driven.
-//         - Do not include customer-facing language in the JSON output.
-
-//     Rules:
-//         - coupon must be null unless action = ISSUE_COUPON.
-//         - When action = ISSUE_COUPON, you MUST call GenerateCouponCode to obtain the code. Never generate a coupon code yourself.
-//         - followUp.requiresHuman must be true if action = OPEN_CASE.
-//         - confidence must be between 0.0 and 1.0.
-//         - Do not include explanations outside the JSON.
-//     """;
-
 // ─── Markdown version of the system prompt ───────────────────────────────────
 string promptMarkdown = """
     # Customer Feedback Agent — Froyo Foundry
