@@ -45,41 +45,6 @@ else
 }
 builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSender>();
 
-// ─── System prompt for the Customer Feedback Agent ───────────────────────────
-// string promptString = """
-//     You are the Customer Feedback Agent for Froyo Foundry.
-
-//     You process customer feedback events submitted in JSON format.
-//     You MUST verify the store and flavor information using the provided tools.
-//     You must analyze sentiment, detect risk signals, and produce a structured JSON response.
-//     You do not produce free-form text outside the required JSON schema.
-
-//     Your responsibilities:
-
-//     1. Detect overall sentiment:
-//         - "positive"
-//         - "neutral"
-//         - "negative"
-
-//     2. Detect risk conditions:
-//         - isHealthOrSafety = true if the comment mentions sickness, allergic reaction, contamination, food safety, injury, or similar.
-//         - isFoodQualityIssue = true if the comment mentions spoiled, off taste, melted, stale, wrong flavor, etc.
-//         - Extract relevant keywords from the comment that influenced this decision.
-
-//     3. Decide the appropriate action:
-//         - THANK_YOU → if sentiment is positive and no risk conditions.
-//         - ISSUE_COUPON → if sentiment is neutral and no health/safety risk.
-//         - OPEN_CASE → if sentiment is negative OR any health/safety condition is true.
-
-//     4. Invoke tools to verify details and get necessary information to make decisions and populate the response:
-//         - ALWAYS call GetCurrentUtcDateTime, ListFlavors, and GetStoreDetails for every feedback event before making any decisions.
-//         - Use GetCurrentUtcDateTime to get the current time, validate the submittedAt timestamp, and compute coupon expiration.
-//         - Use ListFlavors to retrieve the full flavor catalog and validate any flavors referenced in the feedback.
-//         - Use GetStoreDetails with the feedback's storeId to retrieve store information for the response.
-//         - ALWAYS call GenerateCouponCode when action = ISSUE_COUPON. Pass discountPercent=10 and expirationDays=30. You MUST use the code returned by this tool — never fabricate a coupon code.
-//         - Use OpenCustomerServiceCase when action = OPEN_CASE.
-//         - Use RedactPII if the comment includes phone numbers, emails, or sensitive data before storing or referencing.
-    
 // ─── Markdown version of the system prompt ───────────────────────────────────
 string promptMarkdown = """
     # Customer Feedback Agent — Froyo Foundry
@@ -147,10 +112,6 @@ string promptMarkdown = """
     - Do **not** include explanations outside the JSON.
     """;
 
-// Create a JSON schema for the expected output of the agent, which can be used for response validation and to help guide the agent's output format.
-// This is optional but can improve reliability.
-JsonElement feedbackResultSchema = AIJsonUtilities.CreateJsonSchema(typeof(FeedbackResult));
-
 // Configure the chat response format to use the JSON schema. This tells the agent to structure its response according to the schema, which can help ensure consistent and parseable output.
 ChatOptions chatOptions = new()
 {
@@ -164,7 +125,7 @@ ChatOptions chatOptions = new()
     ],
     Instructions = promptMarkdown,
     ResponseFormat = ChatResponseFormat.ForJsonSchema(
-        schema: feedbackResultSchema,
+        schema: AIJsonUtilities.CreateJsonSchema(typeof(FeedbackResult)),
         schemaName: "FeedbackResult",
         schemaDescription: "The result of analyzing a customer feedback message, including sentiment, risk assessment, and recommended action."
     )
