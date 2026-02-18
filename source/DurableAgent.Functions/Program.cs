@@ -147,8 +147,6 @@ string promptMarkdown = """
     - Do **not** include explanations outside the JSON.
     """;
 
-    // | `RedactPII` | If the comment includes phone numbers, emails, or sensitive data before storing or referencing. |
-
 // Create a JSON schema for the expected output of the agent, which can be used for response validation and to help guide the agent's output format.
 // This is optional but can improve reliability.
 JsonElement feedbackResultSchema = AIJsonUtilities.CreateJsonSchema(typeof(FeedbackResult));
