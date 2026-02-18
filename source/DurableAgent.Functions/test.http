@@ -66,14 +66,14 @@ POST {{hostname}}/api/feedback HTTP/1.1
 Content-Type: application/json
 
 {
-    "storeId": "store-999",
-    "orderId": "ord-102",
+    "storeId": "store-003",
+    "orderId": "ord-103",
     "customer": {
         "preferredName": "Milo Mustang",
         "firstName": "Milo",
         "lastName": "Mustang",
         "email": "milo.mustang@example.com",
-        "phoneNumber": "555-0102",
+        "phoneNumber": "555-0103",
         "preferredContactMethod": "Email"
     },
     "channel": "web",
