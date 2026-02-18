@@ -39,5 +39,5 @@
             ]
         }
     },
-    "postStartCommand": ""
+    "postStartCommand": "dotnet build ./source/DurableAgent.slnx"
 }
