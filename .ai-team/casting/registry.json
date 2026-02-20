@@ -34,6 +34,13 @@
       "created_at": "2026-02-20T03:58:53Z",
       "legacy_named": false,
       "status": "active"
+    },
+    "pepper-potts": {
+      "persistent_name": "Pepper Potts",
+      "universe": "Marvel Cinematic Universe",
+      "created_at": "2026-02-20T12:00:00Z",
+      "legacy_named": false,
+      "status": "active"
     }
   }
 }

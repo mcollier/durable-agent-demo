@@ -19,5 +19,6 @@
 | Shuri | Frontend Dev | .ai-team/agents/shuri/charter.md | ✅ Active |
 | Helen Cho | AI Agent Dev | .ai-team/agents/helen-cho/charter.md | ✅ Active |
 | Coulson | Tester | .ai-team/agents/coulson/charter.md | ✅ Active |
+| Pepper Potts | Designer | .ai-team/agents/pepper-potts/charter.md | ✅ Active |
 | Scribe | Session Logger | .ai-team/agents/scribe/charter.md | ✅ Active |
 | Ralph | Work Monitor | — | 🔄 Monitor |

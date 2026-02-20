@@ -7,5 +7,6 @@
 | Razor Pages, Blazor, HTML, CSS, Bootstrap, JavaScript, UI components | Shuri ⚛️ | "add a page", "fix the layout", "style the form", "build the feedback UI" |
 | Microsoft Agent Framework, AI agent tools, LLM integration, Azure OpenAI, prompt engineering | Helen Cho 🤖 | "add a new agent tool", "update the agent prompt", "integrate OpenAI", "add EmailAgent" |
 | Testing, xUnit, FakeItEasy, test coverage, edge cases, integration tests | Coulson 🧪 | "write tests for X", "add test coverage", "fix failing tests", "test the trigger" |
+| UI/UX design, visual hierarchy, layout, spacing, typography, accessibility, design system | Pepper Potts 🎨 | "review the page layout", "fix spacing", "improve accessibility", "design the feedback form" |
 | Session logging, decisions merge, memory | Scribe 📋 | (auto-triggered, never route manually) |
 | Work queue, backlog, GitHub issues | Ralph 🔄 | "Ralph, go", "Ralph, status", "work on all issues" |
