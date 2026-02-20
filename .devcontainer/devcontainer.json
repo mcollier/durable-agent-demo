@@ -20,6 +20,9 @@
         },
         "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools": {
             "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/copilot-cli": {
+            "version": "latest"
         }
     },
     "containerEnv": {
