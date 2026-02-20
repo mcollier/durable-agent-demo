@@ -1,0 +1,39 @@
+{
+  "agents": {
+    "fury": {
+      "persistent_name": "Fury",
+      "universe": "Marvel Cinematic Universe",
+      "created_at": "2026-02-20T03:58:53Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "maria-hill": {
+      "persistent_name": "Maria Hill",
+      "universe": "Marvel Cinematic Universe",
+      "created_at": "2026-02-20T03:58:53Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "shuri": {
+      "persistent_name": "Shuri",
+      "universe": "Marvel Cinematic Universe",
+      "created_at": "2026-02-20T03:58:53Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "helen-cho": {
+      "persistent_name": "Helen Cho",
+      "universe": "Marvel Cinematic Universe",
+      "created_at": "2026-02-20T03:58:53Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "coulson": {
+      "persistent_name": "Coulson",
+      "universe": "Marvel Cinematic Universe",
+      "created_at": "2026-02-20T03:58:53Z",
+      "legacy_named": false,
+      "status": "active"
+    }
+  }
+}
