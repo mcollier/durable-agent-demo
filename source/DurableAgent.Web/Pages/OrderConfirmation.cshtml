@@ -1,0 +1,53 @@
+@page
+@model OrderConfirmationModel
+@{
+    ViewData["Title"] = "Order Confirmed!";
+}
+
+<div class="froyo-card">
+    <div class="text-center mb-4">
+        <div class="decorative-scoop">🎉 🍦 🎊 🍨 🎉</div>
+        <h1 class="froyo-heading">Order Confirmed!</h1>
+        <p class="lead">Your froyo is on its way, <strong>@Model.FirstName</strong>!</p>
+        <p class="text-muted small">// Order successfully queued for fulfillment</p>
+    </div>
+
+    <div class="alert d-flex align-items-center gap-2 mb-4"
+         style="background-color: var(--froyo-mint); border-color: var(--froyo-pistachio); color: var(--froyo-chocolate);"
+         role="status" aria-live="polite">
+        <span style="font-size:1.5rem;">📧</span>
+        <div>
+            <strong>Order Reference: @Model.OrderReference</strong>
+            <span class="d-block text-muted small">A confirmation will be sent to @Model.Email</span>
+        </div>
+    </div>
+
+    <div class="border rounded p-3 mb-4" style="border-color: var(--froyo-strawberry) !important;">
+        <h5 class="froyo-heading mb-3">Order Summary</h5>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Flavor</dt>
+            <dd class="col-sm-8">@Model.FlavorName</dd>
+
+            <dt class="col-sm-4">Size</dt>
+            <dd class="col-sm-8">1 Gallon 🪣</dd>
+
+            <dt class="col-sm-4">Shipping to</dt>
+            <dd class="col-sm-8">
+                @Model.StreetAddress<br />
+                @if (!string.IsNullOrEmpty(Model.AddressLine2))
+                {
+                    @Model.AddressLine2<br />
+                }
+                @Model.City, @Model.State @Model.ZipCode
+            </dd>
+
+            <dt class="col-sm-4">Contact</dt>
+            <dd class="col-sm-8">@Model.Email</dd>
+        </dl>
+    </div>
+
+    <div class="text-center mt-4">
+        <a asp-page="/Index" class="froyo-btn-primary">Back to Home 🍧</a>
+        <p class="text-muted small mt-3">// Thank you for choosing Froyo Foundry</p>
+    </div>
+</div>
