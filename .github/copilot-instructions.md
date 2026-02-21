@@ -30,6 +30,7 @@ source/
     Models/
       ContactMethod.cs                  # Enum: Email, Phone
       CustomerInfo.cs                   # Sealed record: customer details
+      EmailResult.cs                    # Sealed record: AI-composed follow-up email
       FeedbackMessage.cs                # Sealed record: inbound feedback DTO
       FeedbackResult.cs                 # Sealed record: AI analysis result (with nested types)
       Flavor.cs                         # Sealed record: frozen yogurt flavor
@@ -38,6 +39,8 @@ source/
     Program.cs                          # App entry point, AI agent + DI config
     host.json                           # Durable Task + Service Bus config
     Triggers/
+      GetFlavorsTrigger.cs              # HTTP GET /api/flavors → returns available flavors
+      GetStoresTrigger.cs               # HTTP GET /api/stores → returns store list
       InboundFeedbackTrigger.cs         # Service Bus trigger → starts orchestration
       SubmitFeedbackTrigger.cs          # HTTP POST /api/feedback → enqueues to Service Bus
     Orchestrations/
@@ -46,8 +49,10 @@ source/
       ProcessFeedbackActivity.cs        # Processes feedback after AI analysis
       SendCustomerEmailActivity.cs      # Sends follow-up email to the customer
     Services/
+      FlavorRepository.cs               # Static class: GetAll/GetById for flavor reference data
       IFeedbackQueueSender.cs           # Queue sender abstraction
       ServiceBusFeedbackQueueSender.cs  # Service Bus implementation
+      StoreRepository.cs                # Static class: GetAll/GetById for store reference data
     Models/
       FeedbackSubmissionRequest.cs      # HTTP request DTO with validation
       SendCustomerEmailInput.cs         # Customer email activity input
@@ -60,6 +65,12 @@ source/
       RedactPiiTool.cs                  # Redacts PII from text
   DurableAgent.Core.Tests/              # xUnit tests for Core
   DurableAgent.Functions.Tests/         # xUnit + FakeItEasy tests for Functions
+  DurableAgent.Web/                     # ASP.NET Core Razor Pages web frontend
+    Pages/
+      Feedback.cshtml                   # Customer feedback submission form
+      Index.cshtml                      # Home page
+      Order.cshtml                      # Order page
+      OrderConfirmation.cshtml          # Order confirmation page
 
 docs/
   plan-durableAgentServerless.md        # Application implementation plan
@@ -70,6 +81,7 @@ docs/
     bicep-plan.agent.md                 # Plans infra → docs/bicep-planning-files/
     bicep-impl.agent.md                 # Implements Bicep from plans
     csharp-expert.agent.md              # .NET development guidance
+    squad.agent.md                      # AI team orchestration agent
   skills/git-commit/                    # Git commit skill for conventional commits
   workflows/dotnet-ci.yml               # CI: build and test on push/PR
   copilot-instructions.md               # This file — repository-wide Copilot context
@@ -80,7 +92,7 @@ docs/
 - **[Durable Agents](https://learn.microsoft.com/en-us/agent-framework/integrations/azure-functions?pivots=programming-language-csharp)** — Microsoft Agent Framework + Azure Durable Functions for stateful AI agents with automatic state persistence, failure recovery, and deterministic orchestrations
 - **DurableAIAgent orchestration** — The orchestrator uses `context.GetAgent()` to get a `DurableAIAgent` wrapper that checkpoints agent calls within the durable orchestration framework
 - **Structured AI output** — Azure OpenAI with `ChatResponseFormat.ForJsonSchema` produces typed `FeedbackResult` responses including sentiment, risk assessment, recommended actions, and optional coupons
-- **AI tool calling** — The agent has 6 tool functions (store lookup, coupon generation, case management, PII redaction, etc.) that it invokes autonomously during analysis
+- **AI tool calling** — The `CustomerServiceAgent` has 5 registered tool functions (store lookup, coupon generation, case management, datetime lookup, flavor listing) that it invokes autonomously during analysis
 - **Subscription-scoped deployment** (`targetScope = 'subscription'` in main.bicep) — creates the resource group, then deploys into it.
 - **4-phase deployment**: (1) Foundation (Log Analytics, Storage, Service Bus, Durable Task), (2) Monitoring (App Insights), (3) Compute (FC1 plan + Function App), (4) RBAC.
 - **Azure Verified Modules (AVM)** via `br/public:avm/res/...` for standard resources. Raw Bicep only for `Microsoft.DurableTask/schedulers@2025-11-01` (no AVM exists).
@@ -105,15 +117,23 @@ docs/
 Uses the **function-based (static method)** pattern for the isolated worker model — NOT the class-based `[DurableTask]` / `TaskOrchestrator<>` pattern:
 
 ```csharp
-// Orchestrator — static class + [OrchestrationTrigger] with AI agent
+// Orchestrator — static class + [OrchestrationTrigger] with AI agents
 [Function(nameof(FeedbackOrchestrator))]
 public static async Task<string> RunAsync(
     [OrchestrationTrigger] TaskOrchestrationContext context, FeedbackMessage input)
 {
-    // Get DurableAIAgent wrapper that checkpoints agent calls
-    var agent = context.GetAgent("CustomerServiceAgent");
-    var session = await agent.CreateSessionAsync();
-    var result = await session.RunAsync<FeedbackResult>(input);
+    // CustomerServiceAgent: analyze feedback, call tools, produce FeedbackResult
+    DurableAIAgent customerServiceAgent = context.GetAgent("CustomerServiceAgent");
+    AgentSession agentSession = await customerServiceAgent.CreateSessionAsync();
+    AgentResponse<FeedbackResult> agentResponse = await customerServiceAgent.RunAsync<FeedbackResult>(
+        message: $"Analyze this customer feedback: {input}", session: agentSession);
+    FeedbackResult result = agentResponse.Result;
+
+    // EmailAgent: compose follow-up email based on analysis
+    DurableAIAgent emailAgent = context.GetAgent("EmailAgent");
+    AgentSession emailSession = await emailAgent.CreateSessionAsync();
+    AgentResponse<EmailResult> emailResponse = await emailAgent.RunAsync<EmailResult>(
+        message: emailPrompt, session: emailSession);
     // ... call activities
 }
 
@@ -138,13 +158,14 @@ public static class GenerateCouponCodeTool
 - Trigger classes use **primary constructor DI** (`sealed class Foo(ILogger<Foo> logger)`).
 - Orchestrators/activities are **static classes** — no DI, use `context.CreateReplaySafeLogger()` or `FunctionContext.GetLogger()`.
 - **AI agent tools** are static classes with `[FunctionInvocation]` attributes that define the tool description for the AI model.
-- **DurableAIAgent** provides the wrapper for agent calls in orchestrations: `context.GetAgent(name)` → `CreateSessionAsync()` → `RunAsync<TResult>()`.
+- **DurableAIAgent** provides the wrapper for agent calls in orchestrations: `context.GetAgent(name)` → `CreateSessionAsync()` → `agent.RunAsync<TResult>(message, session)` → `response.Result`.
+- **Multi-agent orchestration** — `FeedbackOrchestrator` uses two sequential agents: `CustomerServiceAgent` (feedback analysis + tool calling) and `EmailAgent` (follow-up email composition), both registered via `AsAIAgent()` in Program.cs.
 - Durable Task storage provider is `"azureManaged"` in host.json with `connectionStringName: "DURABLE_TASK_SCHEDULER_CONNECTION_STRING"`.
 
 ## C#/.NET Conventions
 
 - **.NET 10 / C# 14**, `dotnet-isolated` worker model. Solution uses `.slnx` XML format.
-- `Directory.Build.props` centralizes TFM, nullable, and implicit usings for all 4 projects.
+- `Directory.Build.props` centralizes TFM, nullable, and implicit usings for all 5 projects.
 - **Namespace convention**: `DurableAgent.{Project}.{Folder}` — matches directory structure.
 - **Functions project** depends on Core; Core has zero cloud SDK references.
 - **DTOs**: `sealed record` with `required` properties (e.g., `FeedbackMessage`, `FeedbackResult`, `CustomerInfo`, `Store`, `Flavor`).
