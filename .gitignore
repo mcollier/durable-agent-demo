@@ -47,6 +47,9 @@ __blobstorage__/
 __queuestorage__/
 __azurite_db_*
 
+# Installed skills (dependency cache, re-installed via postCreateCommand)
+.agents/
+
 # Others
 ~$*
 *~
