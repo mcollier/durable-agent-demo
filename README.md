@@ -12,7 +12,8 @@ The demo scenario is **Froyo Foundry**, a fictional frozen yogurt chain that pro
 
 ```mermaid
 flowchart TD
-    Http[HTTP POST /api/feedback] --> Submit[SubmitFeedbackTrigger]
+    Web[DurableAgent.Web<br/>Razor Pages UI] --> Http[HTTP POST /api/feedback]
+    Http --> Submit[SubmitFeedbackTrigger]
     Submit --> Queue[Service Bus Queue<br/>inbound-feedback]
     Producer[External Producer] --> Queue
     Queue --> Inbound[InboundFeedbackTrigger]
@@ -40,57 +41,36 @@ All inter-service communication uses **system-assigned managed identity** with R
 ## Project Structure
 
 ```
-infra/bicep/                            # Azure Bicep infrastructure-as-code
-  main.bicep                            # Subscription-scoped deployment (4 phases)
-  main.bicepparam                       # Parameters (baseName, region, tags)
-  deploy.sh                             # CLI wrapper: deploy / what-if / delete
-  modules/
-    ai-foundry.bicep                    # Azure AI Foundry (Cognitive Services)
-    durable-task.bicep                  # Durable Task Scheduler + TaskHub
-    rbac.bicep                          # RBAC role assignments
+infra/bicep/                   # Azure Bicep infrastructure-as-code
+  main.bicep                   # Subscription-scoped deployment (4 phases)
+  main.bicepparam              # Parameters (baseName, region, tags)
+  deploy.sh                    # CLI wrapper: deploy / what-if / delete
+  modules/                     # Bicep modules (AI Foundry, Durable Task, RBAC)
 
 source/
-  DurableAgent.slnx                     # .NET 10 XML solution file
-  Directory.Build.props                 # Shared build properties
-  global.json                           # SDK version pin (10.0.102)
-  DurableAgent.Core/                    # Domain logic (zero cloud SDK deps)
-    Models/
-      ContactMethod.cs                  # Enum: Email, Phone
-      CustomerInfo.cs                   # Sealed record: customer details
-      FeedbackMessage.cs                # Sealed record: inbound feedback DTO
-      FeedbackResult.cs                 # Sealed record: AI analysis result (with nested types)
-      Flavor.cs                         # Sealed record: frozen yogurt flavor
-      Store.cs                          # Sealed record: store details
-  DurableAgent.Functions/               # Azure Functions isolated worker
-    Program.cs                          # App entry point, AI agent + DI config
-    host.json                           # Durable Task + Service Bus config
-    Triggers/
-      InboundFeedbackTrigger.cs         # Service Bus trigger → starts orchestration
-      SubmitFeedbackTrigger.cs          # HTTP POST /api/feedback → enqueues to Service Bus
-    Orchestrations/
-      FeedbackOrchestrator.cs           # Durable orchestrator with AI agent
-    Activities/
-      ProcessFeedbackActivity.cs        # Processes feedback after AI analysis
-      SendCustomerEmailActivity.cs      # Sends follow-up email to the customer
-    Services/
-      IFeedbackQueueSender.cs           # Queue sender abstraction
-      ServiceBusFeedbackQueueSender.cs  # Service Bus implementation
-    Models/
-      FeedbackSubmissionRequest.cs      # HTTP request DTO with validation
-      SendCustomerEmailInput.cs         # Customer email activity input
-    Tools/                              # AI agent tool functions
-      GenerateCouponCodeTool.cs         # Generates coupon codes
-      GetCurrentUtcDateTimeTool.cs      # Returns current UTC timestamp
-      GetStoreDetailsTool.cs            # Looks up store info by ID
-      ListFlavorsTool.cs                # Lists available flavors
-      OpenCustomerServiceCaseTool.cs    # Opens a customer service case
-      RedactPiiTool.cs                  # Redacts PII from text
-  DurableAgent.Core.Tests/              # xUnit tests for Core
-  DurableAgent.Functions.Tests/         # xUnit + FakeItEasy tests for Functions
+  DurableAgent.slnx             # .NET 10 solution
+  DurableAgent.Core/            # Domain models — FeedbackMessage, FeedbackResult,
+                                #   CustomerInfo, Store, Flavor, EmailResult (zero cloud SDK deps)
+  DurableAgent.Core.Tests/      # xUnit tests for Core models
+  DurableAgent.Functions/       # Azure Functions isolated worker
+    Program.cs                  # App entry point — AI agent registration + DI
+    host.json                   # Durable Task + Service Bus config
+    Triggers/                   # InboundFeedback (SB), SubmitFeedback (HTTP POST),
+                                #   GetStores / GetFlavors (HTTP GET)
+    Orchestrations/             # FeedbackOrchestrator — durable workflow with AI agents
+    Activities/                 # SendCustomerEmail, ProcessFeedback
+    Services/                   # IFeedbackQueueSender, ServiceBusFeedbackQueueSender,
+                                #   StoreRepository, FlavorRepository
+    Models/                     # FeedbackSubmissionRequest, SendCustomerEmailInput
+    Tools/                      # AI tool functions: GenerateCouponCode, GetStoreDetails,
+                                #   ListFlavors, OpenCustomerServiceCase, RedactPii,
+                                #   GetCurrentUtcDateTime
+  DurableAgent.Functions.Tests/ # xUnit + FakeItEasy tests for Functions
+  DurableAgent.Web/             # ASP.NET Core Razor Pages UI for submitting feedback
 
 docs/
-  plan-durableAgentServerless.md        # Application implementation plan
-  bicep-planning-files/                 # Infrastructure plans
+  plan-durableAgentServerless.md   # Application implementation plan
+  bicep-planning-files/            # Infrastructure plans
 ```
 
 ## Prerequisites
@@ -204,7 +184,7 @@ The CustomerServiceAgent has access to 6 tool functions: `GetCurrentUtcDateTime`
 | Messaging | Azure Service Bus (Standard) |
 | Infrastructure | Azure Bicep with Azure Verified Modules |
 | Testing | xUnit 2.9.3, FakeItEasy 9.0.1 |
-| CI/CD | GitHub Actions (planned) |
+| CI/CD | GitHub Actions |
 
 ## Learn More
 
