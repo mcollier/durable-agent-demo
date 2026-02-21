@@ -43,5 +43,6 @@
             ]
         }
     },
+    "postCreateCommand": "npx github:bradygaster/squad && npx skills add spboyer/sensei",
     "postStartCommand": "dotnet build ./source/DurableAgent.slnx"
 }
