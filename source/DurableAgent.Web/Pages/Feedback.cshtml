@@ -148,7 +148,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="PhoneNumber" class="form-label">Phone Number *</label>
-                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+1-555-CODE-NOW" required />
+                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="(xxx) xxx-xxxx" required />
                     <span asp-validation-for="PhoneNumber" class="text-danger"></span>
                 </div>
 
@@ -200,4 +200,12 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.getElementById('PhoneNumber');
+            if (phoneInput) {
+                applyPhoneFormatting(phoneInput);
+            }
+        });
+    </script>
 }

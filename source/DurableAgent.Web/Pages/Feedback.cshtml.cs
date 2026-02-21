@@ -53,7 +53,7 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
 
     [BindProperty]
     [Required(ErrorMessage = "Phone number is required")]
-    [Phone(ErrorMessage = "Please enter a valid phone number")]
+    [RegularExpression(@"^\(\d{3}\) \d{3}-\d{4}$", ErrorMessage = "Phone number must be in the format (xxx) xxx-xxxx")]
     [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
     public string PhoneNumber { get; set; } = string.Empty;
 

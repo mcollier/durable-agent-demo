@@ -1,0 +1,57 @@
+name: git-commit-triggers
+skill: git-commit
+
+# Prompts that SHOULD activate this skill
+# Generated from "USE FOR:" in description
+shouldTriggerPrompts:
+  # From USE FOR: "commit changes"
+  - "commit my changes"
+  - "How do I commit my changes?"
+  - "Commit these changes for me"
+  - "commit changes to the repo"
+
+  # From USE FOR: "create a git commit"
+  - "create a git commit"
+  - "How do I create a git commit?"
+  - "create a git commit for these changes"
+
+  # From USE FOR: "/commit"
+  - "/commit"
+  - "run /commit"
+
+  # From USE FOR: "generate commit message"
+  - "generate commit message"
+  - "generate a commit message for my changes"
+  - "How do I generate a commit message?"
+
+  # From USE FOR: "stage and commit"
+  - "stage and commit my files"
+  - "stage and commit these changes"
+
+  # From USE FOR: "conventional commit message"
+  - "write a conventional commit message"
+  - "create a conventional commit"
+  - "generate a conventional commit for this diff"
+
+# Prompts that should NOT activate this skill
+# Generated from "DO NOT USE FOR:" in description
+shouldNotTriggerPrompts:
+  # From DO NOT USE FOR: "git push (run git directly)"
+  - "push my changes to origin"
+  - "git push to main"
+  - "push this branch"
+
+  # From DO NOT USE FOR: "creating branches"
+  - "create a new branch"
+  - "How do I create a branch?"
+  - "make a feature branch"
+
+  # From DO NOT USE FOR: "merging pull requests"
+  - "merge this pull request"
+  - "how do I merge a PR?"
+  - "approve and merge the PR"
+
+  # From DO NOT USE FOR: "viewing git log or history"
+  - "show me the git log"
+  - "view commit history"
+  - "what commits were made recently?"

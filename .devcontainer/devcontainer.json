@@ -32,8 +32,9 @@
         "vscode": {
             "extensions": [
                 "azurite.azurite",
-                "github.vscode-github-actions",
+                "csharpfritz.squadui",
                 "codezombiech.gitignore",
+                "github.vscode-github-actions",
                 "humao.rest-client",
                 "ms-azuretools.vscode-bicep",
                 "ms-azuretools.vscode-azurefunctions",
@@ -42,5 +43,6 @@
             ]
         }
     },
+    "postCreateCommand": "npx github:bradygaster/squad && npx skills add spboyer/sensei",
     "postStartCommand": "dotnet build ./source/DurableAgent.slnx"
 }

@@ -1,0 +1,195 @@
+@page
+@model OrderModel
+@{
+    ViewData["Title"] = "Order Froyo";
+}
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11">
+    @foreach (var warning in Model.WarningMessages)
+    {
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-warning text-dark">
+                <strong class="me-auto">⚠️ Warning</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                @warning
+            </div>
+        </div>
+    }
+</div>
+
+<div class="froyo-card">
+    <div class="text-center mb-4">
+        <div class="decorative-scoop">🍦 🛒 🍨 📦 🍧</div>
+        <h1 class="froyo-heading">Order Your Froyo!</h1>
+        <p class="lead">Pick your flavor, ship it to your door.</p>
+        <p class="text-muted small">// Free shipping on all gallon orders</p>
+    </div>
+
+    @if (Model.ValidationErrors.Any())
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Please correct the following:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach (var error in Model.ValidationErrors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form method="post" asp-antiforgery="true">
+        <h3 class="froyo-heading mb-3">Choose Your Flavor <small class="text-muted">// required</small></h3>
+
+        @if (Model.Flavors?.Any() == true)
+        {
+            <fieldset>
+                <legend class="visually-hidden">Choose Your Flavor</legend>
+                <div class="row g-3 mb-3">
+                    @foreach (var flavor in Model.Flavors)
+                    {
+                        var categoryEmoji = flavor.Category switch
+                        {
+                            "Classic" => "🍦",
+                            "Fruit" => "🍓",
+                            "Dessert" => "🍰",
+                            "Nutty" => "🥜",
+                            "Coffee" => "☕",
+                            _ => "🍧"
+                        };
+
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="flavor-card">
+                                <input type="radio" asp-for="FlavorId" value="@flavor.FlavorId" id="flavor-@flavor.FlavorId" required />
+                                <label class="flavor-card-label" for="flavor-@flavor.FlavorId">
+                                    <span class="flavor-emoji">@categoryEmoji</span>
+                                    <span class="flavor-name">@flavor.Name</span>
+                                    <span class="flavor-category">@flavor.Category</span>
+                                    <span class="flavor-description">@flavor.Description</span>
+                                    @if (flavor.ContainsDairy || flavor.ContainsNuts)
+                                    {
+                                        <span class="flavor-allergens">
+                                            @if (flavor.ContainsDairy) { <span>🥛 Dairy</span> }
+                                            @if (flavor.ContainsDairy && flavor.ContainsNuts) { <text> </text> }
+                                            @if (flavor.ContainsNuts) { <span>🥜 Nuts</span> }
+                                        </span>
+                                    }
+                                </label>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </fieldset>
+            <span asp-validation-for="FlavorId" class="text-danger d-block mt-2"></span>
+        }
+        else
+        {
+            <select asp-for="FlavorId" class="form-select" required>
+                <option value="">-- Select a flavor --</option>
+            </select>
+            <small class="text-muted">Flavor list is currently unavailable. Please try refreshing the page.</small>
+            <span asp-validation-for="FlavorId" class="text-danger d-block mt-2"></span>
+        }
+
+        <div class="alert d-flex align-items-center gap-2 mt-3" style="background-color: var(--froyo-blueberry); border-color: var(--froyo-chocolate); color: var(--froyo-chocolate);" role="note">
+            <span style="font-size:1.5rem;">🪣</span>
+            <div>
+                <strong>All orders ship in 1-gallon containers.</strong>
+                <span class="text-muted ms-1 small">That's approximately 16 servings of pure happiness.</span>
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h3 class="froyo-heading mb-3">Your Information</h3>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="FirstName" class="form-label">First Name *</label>
+                <input asp-for="FirstName" class="form-control" placeholder="e.g., Jane" required />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="LastName" class="form-label">Last Name *</label>
+                <input asp-for="LastName" class="form-control" placeholder="e.g., Doe" required />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h3 class="froyo-heading mb-3">Shipping Address <small class="text-muted">// US only</small></h3>
+
+        <div class="mb-3">
+            <label asp-for="StreetAddress" class="form-label">Street Address *</label>
+            <input asp-for="StreetAddress" class="form-control" placeholder="e.g., 123 Main Street" required autocomplete="street-address" />
+            <span asp-validation-for="StreetAddress" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="AddressLine2" class="form-label">Address Line 2 <span class="text-muted fw-normal">(Apt, Suite, Unit — optional)</span></label>
+            <input asp-for="AddressLine2" class="form-control" placeholder="e.g., Apt 4B" autocomplete="address-line2" />
+            <span asp-validation-for="AddressLine2" class="text-danger"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-5 mb-3">
+                <label asp-for="City" class="form-label">City *</label>
+                <input asp-for="City" class="form-control" placeholder="e.g., Springfield" required autocomplete="address-level2" />
+                <span asp-validation-for="City" class="text-danger"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="State" class="form-label">State *</label>
+                <select asp-for="State" class="form-select" required autocomplete="address-level1">
+                    <option value="">-- Select state --</option>
+                    @foreach (var state in Model.UsStates)
+                    {
+                        <option value="@state.Code">@state.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="State" class="text-danger"></span>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label asp-for="ZipCode" class="form-label">ZIP Code *</label>
+                <input asp-for="ZipCode" class="form-control" placeholder="e.g., 62701" required 
+                       inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" autocomplete="postal-code" />
+                <span asp-validation-for="ZipCode" class="text-danger"></span>
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h3 class="froyo-heading mb-3">Contact Information <small class="text-muted">// so we can reach you about your order</small></h3>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Email" class="form-label">Email Address *</label>
+                <input asp-for="Email" type="email" class="form-control" placeholder="e.g., jane@example.com" required autocomplete="email" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="PhoneNumber" class="form-label">Phone Number *</label>
+                <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="(xxx) xxx-xxxx" required autocomplete="tel" />
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="froyo-btn-primary">
+                Place My Order 🍦
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.getElementById('PhoneNumber');
+            if (phoneInput) {
+                applyPhoneFormatting(phoneInput);
+            }
+        });
+    </script>
+}

@@ -198,3 +198,75 @@ label small.text-muted {
     color: var(--froyo-pistachio);
     font-weight: normal;
 }
+
+/* ── Flavor Radio Cards ─────────────────────────────────── */
+
+.flavor-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.flavor-card-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem 0.75rem;
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    cursor: pointer;
+    background: white;
+    transition: border-color 0.2s, background-color 0.2s, transform 0.15s;
+    height: 100%;
+    gap: 0.35rem;
+}
+
+.flavor-card-label:hover {
+    border-color: var(--froyo-pink);
+    background-color: var(--froyo-vanilla);
+    transform: translateY(-2px);
+}
+
+.flavor-card input[type="radio"]:checked + .flavor-card-label {
+    border-color: var(--froyo-strawberry);
+    background-color: rgba(255, 179, 217, 0.15); /* froyo-pink at 15% opacity */
+    box-shadow: 0 0 0 2px var(--froyo-strawberry);
+}
+
+.flavor-card input[type="radio"]:focus-visible + .flavor-card-label {
+    outline: 3px solid var(--froyo-strawberry);
+    outline-offset: 2px;
+}
+
+.flavor-emoji {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.flavor-name {
+    font-weight: 700;
+    color: var(--froyo-chocolate);
+    font-size: 0.95rem;
+}
+
+.flavor-category {
+    font-size: 0.75rem;
+    color: white;
+    background-color: var(--froyo-strawberry);
+    border-radius: 10px;
+    padding: 0.1rem 0.5rem;
+    font-weight: 600;
+}
+
+.flavor-description {
+    font-size: 0.78rem;
+    color: #6c757d;
+    line-height: 1.3;
+}
+
+.flavor-allergens {
+    font-size: 0.72rem;
+    color: #6c757d;
+}
