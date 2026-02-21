@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "sensei": {
+      "source": "spboyer/sensei",
+      "sourceType": "github",
+      "computedHash": "8401c533ef472a6abe695a96456f1d9e90ebc6d24a0555a5b6899d6de1fd368c"
+    }
+  }
+}
