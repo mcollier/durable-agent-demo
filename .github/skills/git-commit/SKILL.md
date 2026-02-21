@@ -1,6 +1,11 @@
 ---
 name: git-commit
-description: 'Execute git commit with conventional commit message analysis, intelligent staging, and message generation. Use when user asks to commit changes, create a git commit, or mentions "/commit". Supports: (1) Auto-detecting type and scope from changes, (2) Generating conventional commit messages from diff, (3) Interactive commit with optional type/scope/description overrides, (4) Intelligent file staging for logical grouping'
+description: |
+  **WORKFLOW SKILL** - Execute git commit with conventional commit message analysis, intelligent staging, and message generation.
+  USE FOR: commit changes, create a git commit, /commit, generate commit message, stage and commit, conventional commit message.
+  DO NOT USE FOR: git push (run git directly), creating branches, merging pull requests, viewing git log or history.
+  INVOKES: git commands (diff, status, add, commit).
+  FOR SINGLE OPERATIONS: Use git commands directly for simple status checks or single-file commits.
 license: MIT
 allowed-tools: Bash
 ---
