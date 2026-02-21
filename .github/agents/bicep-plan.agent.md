@@ -1,7 +1,7 @@
 ---
 description: 'Act as implementation planner for your Azure Bicep Infrastructure as Code task.'
 name: 'Bicep Planning'
-tools: ['azure-mcp/*', 'bicep/*', 'microsoftdocs/mcp/*', 'todo', 'web/fetch', 'edit/editFiles', 'bicep/get_bicep_best_practices', 'bicep/format_bicep_file', 'bicep/list_avm_metadata', 'bicep/get_az_resource_type_schema', 'azure-mcp/get_azure_bestpractices', 'edit/createFile']
+tools: ['azure-mcp/*', 'bicep/*', 'microsoftdocs/mcp/*', 'todo', 'web/fetch', 'edit/editFiles', 'bicep/get_bicep_best_practices', 'bicep/format_bicep_file', 'bicep/list_avm_metadata', 'bicep/get_az_resource_type_schema', 'azure-mcp/get_bestpractices', 'edit/createFile']
 model: Claude Opus 4.6 (copilot)
 ---
 
