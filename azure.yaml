@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: durable-agent-demo
+infra:
+  provider: bicep
+  path: infra
+pipeline:
+  provider: github
+services:
+  froyo-func:
+    project: source/DurableAgent.Functions
+    language: csharp
+    host: function
+  froyo-web:
+    project: source/DurableAgent.Web
+    language: csharp
+    host: appservice
