@@ -26,23 +26,28 @@ var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
+// Add Aspire service defaults.
+builder.AddServiceDefaults();
+
 builder.Services.AddApplicationInsightsTelemetryWorkerService();
 
+builder.AddAzureServiceBusClient(connectionName: "messaging");
+
 // ─── Service Bus client for the HTTP → queue endpoint ────────────────────────
-var sbNamespace = Environment.GetEnvironmentVariable("ServiceBusConnection__fullyQualifiedNamespace");
-if (!string.IsNullOrWhiteSpace(sbNamespace))
-{
-    builder.Services.AddSingleton(new ServiceBusClient(sbNamespace, new DefaultAzureCredential()));
-}
-else
-{
-    // Fallback: use a connection string if configured (local dev)
-    var sbConnectionString = Environment.GetEnvironmentVariable("ServiceBusConnection");
-    if (!string.IsNullOrWhiteSpace(sbConnectionString))
-    {
-        builder.Services.AddSingleton(new ServiceBusClient(sbConnectionString));
-    }
-}
+// var sbNamespace = Environment.GetEnvironmentVariable("ServiceBusConnection__fullyQualifiedNamespace");
+// if (!string.IsNullOrWhiteSpace(sbNamespace))
+// {
+//     builder.Services.AddSingleton(new ServiceBusClient(sbNamespace, new DefaultAzureCredential()));
+// }
+// else
+// {
+//     // Fallback: use a connection string if configured (local dev)
+//     var sbConnectionString = Environment.GetEnvironmentVariable("ServiceBusConnection");
+//     if (!string.IsNullOrWhiteSpace(sbConnectionString))
+//     {
+//         builder.Services.AddSingleton(new ServiceBusClient(sbConnectionString));
+//     }
+// }
 builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSender>();
 
 // ─── Markdown version of the system prompt ───────────────────────────────────
@@ -178,12 +183,12 @@ AIAgent emailAgent = chatClient
         }
     });
 
+builder.ConfigureFunctionsWebApplication();
+
 builder.ConfigureDurableAgents(options =>
     options
     .AddAIAgent(agent)
     .AddAIAgent(emailAgent)
 );
 
-var app = builder.Build();
-
-app.Run();
+builder.Build().Run();

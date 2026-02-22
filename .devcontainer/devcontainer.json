@@ -2,6 +2,7 @@
     "name": "durable-agent",
     "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
     "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
         "ghcr.io/devcontainers/features/azure-cli": {
             "version": "latest",
             "installBicep": true
@@ -26,7 +27,8 @@
         }
     },
     "containerEnv": {
-        "DOTNET_ENVIRONMENT": "Development"
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
     },
     "customizations": {
         "vscode": {
@@ -40,10 +42,31 @@
                 "ms-azuretools.vscode-azurefunctions",
                 "ms-dotnettools.csdevkit",
                 "ms-windows-ai-studio.windows-ai-studio",
-                "vstirbu.vscode-mermaid-preview"
-            ]
+                "vstirbu.vscode-mermaid-preview",
+                "microsoft-aspire.aspire-vscode"
+            ],
+            "settings": {
+                "remote.autoForwardPorts": true,
+                "remote.autoForwardPortsSource": "hybrid",
+                "remote.portsAttributes": {
+                    "15*": {
+                        "label": "Aspire Dashboard",
+                        "onAutoForward": "notify"
+                    },
+                    "18*": {
+                        "label": "Aspire OTLP",
+                        "onAutoForward": "ignore"
+                    }
+                },
+                "remote.otherPortsAttributes": {
+                    "onAutoForward": "silent"
+                }
+            }
         }
     },
-    "postCreateCommand": "npx github:bradygaster/squad && npx skills add spboyer/sensei",
-    "postStartCommand": "dotnet build ./source/DurableAgent.slnx"
+    "postCreateCommand": "npx github:bradygaster/squad && npx skills add spboyer/sensei && curl -sSL https://aspire.dev/install.sh | bash",
+    "postStartCommand": "dotnet dev-certs https --trust && dotnet build ./source/DurableAgent.slnx",
+    "runArgs": [
+        "--network=host"
+    ]
 }

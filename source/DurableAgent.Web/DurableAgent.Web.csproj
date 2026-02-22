@@ -1,7 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup>  <UserSecretsId>435c38c0-6ffc-488d-8248-dbdb4c2d54f9</UserSecretsId>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DurableAgent.Core\DurableAgent.Core.csproj" />
+    <ProjectReference Include="..\DurableAgent.ServiceDefaults\DurableAgent.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
