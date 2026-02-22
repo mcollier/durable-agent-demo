@@ -4,7 +4,7 @@ var azureOpenAIEndpoint = builder.AddParameter("AZURE-OPENAI-ENDPOINT");
 var azureOpenAIDeployment = builder.AddParameter("AZURE-OPENAI-DEPLOYMENT");
 var taskHubName = builder.AddParameter("TASKHUB-NAME");
 var durableTaskSchedulerConnectionString = builder.AddParameter("DURABLE-TASK-SCHEDULER-CONNECTION-STRING");
-// var applicationInsightsConnectionString = builder.AddParameter("APPLICATIONINSIGHTS-CONNECTION-STRING");
+var applicationInsightsConnectionString = builder.AddParameter("APPLICATIONINSIGHTS-CONNECTION-STRING");
 var serviceBusQueueName = builder.AddParameter("SERVICEBUS-QUEUE-NAME");
 var serviceBusResourceGroup = builder.AddParameter("SERVICEBUS-RESOURCE-GROUP");
 var serviceBusName = builder.AddParameter("SERVICEBUS-NAME");
@@ -34,7 +34,7 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     // .WithEnvironment("ServiceBusConnection__fullyQualifiedNamespace", sb.Resource.ConnectionStringExpression)
     .WithEnvironment("TASKHUB_NAME", taskHubName)
     .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", durableTaskSchedulerConnectionString)
-    // .WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", applicationInsightsConnectionString)
+    .WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", applicationInsightsConnectionString)
     .WithExternalHttpEndpoints();
 
 var web = builder.AddProject<Projects.DurableAgent_Web>("web")

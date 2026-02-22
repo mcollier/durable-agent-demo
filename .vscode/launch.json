@@ -6,6 +6,12 @@
       "type": "coreclr",
       "request": "attach",
       "processId": "${command:azureFunctions.pickProcess}"
+    },
+    {
+      "type": "aspire",
+      "request": "launch",
+      "name": "Aspire: Launch default apphost",
+      "program": "${workspaceFolder}"
     }
   ]
 }

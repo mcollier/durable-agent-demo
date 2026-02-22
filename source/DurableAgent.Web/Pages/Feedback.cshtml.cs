@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace DurableAgent.Web.Pages;
 
-public class FeedbackModel(IConfiguration configuration, IHttpClientFactory httpClientFactory, ILogger<FeedbackModel> logger) : PageModel
+public class FeedbackModel(IHttpClientFactory httpClientFactory, ILogger<FeedbackModel> logger) : PageModel
 {
     private const string StoresLoadErrorMessage = "Unable to load store locations. Please try refreshing the page.";
     private const string FlavorsLoadErrorMessage = "Unable to load flavor options. Please try refreshing the page.";
@@ -93,25 +93,9 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
         
         try
         {
-            var baseUrl = configuration["AzureFunctions:BaseUrl"];
-            var storesPath = configuration["AzureFunctions:StoresPath"] ?? "api/stores";
-            var flavorsPath = configuration["AzureFunctions:FlavorsPath"] ?? "api/flavors";
-
-            var hasBaseUrl = !string.IsNullOrWhiteSpace(baseUrl);
-
-            if (!hasBaseUrl)
-            {
-                logger.LogWarning("Azure Functions base URL not configured");
-                ApiLoadWarnings.Add(StoresLoadErrorMessage);
-                ApiLoadWarnings.Add(FlavorsLoadErrorMessage);
-                return;
-            }
-
-            // baseUrl is guaranteed to be non-null here
-            var storesUrl = $"{baseUrl!.TrimEnd('/')}/{storesPath.TrimStart('/')}";
-            var flavorsUrl = $"{baseUrl!.TrimEnd('/')}/{flavorsPath.TrimStart('/')}";
-
-            var httpClient = httpClientFactory.CreateClient();
+            var httpClient = httpClientFactory.CreateClient("func");
+            const string storesUrl = "api/stores";
+            const string flavorsUrl = "api/flavors";
 
             // Load stores
             try
@@ -196,17 +180,8 @@ public class FeedbackModel(IConfiguration configuration, IHttpClientFactory http
 
         try
         {
-            var baseUrl = configuration["AzureFunctions:BaseUrl"];
-            var feedbackPath = configuration["AzureFunctions:FeedbackPath"] ?? "api/feedback";
-
-            if (string.IsNullOrWhiteSpace(baseUrl))
-            {
-                throw new InvalidOperationException("Azure Functions base URL not configured");
-            }
-
-            var apiUrl = $"{baseUrl.TrimEnd('/')}/{feedbackPath.TrimStart('/')}";
-
-            var httpClient = httpClientFactory.CreateClient();
+            var httpClient = httpClientFactory.CreateClient("func");
+            const string apiUrl = "api/feedback";
             var json = JsonSerializer.Serialize(feedbackRequest, JsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace DurableAgent.Web.Pages;
 
-public sealed class OrderModel(IConfiguration configuration, IHttpClientFactory httpClientFactory, ILogger<OrderModel> logger) : PageModel
+public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<OrderModel> logger) : PageModel
 {
     private const string FlavorsLoadErrorMessage = "Unable to load flavor options. Please try refreshing the page.";
     
@@ -100,18 +100,8 @@ public sealed class OrderModel(IConfiguration configuration, IHttpClientFactory 
         
         try
         {
-            var baseUrl = configuration["AzureFunctions:BaseUrl"];
-            var flavorsPath = configuration["AzureFunctions:FlavorsPath"] ?? "api/flavors";
-
-            if (string.IsNullOrWhiteSpace(baseUrl))
-            {
-                logger.LogWarning("Azure Functions base URL not configured");
-                WarningMessages.Add(FlavorsLoadErrorMessage);
-                return;
-            }
-
-            var flavorsUrl = $"{baseUrl!.TrimEnd('/')}/{flavorsPath.TrimStart('/')}";
-            var httpClient = httpClientFactory.CreateClient();
+            var httpClient = httpClientFactory.CreateClient("func");
+            const string flavorsUrl = "api/flavors";
 
             try
             {
