@@ -41,7 +41,7 @@ All inter-service communication uses **system-assigned managed identity** with R
 ## Project Structure
 
 ```
-infra/bicep/                   # Azure Bicep infrastructure-as-code
+infra/                         # Azure Bicep infrastructure-as-code
   main.bicep                   # Subscription-scoped deployment (4 phases)
   main.bicepparam              # Parameters (baseName, region, tags)
   deploy.sh                    # CLI wrapper: deploy / what-if / delete
@@ -99,16 +99,16 @@ dotnet test DurableAgent.slnx
 az login
 
 # Preview changes (what-if)
-./infra/bicep/deploy.sh -w
+./infra/deploy.sh -w
 
 # Deploy
-./infra/bicep/deploy.sh
+./infra/deploy.sh
 
 # Override region
-./infra/bicep/deploy.sh -l westus2
+./infra/deploy.sh -l westus2
 
 # Delete resources
-./infra/bicep/deploy.sh -d
+./infra/deploy.sh -d
 ```
 
 ### Validate Bicep

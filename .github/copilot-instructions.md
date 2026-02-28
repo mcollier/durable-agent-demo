@@ -13,7 +13,7 @@ Infrastructure is defined in Azure Bicep (`infra/`), application code in C#/.NET
 ## Repository Structure
 
 ```
-infra/bicep/                            # Azure Bicep infrastructure-as-code
+infra/                                  # Azure Bicep infrastructure-as-code
   main.bicep                            # Subscription-scoped deployment (4 phases)
   main.bicepparam                       # Parameters (baseName, region, tags)
   deploy.sh                             # CLI wrapper: deploy / what-if / delete
@@ -196,13 +196,13 @@ public static class GenerateCouponCodeTool
 ## Infrastructure Deployment
 
 ```bash
-./infra/bicep/deploy.sh      # Deploy
-./infra/bicep/deploy.sh -w    # What-if (preview)
-./infra/bicep/deploy.sh -d    # Delete
-./infra/bicep/deploy.sh -l westus2  # Override location
+./infra/deploy.sh      # Deploy
+./infra/deploy.sh -w    # What-if (preview)
+./infra/deploy.sh -d    # Delete
+./infra/deploy.sh -l westus2  # Override location
 ```
 
-Validate Bicep: `az bicep build --file infra/bicep/main.bicep --stdout`
+Validate Bicep: `az bicep build --file infra/main.bicep --stdout`
 
 ## Planning Workflow
 

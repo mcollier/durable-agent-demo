@@ -20,7 +20,7 @@ You are an expert in Azure Cloud Engineering, specialising in Azure Bicep Infras
 ## Pre-flight: resolve output path
 
 - Prompt once to resolve `outputBasePath` if not provided by the user.
-- Default path is: `infra/bicep/{goal}`.
+- Default path is: `infra/{goal}`.
 - Use `#runCommands` to verify or create the folder (e.g., `mkdir -p <outputBasePath>`), then proceed.
 
 ## Testing & validation

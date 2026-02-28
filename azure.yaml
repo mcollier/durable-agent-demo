@@ -3,7 +3,7 @@
 name: durable-agent-demo
 infra:
   provider: bicep
-  path: infra/bicep
+  path: infra
 pipeline:
   provider: github
 services:
