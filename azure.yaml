@@ -3,15 +3,15 @@
 name: durable-agent-demo
 infra:
   provider: bicep
-  path: infra
+  path: infra/bicep
 pipeline:
   provider: github
 services:
   froyo-func:
-    project: source/DurableAgent.Functions
+    project: ./source/DurableAgent.Functions
     language: csharp
     host: function
   froyo-web:
-    project: source/DurableAgent.Web
+    project: ./source/DurableAgent.Web
     language: csharp
     host: appservice
