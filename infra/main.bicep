@@ -74,6 +74,8 @@ var schedulerName = 'dts-${baseName}-${resourceToken}'
 var taskHubName = 'th-${baseName}-${resourceToken}'
 var appServicePlanName = 'asp-${baseName}-${resourceToken}'
 var functionAppName = 'func-${baseName}-${resourceToken}'
+var webAppPlanName = 'asp-web-${baseName}-${resourceToken}'
+var webAppName = 'web-${baseName}-${resourceToken}'
 var aiFoundryName = 'ai-${baseName}-${resourceToken}'
 var aiProjectName = '${baseName}-proj'
 
@@ -212,7 +214,7 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
     name: functionAppName
     kind: 'functionapp,linux'
     location: location
-    tags: tags
+    tags: union(tags, { 'azd-service-name': 'froyo-func' })
     serverFarmResourceId: appServicePlan.outputs.resourceId
     managedIdentities: {
       systemAssigned: true
@@ -261,6 +263,46 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
           AI_FOUNDRY_ENDPOINT: aiFoundry.outputs.accountEndpoint
           AI_FOUNDRY_DEPLOYMENT_NAME: aiFoundry.outputs.deploymentName
           AI_FOUNDRY_PROJECT_NAME: aiFoundry.outputs.projectName
+        }
+      }
+    ]
+  }
+}
+
+// ─── App Service Plan (Web App — B1 Linux) ─────────────────────────────────
+module webAppPlan 'br/public:avm/res/web/serverfarm:0.6.0' = {
+  scope: rg
+  params: {
+    name: webAppPlanName
+    location: location
+    tags: tags
+    skuName: 'B1'
+    reserved: true
+  }
+}
+
+// ─── Web App (Razor Pages frontend) ─────────────────────────────────────────
+module webApp 'br/public:avm/res/web/site:0.21.0' = {
+  scope: rg
+  params: {
+    name: webAppName
+    kind: 'app,linux'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'froyo-web' })
+    serverFarmResourceId: webAppPlan.outputs.resourceId
+    siteConfig: {
+      linuxFxVersion: 'DOTNETCORE|10.0'
+      minTlsVersion: '1.2'
+      ftpsState: 'FtpsOnly'
+    }
+    configs: [
+      {
+        name: 'appsettings'
+        properties: {
+          APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.outputs.connectionString
+          ApplicationInsightsAgent_EXTENSION_VERSION: '~3'
+          ASPNETCORE_ENVIRONMENT: 'Production'
+          AzureFunctions__BaseUrl: 'https://${functionApp.outputs.defaultHostname}'
         }
       }
     ]
@@ -319,3 +361,9 @@ output aiFoundryProjectName string = aiFoundry.outputs.projectName
 
 @description('AI Foundry model deployment name.')
 output aiModelDeploymentName string = aiFoundry.outputs.deploymentName
+
+@description('Name of the deployed Web App.')
+output webAppName string = webApp.outputs.name
+
+@description('Default hostname of the Web App.')
+output webAppHostname string = webApp.outputs.defaultHostname
