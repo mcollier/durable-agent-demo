@@ -1,6 +1,6 @@
 {
     "name": "durable-agent",
-    "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:dev-10.0-noble",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {},
         "ghcr.io/devcontainers/features/azure-cli": {
@@ -33,6 +33,7 @@
     "customizations": {
         "vscode": {
             "extensions": [
+                "ms-azuretools.vscode-azure-github-copilot",
                 "azurite.azurite",
                 "csharpfritz.squadui",
                 "codezombiech.gitignore",
@@ -64,9 +65,24 @@
             }
         }
     },
-    "postCreateCommand": "npx github:bradygaster/squad && npx skills add spboyer/sensei && curl -sSL https://aspire.dev/install.sh | bash",
+    "forwardPorts": [
+        5012,
+        7071
+    ],
+    "portsAttributes": {
+        "5012": {
+            "label": "DurableAgent.Web (ASP.NET)",
+            "onAutoForward": "notify"
+        },
+        "7071": {
+            "label": "DurableAgent.Functions (Azure Functions)",
+            "onAutoForward": "notify"
+        }
+    },
+    // "postCreateCommand": "npx github:bradygaster/squad && npx skills add spboyer/sensei && curl -sSL https://aspire.dev/install.sh | bash",
+    "onCreateCommand": "curl -sSL https://aspire.dev/install.sh | bash",
     "postStartCommand": "dotnet dev-certs https --trust && dotnet build ./source/DurableAgent.slnx",
-    "runArgs": [
-        "--network=host"
-    ]
+    // "runArgs": [
+    //     "--network=host"
+    // ]
 }
