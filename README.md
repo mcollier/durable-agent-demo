@@ -155,8 +155,8 @@ az bicep build --file infra/bicep/main.bicep --stdout
 3. **`FeedbackOrchestrator`** (a durable orchestration) runs the workflow:
    - Uses `context.GetAgent("CustomerServiceAgent")` to obtain a `DurableAIAgent` — the durable wrapper that checkpoints agent calls within the orchestration.
    - Creates an `AgentSession` and calls `RunAsync<FeedbackResult>()` to analyze the feedback. The AI agent assesses sentiment, evaluates risk, recommends an action, and returns a structured `FeedbackResult` using tool-calling and JSON structured output.
-  - Uses `context.GetAgent("EmailAgent")` to generate a structured follow-up email.
-  - Calls **`SendCustomerEmailActivity`** to send the follow-up email.
+   - Uses `context.GetAgent("EmailAgent")` to generate a structured follow-up email.
+   - Calls **`SendCustomerEmailActivity`** to send the follow-up email.
    - Calls **`ProcessFeedbackActivity`** to finalize processing.
    - All agent state and conversation history is automatically persisted by the Durable Task Scheduler, surviving failures and restarts.
 
