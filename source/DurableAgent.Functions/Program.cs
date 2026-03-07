@@ -1,8 +1,5 @@
-using System.Text.Json;
-
 using Azure.AI.OpenAI;
 using Azure.Identity;
-using Azure.Messaging.ServiceBus;
 
 using DurableAgent.Core.Models;
 using DurableAgent.Functions.Services;
@@ -10,26 +7,41 @@ using DurableAgent.Functions.Tools;
 
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AzureFunctions;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 using OpenAI.Chat;
-
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using ChatResponseFormat = Microsoft.Extensions.AI.ChatResponseFormat;
 
+// Get the Azure OpenAI endpoint.
 var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")
     ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT environment variable is not set.");
+
+// Get the Azure OpenAI deployment name.
 var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT")
     ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT environment variable is not set.");
+
+// Configure OpenTelemetry for Aspire dashboard
+var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
+
+string SourceName = Environment.GetEnvironmentVariable("OTEL_SOURCE_NAME") ?? "DurableAgentDemo";
+string ServiceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "DurableAgentService";
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
 // Add Aspire service defaults.
 builder.AddServiceDefaults();
 
-builder.Services.AddApplicationInsightsTelemetryWorkerService();
+builder.Services
+    .AddApplicationInsightsTelemetryWorkerService()
+    .ConfigureFunctionsApplicationInsights();
 
 builder.AddAzureServiceBusClient(connectionName: "messaging");
 
@@ -48,6 +60,7 @@ builder.AddAzureServiceBusClient(connectionName: "messaging");
 //         builder.Services.AddSingleton(new ServiceBusClient(sbConnectionString));
 //     }
 // }
+
 builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSender>();
 
 // ─── Markdown version of the system prompt ───────────────────────────────────
@@ -117,8 +130,9 @@ string promptMarkdown = """
     - Do **not** include explanations outside the JSON.
     """;
 
-// Configure the chat response format to use the JSON schema. This tells the agent to structure its response according to the schema, which can help ensure consistent and parseable output.
-ChatOptions chatOptions = new()
+// Configure the chat response format to use the JSON schema. This tells the agent to structure its response according to the schema,
+ // which can help ensure consistent and parseable output.
+ChatOptions customerServiceAgentOptions = new()
 {
     Tools =
     [
@@ -136,18 +150,60 @@ ChatOptions chatOptions = new()
     )
 };
 
+var resourceBuilder = ResourceBuilder
+    .CreateDefault()
+    .AddService(ServiceName, serviceVersion: "1.0.0")
+    .AddAttributes(new Dictionary<string, object>
+    {
+        ["deployment.environment"] = "development",
+        ["azure.openai.endpoint"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? "unknown",
+        ["service.instance.id"] = Environment.MachineName
+    });
+
+// Set up tracing.
+using var tracerProvider = Sdk.CreateTracerProviderBuilder()
+    .SetResourceBuilder(resourceBuilder)
+    .AddSource(SourceName)
+    .AddSource("*Microsoft.Agents.AI") // Agent Framework telemetry
+    .AddSource("*Microsoft.Extensions.AI") // Listen to the Experimental.Microsoft.Extensions.AI source for chat client telemetry.
+    .AddSource("*Microsoft.Extensions.Agents*") // Listen to the Experimental.Microsoft.Extensions.Agents source for agent telemetry.
+    .AddHttpClientInstrumentation() // Capture HTTP calls to OpenAI
+    .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint))
+    .Build();
+
+// metrics
+using var meterProvider = Sdk.CreateMeterProviderBuilder()
+    .SetResourceBuilder(resourceBuilder)
+    .AddMeter(SourceName)
+    .AddMeter("*Microsoft.Agents.AI")
+    .AddHttpClientInstrumentation() // HTTP client metrics
+    .AddRuntimeInstrumentation() // .NET runtime metrics
+    .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint))
+    .Build();
+
 // Create a shared chat client for both agents (same endpoint + deployment)
 var chatClient = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
-    .GetChatClient(deploymentName);
+    .GetChatClient(deploymentName)
+    .AsIChatClient()
+    .AsBuilder()
+    .UseOpenTelemetry(sourceName: SourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
+    .Build();
+
 
 // Create the AI agent following standard Microsoft Agent Framework patterns.
-AIAgent agent = chatClient
+AIAgent customerServiceAgent = chatClient
     .AsAIAgent(new ChatClientAgentOptions()
     {
         Name = "CustomerServiceAgent",
-        ChatOptions = chatOptions,
-    });
+        ChatOptions = customerServiceAgentOptions,
+    })
+    .AsBuilder()
+    .UseOpenTelemetry(sourceName: SourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
+    .Build();
 
+// Create a second agent that shares the same underlying chat client, but has different instructions and response format.
+// This demonstrates how you can have multiple agents with different "personalities" and responsibilities, 
+// while still sharing common configuration and telemetry.
 AIAgent emailAgent = chatClient
     .AsAIAgent(new ChatClientAgentOptions()
     {
@@ -187,7 +243,7 @@ builder.ConfigureFunctionsWebApplication();
 
 builder.ConfigureDurableAgents(options =>
     options
-    .AddAIAgent(agent)
+    .AddAIAgent(customerServiceAgent)
     .AddAIAgent(emailAgent)
 );
 
