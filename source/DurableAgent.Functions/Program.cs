@@ -31,8 +31,8 @@ var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT
 // Configure OpenTelemetry for Aspire dashboard
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
 
-string SourceName = Environment.GetEnvironmentVariable("OTEL_SOURCE_NAME") ?? "DurableAgentDemo";
-string ServiceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "DurableAgentService";
+string sourceName = Environment.GetEnvironmentVariable("OTEL_SOURCE_NAME") ?? "DurableAgentDemo";
+string serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "DurableAgentService";
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -158,7 +158,7 @@ var environmentName =
 
 var resourceBuilder = ResourceBuilder
     .CreateDefault()
-    .AddService(ServiceName, serviceVersion: "1.0.0")
+    .AddService(serviceName, serviceVersion: "1.0.0")
     .AddAttributes(new Dictionary<string, object>
     {
         ["deployment.environment"] = environmentName,
@@ -169,7 +169,7 @@ var resourceBuilder = ResourceBuilder
 // Set up tracing.
 using var tracerProvider = Sdk.CreateTracerProviderBuilder()
     .SetResourceBuilder(resourceBuilder)
-    .AddSource(SourceName)
+    .AddSource(sourceName)
     .AddSource("*Microsoft.Agents.AI") // Agent Framework telemetry
     .AddSource("*Microsoft.Extensions.AI") // Listen to the Experimental.Microsoft.Extensions.AI source for chat client telemetry.
     .AddSource("*Microsoft.Extensions.Agents*") // Listen to the Experimental.Microsoft.Extensions.Agents source for agent telemetry.
@@ -180,7 +180,7 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 // metrics
 using var meterProvider = Sdk.CreateMeterProviderBuilder()
     .SetResourceBuilder(resourceBuilder)
-    .AddMeter(SourceName)
+    .AddMeter(sourceName)
     .AddMeter("*Microsoft.Agents.AI")
     .AddHttpClientInstrumentation() // HTTP client metrics
     .AddRuntimeInstrumentation() // .NET runtime metrics
@@ -192,7 +192,7 @@ var chatClient = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCreden
     .GetChatClient(deploymentName)
     .AsIChatClient()
     .AsBuilder()
-    .UseOpenTelemetry(sourceName: SourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
+    .UseOpenTelemetry(sourceName: sourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
     .Build();
 
 
@@ -204,7 +204,7 @@ AIAgent customerServiceAgent = chatClient
         ChatOptions = customerServiceAgentOptions,
     })
     .AsBuilder()
-    .UseOpenTelemetry(sourceName: SourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
+    .UseOpenTelemetry(sourceName: sourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
     .Build();
 
 // Create a second agent that shares the same underlying chat client, but has different instructions and response format.
