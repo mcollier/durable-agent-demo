@@ -33,18 +33,18 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "ms-azuretools.vscode-azure-github-copilot",
                 "azurite.azurite",
-                "csharpfritz.squadui",
                 "codezombiech.gitignore",
+                "csharpfritz.squadui",
                 "github.vscode-github-actions",
                 "humao.rest-client",
-                "ms-azuretools.vscode-bicep",
+                "microsoft-aspire.aspire-vscode",
                 "ms-azuretools.vscode-azurefunctions",
+                "ms-azuretools.vscode-azure-github-copilot",
+                "ms-azuretools.vscode-bicep",
                 "ms-dotnettools.csdevkit",
                 "ms-windows-ai-studio.windows-ai-studio",
-                "vstirbu.vscode-mermaid-preview",
-                "microsoft-aspire.aspire-vscode"
+                "vstirbu.vscode-mermaid-preview"
             ],
             "settings": {
                 "remote.autoForwardPorts": true,
@@ -79,10 +79,6 @@
             "onAutoForward": "notify"
         }
     },
-    // "postCreateCommand": "npx github:bradygaster/squad && npx skills add spboyer/sensei && curl -sSL https://aspire.dev/install.sh | bash",
     "onCreateCommand": "curl -sSL https://aspire.dev/install.sh | bash",
     "postStartCommand": "dotnet dev-certs https --trust && dotnet build ./source/DurableAgent.slnx",
-    // "runArgs": [
-    //     "--network=host"
-    // ]
 }
