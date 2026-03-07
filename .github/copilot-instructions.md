@@ -26,6 +26,8 @@ source/
   DurableAgent.slnx                     # .NET 10 XML solution file
   Directory.Build.props                 # Shared build properties
   global.json                           # SDK version pin (10.0.102)
+  DurableAgent.AppHost/                 # Aspire entry point for local orchestration
+    AppHost.cs                          # Wires Functions, Web, Azurite, Service Bus, and DTS
   DurableAgent.Core/                    # Domain logic (zero cloud SDK deps)
     Models/
       ContactMethod.cs                  # Enum: Email, Phone
@@ -62,9 +64,9 @@ source/
       GetStoreDetailsTool.cs            # Looks up store info by ID
       ListFlavorsTool.cs                # Lists available flavors
       OpenCustomerServiceCaseTool.cs    # Opens a customer service case
-      RedactPiiTool.cs                  # Redacts PII from text
   DurableAgent.Core.Tests/              # xUnit tests for Core
   DurableAgent.Functions.Tests/         # xUnit + FakeItEasy tests for Functions
+  DurableAgent.ServiceDefaults/         # Shared Aspire service defaults and OpenTelemetry setup
   DurableAgent.Web/                     # ASP.NET Core Razor Pages web frontend
     Pages/
       Feedback.cshtml                   # Customer feedback submission form
