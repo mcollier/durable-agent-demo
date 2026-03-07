@@ -156,6 +156,8 @@ var environmentName =
     Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
     "Production";
 
+bool isDevelopment = environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase);
+
 var resourceBuilder = ResourceBuilder
     .CreateDefault()
     .AddService(serviceName, serviceVersion: "1.0.0")
@@ -192,7 +194,7 @@ var chatClient = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCreden
     .GetChatClient(deploymentName)
     .AsIChatClient()
     .AsBuilder()
-    .UseOpenTelemetry(sourceName: sourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
+    .UseOpenTelemetry(sourceName: sourceName, configure: (cfg) => cfg.EnableSensitiveData = isDevelopment)
     .Build();
 
 
@@ -204,7 +206,7 @@ AIAgent customerServiceAgent = chatClient
         ChatOptions = customerServiceAgentOptions,
     })
     .AsBuilder()
-    .UseOpenTelemetry(sourceName: sourceName, configure: (cfg) => cfg.EnableSensitiveData = true)
+    .UseOpenTelemetry(sourceName: sourceName, configure: (cfg) => cfg.EnableSensitiveData = isDevelopment)
     .Build();
 
 // Create a second agent that shares the same underlying chat client, but has different instructions and response format.
