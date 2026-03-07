@@ -23,7 +23,6 @@ public sealed class InboundFeedbackTrigger(ILogger<InboundFeedbackTrigger> logge
 
     [Function(nameof(InboundFeedbackTrigger))]
     public async Task RunAsync(
-        // [ServiceBusTrigger("%SERVICEBUS_QUEUE_NAME%", Connection = "ServiceBusConnection")]
         [ServiceBusTrigger("%SERVICEBUS_QUEUE_NAME%", Connection = "messaging")]
         ServiceBusReceivedMessage message,
         [DurableClient] DurableTaskClient durableClient,
