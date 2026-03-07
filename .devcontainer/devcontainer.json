@@ -17,7 +17,7 @@
             "version": "latest"
         },
         "ghcr.io/devcontainers/features/node": {
-            "version": "lts"
+            "version": "22.*"
         },
         "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools": {
             "version": "latest"
