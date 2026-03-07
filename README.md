@@ -143,7 +143,7 @@ az login
 ### Validate Bicep
 
 ```bash
-az bicep build --file infra/bicep/main.bicep --stdout
+az bicep build --file infra/main.bicep --stdout
 ```
 
 ## Data Flow
