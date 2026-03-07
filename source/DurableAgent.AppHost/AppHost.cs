@@ -40,10 +40,10 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAIEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT", azureOpenAIDeployment)
     .WithEnvironment("SERVICEBUS_QUEUE_NAME", queueName)
-    // .WithEnvironment("ServiceBusConnection__fullyQualifiedNamespace", sb.Resource.ConnectionStringExpression)
     .WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", applicationInsightsConnectionString)
     .WithEnvironment("OTEL_SOURCE_NAME", "DurableAgentDemo")
     .WithEnvironment("OTEL_SERVICE_NAME", "DurableAgentService")
+    .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
     .WithExternalHttpEndpoints();
 
 if (useDtsEmulator)
