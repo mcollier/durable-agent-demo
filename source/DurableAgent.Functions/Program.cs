@@ -150,12 +150,18 @@ ChatOptions customerServiceAgentOptions = new()
     )
 };
 
+var environmentName =
+    Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT") ??
+    Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ??
+    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
+    "Production";
+
 var resourceBuilder = ResourceBuilder
     .CreateDefault()
     .AddService(ServiceName, serviceVersion: "1.0.0")
     .AddAttributes(new Dictionary<string, object>
     {
-        ["deployment.environment"] = "development",
+        ["deployment.environment"] = environmentName,
         ["azure.openai.endpoint"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? "unknown",
         ["service.instance.id"] = Environment.MachineName
     });
