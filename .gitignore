@@ -60,6 +60,9 @@ __azurite_db_*
 .ai-team-templates/
 .squad-templates/
 
+# Claude
+.claude/
+
 # Local Copilot tool config (varies per developer)
 .copilot/
 
