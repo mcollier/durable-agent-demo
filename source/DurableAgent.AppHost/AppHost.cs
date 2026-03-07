@@ -32,7 +32,7 @@ var storage = builder.AddAzureStorage("storage")
 var sb = builder.AddAzureServiceBus("messaging")
         .AsExisting(serviceBusName, serviceBusResourceGroup);
 
-var queue = sb.AddServiceBusQueue(queueName);
+_ = sb.AddServiceBusQueue(queueName);
 
 var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("func")
     .WithHostStorage(storage)
