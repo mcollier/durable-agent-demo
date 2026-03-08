@@ -144,8 +144,51 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
 
         var orderReference = $"FRY-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
 
+        // ── Submit order to Functions endpoint ──────────────────────────────
+        var orderData = new
+        {
+            FlavorId,
+            FirstName,
+            LastName,
+            StreetAddress,
+            AddressLine2,
+            City,
+            State,
+            ZipCode,
+            Email,
+            PhoneNumber,
+            OrderReference = orderReference,
+        };
+
+        var httpClient = httpClientFactory.CreateClient("func");
+        HttpResponseMessage orderResponse;
+        try
+        {
+            orderResponse = await httpClient.PostAsync(
+                "api/orders",
+                JsonContent.Create(orderData, options: JsonOptions),
+                HttpContext.RequestAborted);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to submit order {OrderReference}.", orderReference);
+            await LoadFlavorsAsync();
+            ValidationErrors.Add("Unable to submit your order. Please try again.");
+            return Page();
+        }
+
+        if (!orderResponse.IsSuccessStatusCode)
+        {
+            logger.LogWarning("Order submission failed with status {StatusCode} for {OrderReference}.",
+                orderResponse.StatusCode, orderReference);
+            await LoadFlavorsAsync();
+            ValidationErrors.Add("Unable to submit your order. Please try again.");
+            return Page();
+        }
+
+        // ── Load flavors for confirmation data ──────────────────────────────
         await LoadFlavorsAsync();
-        
+
         var flavorName = Flavors.FirstOrDefault(f => f.FlavorId == FlavorId)?.Name ?? FlavorId;
 
         TempData["OrderReference"] = orderReference;
