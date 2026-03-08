@@ -164,9 +164,10 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
         const string ordersUrl = "api/orders";
         try
         {
+            using var content = JsonContent.Create(orderData, options: JsonOptions);
             using var orderResponse = await httpClient.PostAsync(
                 ordersUrl,
-                JsonContent.Create(orderData, options: JsonOptions),
+                content,
                 HttpContext.RequestAborted);
 
             if (!orderResponse.IsSuccessStatusCode)
