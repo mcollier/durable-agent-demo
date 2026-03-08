@@ -2,6 +2,45 @@
 
 ## Active Decisions
 
+### Decision: OrderRequest Validation Fields
+
+**Date:** 2026-03-08  
+**Author:** Stark (.NET Developer)  
+**Requested by:** Michael S. Collier
+
+## Required Fields (validated with `string.IsNullOrWhiteSpace`)
+
+| Field | Error message |
+|---|---|
+| `OrderReference` | `"orderReference is required."` |
+| `FlavorId` | `"flavorId is required."` |
+| `FirstName` | `"firstName is required."` |
+| `LastName` | `"lastName is required."` |
+| `StreetAddress` | `"streetAddress is required."` |
+| `City` | `"city is required."` |
+| `State` | `"state is required."` |
+| `ZipCode` | `"zipCode is required."` |
+
+## Optional Fields (no validation)
+
+- `AddressLine2`
+- `Email`
+- `PhoneNumber`
+
+## Error Response Contract
+
+When validation fails, `SubmitOrderTrigger` returns HTTP 400 with:
+
+```json
+{ "errors": ["orderReference is required.", "..."] }
+```
+
+Note: `errors` is an **array** (not the singular `error` string used by the existing `CreateErrorResponseAsync` helper). This allows callers to surface all missing fields at once.
+
+## Rationale
+
+All shipping-address fields (`StreetAddress`, `City`, `State`, `ZipCode`) are required to fulfill an order. `OrderReference` is required for traceability. `FlavorId` is the core product selection. Contact fields (`Email`, `PhoneNumber`) are optional because the web form treats them as such and the trigger does not yet drive notifications.
+
 ### Decision: SubmitOrderTrigger Test Strategy
 
 **Date:** 2026-03-08  
@@ -47,6 +86,8 @@ A new `POST /api/orders` endpoint was needed to receive order submissions from t
 `sealed record` with all-nullable `string?` properties using `init` setters. No `Validate()` method. Properties mirror the order form fields exactly:
 
 - `FlavorId`, `FirstName`, `LastName`, `StreetAddress`, `AddressLine2`, `City`, `State`, `ZipCode`, `Email`, `PhoneNumber`, `OrderReference`
+
+> **⚠️ Amended 2026-03-08:** `Validate()` was subsequently added to `OrderRequest` — see "Decision: OrderRequest Validation Fields" below. The no-validation statement above is superseded.
 
 **Rationale:** Keeping the model simple (nullable, no validation) makes the stub safe to evolve. Validation constraints can be added later when the endpoint drives real business logic.
 
