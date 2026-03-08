@@ -22,7 +22,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
 
-    <PackageReference Include="Aspire.Azure.Messaging.ServiceBus" Version="13.1.1" />
+    <PackageReference Include="Aspire.Azure.Messaging.ServiceBus" Version="13.1.2" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.8.0-beta.1" />
     <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Microsoft.Agents.AI.Hosting.AzureFunctions" Version="1.0.0-preview.260212.1" />
