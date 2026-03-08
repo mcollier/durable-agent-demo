@@ -161,11 +161,12 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
         };
 
         var httpClient = httpClientFactory.CreateClient("func");
+        const string ordersUrl = "api/orders";
         HttpResponseMessage orderResponse;
         try
         {
             orderResponse = await httpClient.PostAsync(
-                "api/orders",
+                ordersUrl,
                 JsonContent.Create(orderData, options: JsonOptions),
                 HttpContext.RequestAborted);
         }
