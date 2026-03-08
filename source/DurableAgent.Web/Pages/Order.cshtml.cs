@@ -162,26 +162,25 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
 
         var httpClient = httpClientFactory.CreateClient("func");
         const string ordersUrl = "api/orders";
-        HttpResponseMessage orderResponse;
         try
         {
-            orderResponse = await httpClient.PostAsync(
+            using var orderResponse = await httpClient.PostAsync(
                 ordersUrl,
                 JsonContent.Create(orderData, options: JsonOptions),
                 HttpContext.RequestAborted);
+
+            if (!orderResponse.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Order submission failed with status {StatusCode} for {OrderReference}.",
+                    orderResponse.StatusCode, orderReference);
+                await LoadFlavorsAsync();
+                ValidationErrors.Add("Unable to submit your order. Please try again.");
+                return Page();
+            }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to submit order {OrderReference}.", orderReference);
-            await LoadFlavorsAsync();
-            ValidationErrors.Add("Unable to submit your order. Please try again.");
-            return Page();
-        }
-
-        if (!orderResponse.IsSuccessStatusCode)
-        {
-            logger.LogWarning("Order submission failed with status {StatusCode} for {OrderReference}.",
-                orderResponse.StatusCode, orderReference);
             await LoadFlavorsAsync();
             ValidationErrors.Add("Unable to submit your order. Please try again.");
             return Page();
