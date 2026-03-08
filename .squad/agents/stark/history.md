@@ -18,3 +18,10 @@
 - **appsettings.json**: New function paths are registered in the `AzureFunctions` config section (e.g., `"OrderPath": "api/orders"`), mirroring the existing `FeedbackPath`, `StoresPath`, `FlavorsPath` entries.
 - **Decision archived**: Endpoint shape decision (`OrderRequest` model, `SubmitOrderTrigger` trigger, web integration approach) moved from decisions inbox → decisions.md. See `.squad/decisions.md` for full decision context and alternatives considered.
 
+
+### 2026-03-08 — OrderRequest validation
+
+- **Pattern**: Added `Validate()` to `OrderRequest` following the identical pattern from `FeedbackSubmissionRequest.Validate()` — returns `IReadOnlyList<string>` with human-readable camelCase field names (e.g., `"orderReference is required."`).
+- **Required fields**: `OrderReference`, `FlavorId`, `FirstName`, `LastName`, `StreetAddress`, `City`, `State`, `ZipCode`. Optional (no validation): `AddressLine2`, `Email`, `PhoneNumber`.
+- **Error response shape**: Validation errors in `SubmitOrderTrigger` use `{ "errors": [...] }` (array), distinct from the existing `CreateErrorResponseAsync` helper which uses `{ "error": "..." }` (singular string). Inline response construction was used rather than abusing the helper.
+- **Expected test breaks**: `WhenAllFieldsNull_ThenReturns200` and `WhenOrderReferenceProvided_ThenReturns200` now correctly return 400 — these are owned by Romanoff for update.
