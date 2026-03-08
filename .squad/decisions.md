@@ -2,6 +2,34 @@
 
 ## Active Decisions
 
+### Decision: SubmitOrderTrigger Test Strategy
+
+**Date:** 2026-03-08  
+**Author:** Romanoff (Tester)  
+**Requested by:** Michael S. Collier
+
+#### Context
+
+`SubmitOrderTrigger` is a stub endpoint (`POST /api/orders`) with no queue sender, no required-field validation, and all `OrderRequest` properties nullable. Tests needed to cover the trigger's only two failure modes (invalid JSON → 400, null body → 400) and the happy path.
+
+#### Decision
+
+**Test scope is intentionally narrow for this stub:**
+
+- No queue sender fake — trigger has none
+- No required-field tests — `OrderRequest` has no required fields
+- 6 tests: 3 happy-path (full payload, reference-only, all-null fields) + 2 bad-input (invalid JSON, null literal) + 1 guard clause (null request)
+
+**Key distinction documented in tests:**
+- `"{}"` deserializes to a valid `OrderRequest` with all-null properties → **200 OK**
+- `"null"` deserializes to a `null` reference → **400 Bad Request**
+
+This asymmetry is non-obvious and worth explicitly testing so future contributors don't accidentally collapse these cases.
+
+#### Rationale
+
+Matching the `SubmitFeedbackTriggerTests.cs` pattern keeps test structure consistent. Tests cover exactly what the implementation guarantees — nothing more — so they remain valid when business logic is added later without needing to be rewritten from scratch.
+
 ### Decision: Order Endpoint Shape
 
 **Date:** 2026-03-08  
