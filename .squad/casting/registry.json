@@ -1,0 +1,60 @@
+{
+  "agents": {
+    "fury": {
+      "persistent_name": "Fury",
+      "universe": "Marvel Cinematic Universe",
+      "role": "Lead",
+      "created_at": "2026-03-08T20:31:22Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "stark": {
+      "persistent_name": "Stark",
+      "universe": "Marvel Cinematic Universe",
+      "role": ".NET Dev",
+      "created_at": "2026-03-08T20:31:22Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "rhodes": {
+      "persistent_name": "Rhodes",
+      "universe": "Marvel Cinematic Universe",
+      "role": "Azure/Infra Dev",
+      "created_at": "2026-03-08T20:31:22Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "romanoff": {
+      "persistent_name": "Romanoff",
+      "universe": "Marvel Cinematic Universe",
+      "role": "Tester",
+      "created_at": "2026-03-08T20:31:22Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "pepper": {
+      "persistent_name": "Pepper",
+      "universe": "Marvel Cinematic Universe",
+      "role": "Frontend Dev",
+      "created_at": "2026-03-08T20:31:22Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "scribe": {
+      "persistent_name": "Scribe",
+      "universe": "exempt",
+      "role": "Session Logger",
+      "created_at": "2026-03-08T20:31:22Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "ralph": {
+      "persistent_name": "Ralph",
+      "universe": "exempt",
+      "role": "Work Monitor",
+      "created_at": "2026-03-08T20:31:22Z",
+      "legacy_named": false,
+      "status": "active"
+    }
+  }
+}
