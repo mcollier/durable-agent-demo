@@ -50,6 +50,7 @@ public sealed class SubmitOrderTrigger(ILogger<SubmitOrderTrigger> logger)
         var validationErrors = order.Validate();
         if (validationErrors.Count > 0)
         {
+            logger.LogWarning("Validation failed: {Errors}", string.Join("; ", validationErrors));
             var response = request.CreateResponse(HttpStatusCode.BadRequest);
             response.Headers.Add("Content-Type", "application/json");
             await response.WriteStringAsync(JsonSerializer.Serialize(new { errors = validationErrors }));
