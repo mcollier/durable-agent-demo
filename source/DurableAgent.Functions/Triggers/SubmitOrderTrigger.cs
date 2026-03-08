@@ -47,6 +47,15 @@ public sealed class SubmitOrderTrigger(ILogger<SubmitOrderTrigger> logger)
                 request, HttpStatusCode.BadRequest, "Request body is empty or null.");
         }
 
+        var validationErrors = order.Validate();
+        if (validationErrors.Count > 0)
+        {
+            var response = request.CreateResponse(HttpStatusCode.BadRequest);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(new { errors = validationErrors }));
+            return response;
+        }
+
         logger.LogInformation("Received order {OrderReference}.", order.OrderReference);
         return request.CreateResponse(HttpStatusCode.OK);
     }

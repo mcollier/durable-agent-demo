@@ -54,27 +54,142 @@ public class SubmitOrderTriggerTests
     }
 
     [Fact]
-    public async Task WhenOrderReferenceProvided_ThenReturns200()
+    public async Task WhenOptionalFieldsOmitted_ThenReturns200()
     {
         var trigger = new SubmitOrderTrigger(_logger);
-        var request = CreateRequest(new { orderReference = "FRY-20260308-AB12" });
+        // addressLine2, email, phoneNumber are optional — omitting them still passes validation
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701"
+        });
 
         var response = await trigger.RunAsync(request, CancellationToken.None);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    // ── Validation failures → 400 ────────────────────────────────────────────
+
     [Fact]
-    public async Task WhenAllFieldsNull_ThenReturns200()
+    public async Task WhenAllFieldsNull_ThenReturns400()
     {
         var trigger = new SubmitOrderTrigger(_logger);
-        // "{}" deserializes to an OrderRequest with all nullable properties set to null
+        // "{}" deserializes to an OrderRequest with all required properties null → validation fails
         var stream = new MemoryStream(Encoding.UTF8.GetBytes("{}"));
         var request = new FakeHttpRequestData(_functionContext, body: stream);
 
         var response = await trigger.RunAsync(request, CancellationToken.None);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenOrderReferenceOnlyProvided_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger);
+        // Only orderReference — FlavorId, name, and address fields are all missing
+        var request = CreateRequest(new { orderReference = "FRY-20260308-AB12" });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenOrderReferenceIsMissing_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger);
+        var request = CreateRequest(new
+        {
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701"
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenFlavorIdIsMissing_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger);
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701"
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenFirstNameIsMissing_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger);
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701"
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenAddressFieldsMissing_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger);
+        // Omit streetAddress, city, state, zipCode — all are required
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith"
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
     }
 
     // ── Bad input → 400 ─────────────────────────────────────────────────────
