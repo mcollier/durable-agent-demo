@@ -12,12 +12,12 @@
 
 | Name | Role | Charter | Status |
 |------|------|---------|--------|
-| Fury | 🏗️ Lead | [charter](.squad/agents/fury/charter.md) | ✅ Active |
-| Stark | 🔧 .NET Dev | [charter](.squad/agents/stark/charter.md) | ✅ Active |
-| Rhodes | ⚙️ Azure/Infra Dev | [charter](.squad/agents/rhodes/charter.md) | ✅ Active |
-| Romanoff | 🧪 Tester | [charter](.squad/agents/romanoff/charter.md) | ✅ Active |
-| Pepper | ⚛️ Frontend Dev | [charter](.squad/agents/pepper/charter.md) | ✅ Active |
-| Scribe | 📋 Session Logger | [charter](.squad/agents/scribe/charter.md) | ✅ Active |
+| Fury | 🏗️ Lead | [charter](agents/fury/charter.md) | ✅ Active |
+| Stark | 🔧 .NET Dev | [charter](agents/stark/charter.md) | ✅ Active |
+| Rhodes | ⚙️ Azure/Infra Dev | [charter](agents/rhodes/charter.md) | ✅ Active |
+| Romanoff | 🧪 Tester | [charter](agents/romanoff/charter.md) | ✅ Active |
+| Pepper | ⚛️ Frontend Dev | [charter](agents/pepper/charter.md) | ✅ Active |
+| Scribe | 📋 Session Logger | [charter](agents/scribe/charter.md) | ✅ Active |
 | Ralph | 🔄 Work Monitor | — | 🔄 Monitor |
 
 ## Project Context
