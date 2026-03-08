@@ -1,0 +1,27 @@
+{
+  "universe_usage_history": [
+    {
+      "universe": "Marvel Cinematic Universe",
+      "assignment_id": "durable-agent-demo-20260308",
+      "project": "durable-agent-demo",
+      "selected_at": "2026-03-08T20:31:22Z"
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "durable-agent-demo-20260308": {
+      "universe": "Marvel Cinematic Universe",
+      "project": "durable-agent-demo",
+      "owner": "Michael S. Collier",
+      "cast_at": "2026-03-08T20:31:22Z",
+      "agents": [
+        { "name": "Fury", "role": "Lead" },
+        { "name": "Stark", "role": ".NET Dev" },
+        { "name": "Rhodes", "role": "Azure/Infra Dev" },
+        { "name": "Romanoff", "role": "Tester" },
+        { "name": "Pepper", "role": "Frontend Dev" },
+        { "name": "Scribe", "role": "Session Logger" },
+        { "name": "Ralph", "role": "Work Monitor" }
+      ]
+    }
+  }
+}
