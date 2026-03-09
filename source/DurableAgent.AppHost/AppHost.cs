@@ -10,7 +10,7 @@ var applicationInsightsConnectionString = builder.AddParameter("APPLICATIONINSIG
 var serviceBusResourceGroup = builder.AddParameter("SERVICEBUS-RESOURCE-GROUP");
 var serviceBusName = builder.AddParameter("SERVICEBUS-NAME");
 
-var queueName = builder.Configuration["Parameters:FEEDBACK_QUEUE_NAME"]
+var feedbackQueueName = builder.Configuration["Parameters:FEEDBACK_QUEUE_NAME"]
     ?? throw new InvalidOperationException("Missing Parameters:FEEDBACK_QUEUE_NAME.");
 var orderQueueName = builder.Configuration["Parameters:ORDER_QUEUE_NAME"]
     ?? throw new InvalidOperationException("Missing Parameters:ORDER_QUEUE_NAME.");
@@ -34,7 +34,7 @@ var storage = builder.AddAzureStorage("storage")
 var sb = builder.AddAzureServiceBus("messaging")
         .AsExisting(serviceBusName, serviceBusResourceGroup);
 
-_ = sb.AddServiceBusQueue(queueName);
+_ = sb.AddServiceBusQueue(feedbackQueueName);
 _ = sb.AddServiceBusQueue(orderQueueName);
 
 var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("func")
@@ -42,7 +42,7 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithReference(sb)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAIEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT", azureOpenAIDeployment)
-    .WithEnvironment("FEEDBACK_QUEUE_NAME", queueName)
+    .WithEnvironment("FEEDBACK_QUEUE_NAME", feedbackQueueName)
     .WithEnvironment("ORDER_QUEUE_NAME", orderQueueName)
     .WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", applicationInsightsConnectionString)
     .WithEnvironment("OTEL_SOURCE_NAME", "DurableAgentDemo")
