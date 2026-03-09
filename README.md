@@ -17,6 +17,7 @@ flowchart TD
   Aspire[Aspire AppHost<br/>local orchestration] --> Web[DurableAgent.Web<br/>Razor Pages UI]
   Aspire --> Http[SubmitFeedbackTrigger<br/>Azure Functions]
   Aspire --> Queue[Service Bus Queue<br/>inbound-feedback]
+  Aspire --> OrderQueue[Service Bus Queue<br/>inbound-orders]
   Aspire --> DTS[Durable Task Scheduler<br/>emulator or Azure]
     Web[DurableAgent.Web<br/>Razor Pages UI] --> Http[HTTP POST /api/feedback]
     Http --> Submit[SubmitFeedbackTrigger]
@@ -30,6 +31,8 @@ flowchart TD
     Agent --> Result[FeedbackResult]
     Result -->|follow-up email| Email[SendCustomerEmailActivity]
   DTS --> Orchestrator
+  OrderProducer[External Producer] --> OrderQueue
+  OrderQueue --> InboundOrder[InboundOrderTrigger]
 ```
 
 All inter-service communication uses **system-assigned managed identity** with RBAC — no connection strings, SAS tokens, or shared keys.
@@ -65,11 +68,13 @@ source/
   DurableAgent.Functions/       # Azure Functions isolated worker
     Program.cs                  # App entry point — AI agent registration + DI
     host.json                   # Durable Task + Service Bus config
-    Triggers/                   # InboundFeedback (SB), SubmitFeedback (HTTP POST),
+    Triggers/                   # InboundFeedback (SB), InboundOrder (SB),
+                                #   SubmitFeedback (HTTP POST), SubmitOrder (HTTP POST),
                                 #   GetStores / GetFlavors (HTTP GET)
     Orchestrations/             # FeedbackOrchestrator — durable workflow with AI agents
     Activities/                 # SendCustomerEmail, ProcessFeedback
     Services/                   # IFeedbackQueueSender, ServiceBusFeedbackQueueSender,
+                                #   IOrderQueueSender, ServiceBusOrderQueueSender,
                                 #   StoreRepository, FlavorRepository
     Models/                     # FeedbackSubmissionRequest, SendCustomerEmailInput
     Tools/                      # AI tool functions: GenerateCouponCode, GetStoreDetails,
@@ -165,6 +170,12 @@ az bicep build --file infra/main.bicep --stdout
 1. A client sends a `POST` request to `/api/feedback` with a `FeedbackSubmissionRequest` JSON body.
 2. **`SubmitFeedbackTrigger`** validates the request, maps it to a `FeedbackMessage`, and enqueues it to Service Bus via `IFeedbackQueueSender`.
 3. From there, processing follows the Service Bus path above.
+
+### Order Queue Path
+
+1. A client sends a `POST` request to `/api/orders` with an `OrderRequest` JSON body.
+2. **`SubmitOrderTrigger`** validates the request and enqueues it to the `inbound-orders` Service Bus queue via `IOrderQueueSender`.
+3. **`InboundOrderTrigger`** receives the message from Service Bus and processes the order.
 
 ### AI Agent Tools
 

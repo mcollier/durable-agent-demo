@@ -15,8 +15,8 @@ public sealed class ServiceBusFeedbackQueueSender : IFeedbackQueueSender
     {
         ArgumentNullException.ThrowIfNull(client);
 
-        var queueName = Environment.GetEnvironmentVariable("SERVICEBUS_QUEUE_NAME")
-            ?? throw new InvalidOperationException("SERVICEBUS_QUEUE_NAME environment variable is not set.");
+        var queueName = Environment.GetEnvironmentVariable("FEEDBACK_QUEUE_NAME")
+            ?? throw new InvalidOperationException("FEEDBACK_QUEUE_NAME environment variable is not set.");
 
         _sender = client.CreateSender(queueName);
     }

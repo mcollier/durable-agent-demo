@@ -62,6 +62,7 @@ builder.AddAzureServiceBusClient(connectionName: "messaging");
 // }
 
 builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSender>();
+builder.Services.AddSingleton<IOrderQueueSender, ServiceBusOrderQueueSender>();
 
 // ─── Markdown version of the system prompt ───────────────────────────────────
 string promptMarkdown = """

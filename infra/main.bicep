@@ -145,6 +145,12 @@ module serviceBusNamespace 'br/public:avm/res/service-bus/namespace:0.16.1' = {
         deadLetteringOnMessageExpiration: true
         lockDuration: 'PT1M'
       }
+      {
+        name: 'inbound-orders'
+        maxDeliveryCount: 10
+        deadLetteringOnMessageExpiration: true
+        lockDuration: 'PT1M'
+      }
     ]
   }
 }
@@ -254,8 +260,9 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
           AzureWebJobsStorage__credential: 'managedidentity'
           // Service Bus — managed identity
           ServiceBusConnection__fullyQualifiedNamespace: '${serviceBusNamespace.outputs.name}.servicebus.windows.net'
-          // Service Bus — queue name
-          SERVICEBUS_QUEUE_NAME: 'inbound-feedback'
+          // Service Bus — queue names
+          FEEDBACK_QUEUE_NAME: 'inbound-feedback'
+          ORDER_QUEUE_NAME: 'inbound-orders'
           // Durable Task Scheduler
           DURABLE_TASK_SCHEDULER_CONNECTION_STRING: durableTask.outputs.schedulerEndpoint
           TASKHUB_NAME: durableTask.outputs.taskHubName
