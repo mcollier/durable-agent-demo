@@ -9,6 +9,16 @@
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 
+### 2026-03-09 — Quantity field: int? on API, non-nullable int on Razor Pages
+
+- **`int? Quantity` on `OrderRequest`**: API model uses nullable int to distinguish "not provided" from 0 in JSON deserialization; validation rule `if (Quantity is null or < 1 or > 10)` produces error message `"quantity must be between 1 and 10."` (camelCase, matches API layer conventions).
+- **Razor Pages non-nullable pattern**: `Order.cshtml.cs` declares `[BindProperty] int Quantity = 1` with `[Required]` and `[Range(1, 10)]` — the default value (1) prevents accidental Required validation failure on initial GET, while `[Range]` enforces bounds on POST via `ModelState.IsValid`.
+- **TempData int round-trip**: Storing `int` in `TempData["Quantity"] = Quantity` and reading back requires `TempData["Quantity"] is int qty ? qty : 1` pattern; direct `as int` cast fails because TempData deserializes stored ints as `int` type, not boxed `object`.
+- **HTML5 `<select>` validation**: Using `<select required>` with a blank default `<option value="">-- Select quantity --</option>` triggers browser-side HTML5 validation without JavaScript. Dropdown offers 10 natural-language options: "1 container", "2 containers", ..., "10 containers".
+- **Validation error messaging**: Functions layer uses camelCase `"quantity must be between 1 and 10."` (API style); Razor Pages layer uses PascalCase via `[Range]` attribute message `"Quantity must be between 1 and 10"` (UI style). Both enforce the same 1–10 range.
+- **Confirmation display**: Updated `OrderConfirmation.cshtml.cs` to read Quantity from TempData with fallback, then display as `"Quantity: @Model.Quantity × 1 Gallon 🪣"` in the order summary (replaces hardcoded "Size: 1 Gallon 🪣" row).
+- **5 files, zero conflicts**: Edited 2 Functions files (`OrderRequest.cs`, `SubmitOrderTrigger.cs` references) and 3 Web files (`Order.cshtml.cs`, `Order.cshtml`, `OrderConfirmation.cshtml.cs`, `OrderConfirmation.cshtml`) in single response — no merge conflicts. Build: 0 warnings, 0 errors. Final test count: 163 passing (108 Functions + 55 Core).
+
 ### 2026-03-09 — Quantity field end-to-end (Order flow)
 
 - **`OrderRequest` nullable int pattern**: Numeric fields on `OrderRequest` use `int?` (nullable) to distinguish "not provided" from 0; validation uses `Quantity is null or < 1 or > 10` pattern, consistent with `string.IsNullOrWhiteSpace` approach for strings.
