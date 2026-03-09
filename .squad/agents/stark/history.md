@@ -24,9 +24,15 @@
 - **Created**: `IOrderQueueSender.cs` (Services) and `InboundOrderTrigger.cs` (Triggers) — both mirror the `IFeedbackQueueSender` / `InboundFeedbackTrigger` pattern exactly.
 - **Interface**: `IOrderQueueSender` lives in `DurableAgent.Functions.Services`, references `OrderRequest` from `DurableAgent.Functions.Models` (not Core), and exposes a single `Task SendAsync(OrderRequest order, CancellationToken cancellationToken = default)`.
 - **Trigger**: `InboundOrderTrigger` is a no-op stub — deserializes the Service Bus body to `OrderRequest`, logs a warning on null, logs `"Received order {OrderReference}."` on success, and returns without starting any orchestration. No `[DurableClient]` binding.
-- **Env var**: `ORDER_QUEUE_NAME` is the Service Bus queue name environment variable for orders (mirrors `SERVICEBUS_QUEUE_NAME` for feedback).
+- **Env var**: `ORDER_QUEUE_NAME` is the Service Bus queue name environment variable for orders (mirrors `FEEDBACK_QUEUE_NAME` for feedback).
 - **JsonOptions**: Same static `JsonSerializerOptions` pattern — `PropertyNameCaseInsensitive = true` + `JsonStringEnumConverter`.
 - **Build**: Solution builds cleanly (0 warnings, 0 errors) after both files were added.
+
+### 2026-03-09 — Queue env var naming convention
+
+- **Convention**: All Service Bus queue name env vars follow `{DOMAIN}_QUEUE_NAME` pattern. `FEEDBACK_QUEUE_NAME` = `inbound-feedback`, `ORDER_QUEUE_NAME` = `inbound-orders`. The old `SERVICEBUS_QUEUE_NAME` name was retired in a refactor.
+- **Trigger binding**: Uses `%FEEDBACK_QUEUE_NAME%` syntax in `[ServiceBusTrigger]` attribute for env var substitution.
+- **Queue sender reads**: `ServiceBusFeedbackQueueSender` reads `FEEDBACK_QUEUE_NAME`; `ServiceBusOrderQueueSender` reads `ORDER_QUEUE_NAME` — both at construction time via `Environment.GetEnvironmentVariable`.
 
 ### 2026-03-08 — OrderRequest validation
 
