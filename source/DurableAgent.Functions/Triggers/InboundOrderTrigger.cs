@@ -1,9 +1,15 @@
-using Azure.Messaging.ServiceBus;
-using DurableAgent.Functions.Models;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Azure.AI.OpenAI;
+using Azure.Identity;
+using Azure.Messaging.ServiceBus;
+using DurableAgent.Functions.Models;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace DurableAgent.Functions.Triggers;
 
@@ -37,5 +43,85 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger)
 
         logger.LogInformation("Received order {OrderReference}.", order.OrderReference);
         return Task.CompletedTask;
+    }
+
+    [Function(nameof(TestWorkflowAsync))]
+    public async Task<HttpResponseData> TestWorkflowAsync(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "test-workflow")]
+        HttpRequestData request,
+        CancellationToken cancellationToken)
+    {
+        // THIS IS JUST A TEST - DO NOT COMMIT
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        var deployment = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT");
+
+        logger.LogInformation("Starting test workflow execution. Endpoint={Endpoint}, Deployment={Deployment}", endpoint, deployment);
+
+        var chatClient = new AzureOpenAIClient(
+            new Uri(endpoint),
+            new DefaultAzureCredential())
+        .GetChatClient(deployment)
+        .AsIChatClient();
+
+        // Agents
+        ChatClientAgent frenchAgent = GetTranslationAgent(chatClient, "French");
+        ChatClientAgent germanAgent = GetTranslationAgent(chatClient, "German");
+
+        // build the workflow by adding the executors and connecting them
+        var workflow = new WorkflowBuilder(frenchAgent)
+            .AddEdge(frenchAgent, germanAgent)
+            .Build();
+
+        logger.LogInformation("Workflow built successfully. Starting execution...");
+
+        await using Run run = await InProcessExecution.RunAsync(workflow, new ChatMessage(ChatRole.User, "hello world"));
+
+        RunStatus status = await run.GetStatusAsync();
+        logger.LogInformation("Workflow execution completed with status: {Status}", status);
+
+        foreach (WorkflowEvent evt in run.OutgoingEvents)
+        {
+            logger.LogInformation("Outgoing events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
+            // if (evt is ExecutorCompletedEvent executorCompleted)
+            // {
+            //     logger.LogInformation("Outgoing events -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);
+            // }
+        }
+
+        foreach (WorkflowEvent evt in run.NewEvents)
+        {
+            logger.LogInformation("New events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
+            
+            if (evt is ExecutorCompletedEvent executorCompleted)
+            {
+                logger.LogInformation("New events -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);
+            }
+        }
+
+        // execute the workflow
+        // await using StreamingRun run = await InProcessExecution.StreamAsync(
+        //     workflow,
+        //     new ChatMessage(ChatRole.User, "hello world"));
+
+        // logger.LogInformation("Workflow execution started. Watching for events...");
+
+        // await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
+        // await foreach (WorkflowEvent evt in run.WatchStreamAsync())
+        // {
+        //     if (evt is AgentResponseUpdateEvent executorComplete)
+        //     {
+        //         logger.LogInformation("{ExecutorId}: {Data}", executorComplete.ExecutorId, executorComplete.Data);
+        //     }
+        // }
+
+        var response = request.CreateResponse(System.Net.HttpStatusCode.OK);
+        await response.WriteStringAsync("Workflow executed successfully.", cancellationToken);
+
+        return response;
+    }
+
+    private ChatClientAgent GetTranslationAgent(IChatClient chatClient, string targetLanguage)
+    {
+        return new ChatClientAgent(chatClient, $"You are a translation assistant that translates the provided text to {targetLanguage}.");
     }
 }
