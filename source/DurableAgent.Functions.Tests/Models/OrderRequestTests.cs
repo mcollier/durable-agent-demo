@@ -13,7 +13,8 @@ public class OrderRequestTests
         StreetAddress = "123 Main St",
         City = "Springfield",
         State = "IL",
-        ZipCode = "62701"
+        ZipCode = "62701",
+        Quantity = 5
     };
 
     // ── Valid → no errors ────────────────────────────────────────────────────
@@ -153,11 +154,66 @@ public class OrderRequestTests
         var order = new OrderRequest
         {
             OrderReference = "FRY-20260308-AB12",
-            FlavorId = "flavor-001"
+            FlavorId = "flavor-001",
+            Quantity = 5
         };
 
         var errors = order.Validate();
 
         Assert.True(errors.Count >= 2, $"Expected at least 2 errors, got {errors.Count}.");
+    }
+
+    // ── Quantity validation ──────────────────────────────────────────────────
+
+    [Fact]
+    public void WhenQuantityIsNull_ThenValidateReturnsError()
+    {
+        var order = CreateValidRequest() with { Quantity = null };
+
+        var errors = order.Validate();
+
+        Assert.Contains(errors, e => e.Contains("quantity", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void WhenQuantityIsZero_ThenValidateReturnsError()
+    {
+        var order = CreateValidRequest() with { Quantity = 0 };
+
+        var errors = order.Validate();
+
+        Assert.Contains(errors, e => e.Contains("quantity", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void WhenQuantityIsEleven_ThenValidateReturnsError()
+    {
+        var order = CreateValidRequest() with { Quantity = 11 };
+
+        var errors = order.Validate();
+
+        Assert.Contains(errors, e => e.Contains("quantity", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void WhenQuantityIsOne_ThenValidateReturnsNoErrors()
+    {
+        // Boundary: minimum valid quantity
+        var order = CreateValidRequest() with { Quantity = 1 };
+
+        var errors = order.Validate();
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void WhenQuantityIsTen_ThenValidateReturnsNoErrors()
+    {
+        // Boundary: maximum valid quantity
+        var order = CreateValidRequest() with { Quantity = 10 };
+
+        var errors = order.Validate();
+
+        Assert.Empty(errors);
     }
 }

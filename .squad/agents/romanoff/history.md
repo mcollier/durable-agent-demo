@@ -8,7 +8,21 @@
 
 ## Learnings
 
-<!-- Append new learnings below. Each entry is something lasting about the project. -->
+### 2026-03-09 — Quantity field validation tests (Wave 3)
+
+- **5 trigger tests added**: `WhenQuantityIsNull`, `WhenQuantityIsZero`, `WhenQuantityIsNegative` (400 responses with "quantity" error key), `WhenQuantityIsOne`, `WhenQuantityIsTen` (200 OK for boundary min/max).
+- **5 model tests added**: Matching unit tests on `Validate()` method with same boundary and out-of-range cases; `CreateValidRequest()` baseline updated to `Quantity = 5` (mid-range) to keep existing model tests valid after the new required field is added.
+- **Baseline updates**: `CreateValidRequestBody()` in trigger tests now includes `"quantity": 1`; `WhenOptionalFieldsOmitted_ThenReturns200` test body updated to include valid quantity.
+- **Null vs. out-of-range semantics**: Both null and out-of-range collapse into the same error message by design — there is no separate "quantity is required" error, only "quantity must be between 1 and 10."
+- **Boundary tests prove inclusivity**: Tests for 1 and 10 explicitly confirm the range is inclusive (implementation uses `< 1` and `> 10`, not `<=`/`>=`).
+- **Total: 163 tests passing** (108 Functions + 55 Core, up from prior wave). No red phase — Stark had already implemented the feature; tests compiled and passed immediately.
+
+### 2026-03-09 — Decision merging & archiving
+
+- **Inbox clearing**: 7 inbox files processed into main `decisions.md`, deduplicating entries from same author+date and consolidating test strategy decisions (Wave 2 + Wave 3 combined into one compound decision with subsections).
+- **Inbox deleted**: All 7 files in `.squad/decisions/inbox/` removed after merge complete.
+- **History consolidation**: No new learnings added to Romanoff history; existing learnings already capture the testing patterns used in Wave 3 (boundary values, null handling, baseline updates).
+
 
 ### 2026-03-08 — SubmitOrderTrigger tests
 

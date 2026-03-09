@@ -9,6 +9,24 @@
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 
+### 2026-03-09 — Quantity field: int? on API, non-nullable int on Razor Pages
+
+- **`int? Quantity` on `OrderRequest`**: API model uses nullable int to distinguish "not provided" from 0 in JSON deserialization; validation rule `if (Quantity is null or < 1 or > 10)` produces error message `"quantity must be between 1 and 10."` (camelCase, matches API layer conventions).
+- **Razor Pages non-nullable pattern**: `Order.cshtml.cs` declares `[BindProperty] int Quantity = 1` with `[Required]` and `[Range(1, 10)]` — the default value (1) prevents accidental Required validation failure on initial GET, while `[Range]` enforces bounds on POST via `ModelState.IsValid`.
+- **TempData int round-trip**: Storing `int` in `TempData["Quantity"] = Quantity` and reading back requires `TempData["Quantity"] is int qty ? qty : 1` pattern; direct `as int` cast fails because TempData deserializes stored ints as `int` type, not boxed `object`.
+- **HTML5 `<select>` validation**: Using `<select required>` with a blank default `<option value="">-- Select quantity --</option>` triggers browser-side HTML5 validation without JavaScript. Dropdown offers 10 natural-language options: "1 container", "2 containers", ..., "10 containers".
+- **Validation error messaging**: Functions layer uses camelCase `"quantity must be between 1 and 10."` (API style); Razor Pages layer uses PascalCase via `[Range]` attribute message `"Quantity must be between 1 and 10"` (UI style). Both enforce the same 1–10 range.
+- **Confirmation display**: Updated `OrderConfirmation.cshtml.cs` to read Quantity from TempData with fallback, then display as `"Quantity: @Model.Quantity × 1 Gallon 🪣"` in the order summary (replaces hardcoded "Size: 1 Gallon 🪣" row).
+- **5 files, zero conflicts**: Edited 2 Functions files (`OrderRequest.cs`, `SubmitOrderTrigger.cs` references) and 3 Web files (`Order.cshtml.cs`, `Order.cshtml`, `OrderConfirmation.cshtml.cs`, `OrderConfirmation.cshtml`) in single response — no merge conflicts. Build: 0 warnings, 0 errors. Final test count: 163 passing (108 Functions + 55 Core).
+
+### 2026-03-09 — Quantity field end-to-end (Order flow)
+
+- **`OrderRequest` nullable int pattern**: Numeric fields on `OrderRequest` use `int?` (nullable) to distinguish "not provided" from 0; validation uses `Quantity is null or < 1 or > 10` pattern, consistent with `string.IsNullOrWhiteSpace` approach for strings.
+- **Razor Pages `[Range]` + default**: Bound integer properties should carry a sensible default (e.g., `= 1`) so the model doesn't fail `[Required]` on initial GET — `[Range(1, 10)]` is still enforced on POST via `ModelState.IsValid`.
+- **TempData int round-trip**: Storing `int` in TempData and reading it back requires `TempData["Key"] is int val ? val : fallback` — a direct cast via `as int` fails because TempData deserializes ints as `int` not `object`. 
+- **`select` default option**: Using `<option value="">-- Select quantity --</option>` with `required` on the `<select>` triggers HTML5 client-side validation without needing JS.
+- **Parallel edits safe**: All 5 files (2 Functions, 3 Web) were edited in the same response with no conflicts; build + 163 tests pass on first run.
+
 ### 2026-03-08 — Order endpoint stub (SubmitOrderTrigger)
 
 - **Pattern**: New HTTP triggers follow the same pattern as `SubmitFeedbackTrigger`: sealed class with primary constructor DI for `ILogger<T>`, static `JsonSerializerOptions` with `PropertyNameCaseInsensitive = true` and `JsonStringEnumConverter`, and shared `CreateErrorResponseAsync` helper.
@@ -28,11 +46,21 @@
 - **JsonOptions**: Same static `JsonSerializerOptions` pattern — `PropertyNameCaseInsensitive = true` + `JsonStringEnumConverter`.
 - **Build**: Solution builds cleanly (0 warnings, 0 errors) after both files were added.
 
-### 2026-03-09 — Queue env var naming convention
+### 2026-03-09 — Quantity field end-to-end (Wave 3)
 
-- **Convention**: All Service Bus queue name env vars follow `{DOMAIN}_QUEUE_NAME` pattern. `FEEDBACK_QUEUE_NAME` = `inbound-feedback`, `ORDER_QUEUE_NAME` = `inbound-orders`. The old `SERVICEBUS_QUEUE_NAME` name was retired in a refactor.
-- **Trigger binding**: Uses `%FEEDBACK_QUEUE_NAME%` syntax in `[ServiceBusTrigger]` attribute for env var substitution.
-- **Queue sender reads**: `ServiceBusFeedbackQueueSender` reads `FEEDBACK_QUEUE_NAME`; `ServiceBusOrderQueueSender` reads `ORDER_QUEUE_NAME` — both at construction time via `Environment.GetEnvironmentVariable`.
+- **`OrderRequest` + `Quantity` property**: Added `int? Quantity`, validation rule `is null or < 1 or > 10` → `"quantity must be between 1 and 10."`. Placed after FlavorId in validation order.
+- **Razor Pages two-layer pattern**: `Order.cshtml.cs` uses non-nullable `int Quantity = 1` with `[Required]` + `[Range(1, 10)]`; this pattern prevents Required validation failure on initial GET (default = 1) while still enforcing the range on POST. Web layer uses PascalCase error messages (`"Quantity must be between 1 and 10"`), API layer uses camelCase (`"quantity must be between 1 and 10."`).
+- **TempData int round-trip**: `Order.cshtml` stores `TempData["Quantity"] = Quantity`, then `OrderConfirmation.cshtml.cs` reads it with `TempData["Quantity"] is int qty ? qty : 1` (direct cast fails; the `is` pattern is required).
+- **HTML5 select validation**: `<select required>` with a blank `<option value="">` default option triggers browser-side validation without JavaScript. 10 options (1–10) with natural text labels ("1 container", "2 containers", ..., "10 containers").
+- **Confirmation display**: Updated hardcoded `"Size: 1 Gallon 🪣"` row to dynamic `"Quantity: @Model.Quantity × 1 Gallon 🪣"`.
+- **All 5 files edited in same response**: No conflicts, build 0 warnings/errors, 163 tests passing immediately.
+
+### 2026-03-09 — Decision merging into decisions.md
+
+- **Inbox cleared**: 7 inbox decision files merged into main `decisions.md`, deduplicated by author+date, organized by logical area (queue naming, OrderRequest validation, Quantity field, Service Bus queue creation, Queue Sender pattern, test coverage strategy).
+- **No duplication**: "Order Queue Sender Interface", "ServiceBusOrderQueueSender", and "Quantity Field Validation" were each written once and appear once in the merged document.
+- **History consolidation**: Organized test decisions (Wave 2 + Wave 3) into a single compound decision with separate subsections per wave to keep test strategy coherent.
+
 
 ### 2026-03-08 — OrderRequest validation
 

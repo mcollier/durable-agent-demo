@@ -8,6 +8,7 @@ public sealed class OrderConfirmationModel : PageModel
     public string OrderReference { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string FlavorName { get; set; } = string.Empty;
+    public int Quantity { get; set; } = 1;
     public string StreetAddress { get; set; } = string.Empty;
     public string? AddressLine2 { get; set; }
     public string City { get; set; } = string.Empty;
@@ -22,6 +23,7 @@ public sealed class OrderConfirmationModel : PageModel
             OrderReference = orderRef;
             FirstName = TempData["FirstName"] as string ?? string.Empty;
             FlavorName = TempData["FlavorName"] as string ?? string.Empty;
+            Quantity = TempData["Quantity"] is int qty ? qty : 1;
             StreetAddress = TempData["StreetAddress"] as string ?? string.Empty;
             AddressLine2 = TempData["AddressLine2"] as string;
             City = TempData["City"] as string ?? string.Empty;

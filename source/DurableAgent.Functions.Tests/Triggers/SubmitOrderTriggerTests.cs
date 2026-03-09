@@ -40,7 +40,8 @@ public class SubmitOrderTriggerTests
         zipCode = "62701",
         email = "jane@example.com",
         phoneNumber = "555-0199",
-        orderReference = "FRY-20260308-AB12"
+        orderReference = "FRY-20260308-AB12",
+        quantity = 5
     };
 
     // ── Happy path ───────────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ public class SubmitOrderTriggerTests
     {
         var trigger = new SubmitOrderTrigger(_logger, _orderQueueSender);
         // addressLine2, email, phoneNumber are optional — omitting them still passes validation
+        // quantity = 1 is the boundary minimum; it must be present (required field)
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
@@ -88,7 +90,8 @@ public class SubmitOrderTriggerTests
             streetAddress = "123 Main St",
             city = "Springfield",
             state = "IL",
-            zipCode = "62701"
+            zipCode = "62701",
+            quantity = 1
         });
 
         var response = await trigger.RunAsync(request, CancellationToken.None);
@@ -211,6 +214,127 @@ public class SubmitOrderTriggerTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = ((FakeHttpResponseData)response).ReadBodyAsString();
         Assert.Contains("errors", body);
+    }
+
+    // ── Quantity validation ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task WhenQuantityIsNull_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger, _orderQueueSender);
+        // Omit quantity entirely — int? deserializes to null, which fails the required check
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701"
+            // quantity intentionally absent
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenQuantityIsZero_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger, _orderQueueSender);
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701",
+            quantity = 0
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenQuantityIsEleven_ThenReturns400()
+    {
+        var trigger = new SubmitOrderTrigger(_logger, _orderQueueSender);
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701",
+            quantity = 11
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = ((FakeHttpResponseData)response).ReadBodyAsString();
+        Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task WhenQuantityIsOne_ThenReturns200()
+    {
+        // Boundary: minimum valid quantity
+        var trigger = new SubmitOrderTrigger(_logger, _orderQueueSender);
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701",
+            quantity = 1
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenQuantityIsTen_ThenReturns200()
+    {
+        // Boundary: maximum valid quantity
+        var trigger = new SubmitOrderTrigger(_logger, _orderQueueSender);
+        var request = CreateRequest(new
+        {
+            orderReference = "FRY-20260308-AB12",
+            flavorId = "flavor-001",
+            firstName = "Jane",
+            lastName = "Smith",
+            streetAddress = "123 Main St",
+            city = "Springfield",
+            state = "IL",
+            zipCode = "62701",
+            quantity = 10
+        });
+
+        var response = await trigger.RunAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // ── Bad input → 400 ─────────────────────────────────────────────────────
