@@ -11,7 +11,10 @@ using Microsoft.Extensions.Logging;
 namespace DurableAgent.Functions.Triggers;
 
 /// <summary>
-/// HTTP POST endpoint that accepts order submissions and returns 200 OK.
+/// HTTP POST endpoint that accepts order submissions, enqueues them for processing,
+/// and returns 200 OK on success, 400 Bad Request for invalid JSON or validation
+/// errors, 503 Service Unavailable for transient Service Bus failures, and 500
+/// Internal Server Error for non-transient or unexpected errors.
 /// </summary>
 public sealed class SubmitOrderTrigger(ILogger<SubmitOrderTrigger> logger, IOrderQueueSender orderQueueSender)
 {
