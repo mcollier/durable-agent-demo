@@ -261,7 +261,7 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
           // Service Bus — managed identity
           ServiceBusConnection__fullyQualifiedNamespace: '${serviceBusNamespace.outputs.name}.servicebus.windows.net'
           // Service Bus — queue names
-          SERVICEBUS_QUEUE_NAME: 'inbound-feedback'
+          FEEDBACK_QUEUE_NAME: 'inbound-feedback'
           ORDER_QUEUE_NAME: 'inbound-orders'
           // Durable Task Scheduler
           DURABLE_TASK_SCHEDULER_CONNECTION_STRING: durableTask.outputs.schedulerEndpoint
