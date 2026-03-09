@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Azure.Messaging.ServiceBus;
 using DurableAgent.Functions.Models;
+using DurableAgent.Functions.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -11,7 +13,7 @@ namespace DurableAgent.Functions.Triggers;
 /// <summary>
 /// HTTP POST endpoint that accepts order submissions and returns 200 OK.
 /// </summary>
-public sealed class SubmitOrderTrigger(ILogger<SubmitOrderTrigger> logger)
+public sealed class SubmitOrderTrigger(ILogger<SubmitOrderTrigger> logger, IOrderQueueSender orderQueueSender)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -58,6 +60,29 @@ public sealed class SubmitOrderTrigger(ILogger<SubmitOrderTrigger> logger)
         }
 
         logger.LogInformation("Received order {OrderReference}.", order.OrderReference);
+
+        // ── Enqueue ─────────────────────────────────────────────────────────
+        try
+        {
+            await orderQueueSender.SendAsync(order, cancellationToken);
+        }
+        catch (ServiceBusException ex) when (ex.IsTransient)
+        {
+            logger.LogError(ex, "Transient Service Bus error while sending order {OrderReference}.", order.OrderReference);
+            return request.CreateResponse(HttpStatusCode.ServiceUnavailable);
+        }
+        catch (ServiceBusException ex)
+        {
+            logger.LogError(ex, "Service Bus error while sending order {OrderReference}.", order.OrderReference);
+            return request.CreateResponse(HttpStatusCode.InternalServerError);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error while sending order {OrderReference}.", order.OrderReference);
+            return request.CreateResponse(HttpStatusCode.InternalServerError);
+        }
+
+        logger.LogInformation("Enqueued order {OrderReference}.", order.OrderReference);
         return request.CreateResponse(HttpStatusCode.OK);
     }
 
