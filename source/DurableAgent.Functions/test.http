@@ -87,6 +87,7 @@ Content-Type: application/json
 
 {
     "flavorId": "flavor-001",
+    "quantity": 2,
     "firstName": "Milo",
     "lastName": "Mustang",
     "streetAddress": "123 Froyo Lane",
