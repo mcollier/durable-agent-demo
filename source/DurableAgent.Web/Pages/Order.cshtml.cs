@@ -39,6 +39,11 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
     public string FlavorId { get; set; } = string.Empty;
 
     [BindProperty]
+    [Required(ErrorMessage = "Quantity is required")]
+    [Range(1, 10, ErrorMessage = "Quantity must be between 1 and 10")]
+    public int Quantity { get; set; } = 1;
+
+    [BindProperty]
     [Required(ErrorMessage = "First name is required")]
     [StringLength(100, ErrorMessage = "First name cannot exceed 100 characters")]
     public string FirstName { get; set; } = string.Empty;
@@ -148,6 +153,7 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
         var orderData = new
         {
             FlavorId,
+            Quantity,
             FirstName,
             LastName,
             StreetAddress,
@@ -194,6 +200,7 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
 
         TempData["OrderReference"] = orderReference;
         TempData["FirstName"] = FirstName;
+        TempData["Quantity"] = Quantity;
         TempData["FlavorName"] = flavorName;
         TempData["StreetAddress"] = StreetAddress;
         TempData["AddressLine2"] = AddressLine2;
