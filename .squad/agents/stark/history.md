@@ -9,6 +9,14 @@
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 
+### 2026-03-09 — Quantity field end-to-end (Order flow)
+
+- **`OrderRequest` nullable int pattern**: Numeric fields on `OrderRequest` use `int?` (nullable) to distinguish "not provided" from 0; validation uses `Quantity is null or < 1 or > 10` pattern, consistent with `string.IsNullOrWhiteSpace` approach for strings.
+- **Razor Pages `[Range]` + default**: Bound integer properties should carry a sensible default (e.g., `= 1`) so the model doesn't fail `[Required]` on initial GET — `[Range(1, 10)]` is still enforced on POST via `ModelState.IsValid`.
+- **TempData int round-trip**: Storing `int` in TempData and reading it back requires `TempData["Key"] is int val ? val : fallback` — a direct cast via `as int` fails because TempData deserializes ints as `int` not `object`. 
+- **`select` default option**: Using `<option value="">-- Select quantity --</option>` with `required` on the `<select>` triggers HTML5 client-side validation without needing JS.
+- **Parallel edits safe**: All 5 files (2 Functions, 3 Web) were edited in the same response with no conflicts; build + 163 tests pass on first run.
+
 ### 2026-03-08 — Order endpoint stub (SubmitOrderTrigger)
 
 - **Pattern**: New HTTP triggers follow the same pattern as `SubmitFeedbackTrigger`: sealed class with primary constructor DI for `ILogger<T>`, static `JsonSerializerOptions` with `PropertyNameCaseInsensitive = true` and `JsonStringEnumConverter`, and shared `CreateErrorResponseAsync` helper.
