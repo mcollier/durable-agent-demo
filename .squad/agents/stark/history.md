@@ -36,11 +36,21 @@
 - **JsonOptions**: Same static `JsonSerializerOptions` pattern — `PropertyNameCaseInsensitive = true` + `JsonStringEnumConverter`.
 - **Build**: Solution builds cleanly (0 warnings, 0 errors) after both files were added.
 
-### 2026-03-09 — Queue env var naming convention
+### 2026-03-09 — Quantity field end-to-end (Wave 3)
 
-- **Convention**: All Service Bus queue name env vars follow `{DOMAIN}_QUEUE_NAME` pattern. `FEEDBACK_QUEUE_NAME` = `inbound-feedback`, `ORDER_QUEUE_NAME` = `inbound-orders`. The old `SERVICEBUS_QUEUE_NAME` name was retired in a refactor.
-- **Trigger binding**: Uses `%FEEDBACK_QUEUE_NAME%` syntax in `[ServiceBusTrigger]` attribute for env var substitution.
-- **Queue sender reads**: `ServiceBusFeedbackQueueSender` reads `FEEDBACK_QUEUE_NAME`; `ServiceBusOrderQueueSender` reads `ORDER_QUEUE_NAME` — both at construction time via `Environment.GetEnvironmentVariable`.
+- **`OrderRequest` + `Quantity` property**: Added `int? Quantity`, validation rule `is null or < 1 or > 10` → `"quantity must be between 1 and 10."`. Placed after FlavorId in validation order.
+- **Razor Pages two-layer pattern**: `Order.cshtml.cs` uses non-nullable `int Quantity = 1` with `[Required]` + `[Range(1, 10)]`; this pattern prevents Required validation failure on initial GET (default = 1) while still enforcing the range on POST. Web layer uses PascalCase error messages (`"Quantity must be between 1 and 10"`), API layer uses camelCase (`"quantity must be between 1 and 10."`).
+- **TempData int round-trip**: `Order.cshtml` stores `TempData["Quantity"] = Quantity`, then `OrderConfirmation.cshtml.cs` reads it with `TempData["Quantity"] is int qty ? qty : 1` (direct cast fails; the `is` pattern is required).
+- **HTML5 select validation**: `<select required>` with a blank `<option value="">` default option triggers browser-side validation without JavaScript. 10 options (1–10) with natural text labels ("1 container", "2 containers", ..., "10 containers").
+- **Confirmation display**: Updated hardcoded `"Size: 1 Gallon 🪣"` row to dynamic `"Quantity: @Model.Quantity × 1 Gallon 🪣"`.
+- **All 5 files edited in same response**: No conflicts, build 0 warnings/errors, 163 tests passing immediately.
+
+### 2026-03-09 — Decision merging into decisions.md
+
+- **Inbox cleared**: 7 inbox decision files merged into main `decisions.md`, deduplicated by author+date, organized by logical area (queue naming, OrderRequest validation, Quantity field, Service Bus queue creation, Queue Sender pattern, test coverage strategy).
+- **No duplication**: "Order Queue Sender Interface", "ServiceBusOrderQueueSender", and "Quantity Field Validation" were each written once and appear once in the merged document.
+- **History consolidation**: Organized test decisions (Wave 2 + Wave 3) into a single compound decision with separate subsections per wave to keep test strategy coherent.
+
 
 ### 2026-03-08 — OrderRequest validation
 

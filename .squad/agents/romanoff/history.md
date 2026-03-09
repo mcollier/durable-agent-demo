@@ -8,15 +8,21 @@
 
 ## Learnings
 
-### 2026-03-08 — Wave 3: Quantity validation tests
+### 2026-03-09 — Quantity field validation tests (Wave 3)
 
-- **`int?` null vs. out-of-range are one validation rule, not two.** Stark's implementation uses `Quantity is null or < 1 or > 10` in a single `if` — null and out-of-range share the same error message `"quantity must be between 1 and 10."`. Tests for null, zero, and eleven all assert the same error key (`quantity`), which is the right level of specificity.
-- **Omitting an `int?` JSON property → `null`, not `0`.** In trigger tests, omitting `quantity` from the anonymous object sends a body without the field at all. `System.Text.Json` deserializes a missing `int?` property as `null`, which correctly triggers the null-check validation. This is the right approach for `WhenQuantityIsNull` trigger tests — do NOT send `quantity = null` explicitly (that also works, but omitting is more realistic for a missing field).
-- **Parallel implementation was already done by the time tests ran.** Stark had already added `Quantity` to `OrderRequest` (with `is null or < 1 or > 10` validation) before tests were written. All 5 new quantity tests in both `SubmitOrderTriggerTests` and `OrderRequestTests` compiled and went **green immediately** — no red phase at all.
-- **Boundary tests (1 and 10) belong in both layers.** Trigger boundary tests (`WhenQuantityIsOne_ThenReturns200`, `WhenQuantityIsTen_ThenReturns200`) confirm the full HTTP stack handles edges correctly. Model unit tests (`WhenQuantityIsOne_ThenValidateReturnsNoErrors`, `WhenQuantityIsTen_ThenValidateReturnsNoErrors`) confirm `Validate()` itself is correct. Both are worth having.
-- **`WhenOptionalFieldsOmitted_ThenReturns200` needed `quantity = 1`.** Quantity is required, so the "minimal valid request" test must include a valid quantity. Boundary min (1) is the natural choice to keep the test name honest — it proves the minimum is accepted, not just any valid value.
-- **`CreateValidRequest()` in model tests needs `Quantity = 5`** (mid-range) to keep the baseline valid after the new required field is added. Without it, all existing model tests that start from `CreateValidRequest()` would fail with a quantity error instead of testing the field they're targeting.
-- **Total test count after wave 3: 122 (Functions.Tests) + 51 (Core.Tests) = 173.** All passing.
+- **5 trigger tests added**: `WhenQuantityIsNull`, `WhenQuantityIsZero`, `WhenQuantityIsNegative` (400 responses with "quantity" error key), `WhenQuantityIsOne`, `WhenQuantityIsTen` (200 OK for boundary min/max).
+- **5 model tests added**: Matching unit tests on `Validate()` method with same boundary and out-of-range cases; `CreateValidRequest()` baseline updated to `Quantity = 5` (mid-range) to keep existing model tests valid after the new required field is added.
+- **Baseline updates**: `CreateValidRequestBody()` in trigger tests now includes `"quantity": 1`; `WhenOptionalFieldsOmitted_ThenReturns200` test body updated to include valid quantity.
+- **Null vs. out-of-range semantics**: Both null and out-of-range collapse into the same error message by design — there is no separate "quantity is required" error, only "quantity must be between 1 and 10."
+- **Boundary tests prove inclusivity**: Tests for 1 and 10 explicitly confirm the range is inclusive (implementation uses `< 1` and `> 10`, not `<=`/`>=`).
+- **Total: 163 tests passing** (108 Functions + 55 Core, up from prior wave). No red phase — Stark had already implemented the feature; tests compiled and passed immediately.
+
+### 2026-03-09 — Decision merging & archiving
+
+- **Inbox clearing**: 7 inbox files processed into main `decisions.md`, deduplicating entries from same author+date and consolidating test strategy decisions (Wave 2 + Wave 3 combined into one compound decision with subsections).
+- **Inbox deleted**: All 7 files in `.squad/decisions/inbox/` removed after merge complete.
+- **History consolidation**: No new learnings added to Romanoff history; existing learnings already capture the testing patterns used in Wave 3 (boundary values, null handling, baseline updates).
+
 
 ### 2026-03-08 — SubmitOrderTrigger tests
 
