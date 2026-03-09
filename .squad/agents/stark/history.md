@@ -19,9 +19,32 @@
 - **Decision archived**: Endpoint shape decision (`OrderRequest` model, `SubmitOrderTrigger` trigger, web integration approach) moved from decisions inbox → decisions.md. See `.squad/decisions.md` for full decision context and alternatives considered.
 
 
+### 2026-03-08 — Order queue sender interface and inbound trigger (Wave 1)
+
+- **Created**: `IOrderQueueSender.cs` (Services) and `InboundOrderTrigger.cs` (Triggers) — both mirror the `IFeedbackQueueSender` / `InboundFeedbackTrigger` pattern exactly.
+- **Interface**: `IOrderQueueSender` lives in `DurableAgent.Functions.Services`, references `OrderRequest` from `DurableAgent.Functions.Models` (not Core), and exposes a single `Task SendAsync(OrderRequest order, CancellationToken cancellationToken = default)`.
+- **Trigger**: `InboundOrderTrigger` is a no-op stub — deserializes the Service Bus body to `OrderRequest`, logs a warning on null, logs `"Received order {OrderReference}."` on success, and returns without starting any orchestration. No `[DurableClient]` binding.
+- **Env var**: `ORDER_QUEUE_NAME` is the Service Bus queue name environment variable for orders (mirrors `SERVICEBUS_QUEUE_NAME` for feedback).
+- **JsonOptions**: Same static `JsonSerializerOptions` pattern — `PropertyNameCaseInsensitive = true` + `JsonStringEnumConverter`.
+- **Build**: Solution builds cleanly (0 warnings, 0 errors) after both files were added.
+
 ### 2026-03-08 — OrderRequest validation
 
 - **Pattern**: Added `Validate()` to `OrderRequest` following the identical pattern from `FeedbackSubmissionRequest.Validate()` — returns `IReadOnlyList<string>` with human-readable camelCase field names (e.g., `"orderReference is required."`).
 - **Required fields**: `OrderReference`, `FlavorId`, `FirstName`, `LastName`, `StreetAddress`, `City`, `State`, `ZipCode`. Optional (no validation): `AddressLine2`, `Email`, `PhoneNumber`.
 - **Error response shape**: Validation errors in `SubmitOrderTrigger` use `{ "errors": [...] }` (array), distinct from the existing `CreateErrorResponseAsync` helper which uses `{ "error": "..." }` (singular string). Inline response construction was used rather than abusing the helper.
 - **Expected test breaks**: `WhenAllFieldsNull_ThenReturns200` and `WhenOrderReferenceProvided_ThenReturns200` now correctly return 400 — these are owned by Romanoff for update.
+
+### 2026-03-08 — Wave 2: ServiceBusOrderQueueSender + SubmitOrderTrigger enqueue
+
+- **Created**: `ServiceBusOrderQueueSender.cs` — mirrors `ServiceBusFeedbackQueueSender` exactly: takes `ServiceBusClient` via constructor, reads `ORDER_QUEUE_NAME` env var, builds `ServiceBusMessage` with `BinaryData.FromObjectAsJson(order)` and `MessageId = order.OrderReference`.
+- **Updated**: `SubmitOrderTrigger` now injects `IOrderQueueSender` via primary constructor DI and calls `await orderQueueSender.SendAsync(order, cancellationToken)` after validation passes.
+- **Error handling**: Mirrors `SubmitFeedbackTrigger` exactly — `ServiceBusException` with `IsTransient` → 503, non-transient `ServiceBusException` → 500, unexpected `Exception` → 500.
+- **Tests updated**: All existing `SubmitOrderTriggerTests` constructor calls updated to pass `IOrderQueueSender` fake; 3 new ServiceBus error tests added (`WhenTransientServiceBusError_ThenReturns503`, `WhenNonTransientServiceBusError_ThenReturns500`, `WhenUnexpectedError_ThenReturns500`).
+- **Build**: 0 warnings, 0 errors. 159 tests pass (108 Functions + 51 Core).
+
+### 2026-03-08 — Wave 3: IOrderQueueSender registered in Program.cs
+
+- **Registration**: `IOrderQueueSender` registered as singleton mapped to `ServiceBusOrderQueueSender` in `Program.cs`, immediately after the `IFeedbackQueueSender` registration — mirrors the same pattern.
+- **No new usings needed**: Both types are already in `DurableAgent.Functions.Services`, which was already imported.
+- **Build + tests**: 0 warnings, 0 errors. All 163 tests pass (51 Core + 112 Functions).
