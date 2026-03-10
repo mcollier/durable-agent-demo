@@ -254,49 +254,220 @@ AIAgent emailAgent = chatClient
 // builder.Services.AddSingleton(chatClient);
 builder.Services.AddKeyedSingleton<IChatClient>("chat-model", chatClient);
 
+var inventoryAgentInstructions = """
+    # Inventory Agent — Froyo Foundry
 
-// Context Builder Agent - collect everything the decision needs consistently.
-// - get flavor details
-// - get inventory levels
-// - get substitution options
+    You analyze incoming orders and determine if they can be fulfilled based on available inventory. 
+    You **MUST** call the provided tools to check inventory levels and gather relevant product information.
+    You produce a structured JSON output with your findings — do not produce free-form text.
 
-var frenchAgent = builder.AddAIAgent(
-    "frenchAgent",
-    instructions: "You are a translation assistant that translates the provided text to French",
-    // description: "Agent responsible for gathering and structuring all relevant context for an order, including flavor details, inventory levels, and substitution options.",
-    chatClientServiceKey: "chat-model");
+    ## Responsibilities
 
-var germanAgent = builder.AddAIAgent(
-    "germanAgent",
-    instructions: "You are a translation assistant that translates the provided text to German",
-    // description: "Agent responsible for gathering and structuring all relevant context for an order, including flavor details, inventory levels, and substitution options.",
-    chatClientServiceKey: "chat-model");
+    1. Check if the ordered SKU is in stock.
+    2. If not in stock, find substitute products that are similar in flavor profile.
+    3. Provide a structured output indicating whether the order can be fulfilled or not.
+    4. If unable to fulfill, create a 25% discount coupon for the customer.
 
+    ## Tools
 
-// Substitution Agent - if the requested flavor is out of stock, find the best substitution based on flavor profiles and inventory levels.
-// - flavor catalog
-// - inventory levels
-// - substitution rules (e.g. if strawberry is out of stock, substitute with raspberry)
-// outout - top 2-3 candidates with scores and recommended quantity to offer
+    | Tool | Purpose |
+    |------|---------|
+    | `CheckInventory(Sku)` | Returns available quantity for the given SKU. |
 
-// Customer messaging agent - craft customer-facing message
-// - candidate substitution
-// - incentive?
-// - approval instructions
-// output - messages to customer
+    ## Output Format
 
-// Decision Packager Agent
-// produce the final single structured output for the orchestration to act on
-// Could this be a function executor (code, not an LLM)
+    Your response must strictly follow this JSON schema:
+
+    ```json
+    {
+        "orderId": "string",
+        "customerEmail": "string",
+        "items": [
+            {
+                "sku": "string",
+                "productName": "string",
+                "requestedQty": 0,
+                "availableQty": 0,
+                "fulfillableQty": 0,
+                "shortfallQty": 0
+            }
+        ],
+        "canFullyFulfill": false,
+        "shouldGenerateCoupon": false,
+        "coupon": {
+            "code": "string",
+            "discountPercent": 0
+        }
+    }
+    ```
+
+    - `coupon` must be `null` unless `shouldGenerateCoupon` is `true`.
+    - `fulfillableQty` = min(`requestedQty`, `availableQty`).
+    - `shortfallQty` = `requestedQty` − `fulfillableQty`.
+    - `canFullyFulfill` = `true` only if `shortfallQty` is 0 for all items.
+    - `shouldGenerateCoupon` = `true` when any item has a shortfall.
+
+    ## Determinism Requirement
+    - Rely solely on tool outputs for inventory data and product details.
+    - Do not fabricate information about stock levels or product attributes.
+    """;
+
+var inventoryAgent = builder.AddAIAgent(
+    name: "InventoryAgent",
+    (sp, key) =>
+    {
+        var chatClient = sp.GetRequiredKeyedService<IChatClient>("chat-model");
+
+        AIAgent agent = new ChatClientAgent(
+            options: new ChatClientAgentOptions
+            {
+                Name = key,
+                ChatOptions = new ChatOptions
+                {
+                    Tools =
+                    [
+                        AIFunctionFactory.Create(CheckInventoryTool.CheckInventory)
+                    ],
+                    Instructions = inventoryAgentInstructions,
+                    ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                        schema: AIJsonUtilities.CreateJsonSchema(typeof(InventoryAnalysisResult)),
+                        schemaName: "InventoryAnalysisResult",
+                        schemaDescription: "The result of analyzing an order's inventory status, including fulfillment details and any coupon generation decision."
+                    )
+                }
+            },
+            chatClient: chatClient
+        );
+        return agent;
+    }
+);
+
+var orderEmailAgent = builder.AddAIAgent(
+    name: "OrderEmailAgent",
+    (sp, key) =>
+    {
+        var chatClient = sp.GetRequiredKeyedService<IChatClient>("chat-model");
+
+        AIAgent agent = new ChatClientAgent(
+            options: new ChatClientAgentOptions
+            {
+                Name = key,
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = """
+                        You are the Email Agent in an order processing workflow.
+
+                        Your job is to generate a customer email based on the inventory assessment produced by the Inventory Agent.
+
+                        You do NOT:
+                        - check inventory
+                        - change quantities
+                        - invent business outcomes
+                        - create new coupon codes unless provided
+
+                        Use the input inventory result as the source of truth.
+
+                        ## Responsibilities
+
+                        1. Read the inventory assessment.
+                        2. Determine the fulfillment scenario.
+                        3. Generate a clear and friendly customer email.
+                        4. Return structured JSON.
+
+                        ## Email Scenarios
+
+                        ### Full Fulfillment
+                        If canFullyFulfill = true
+                        - confirm the full order will ship soon
+                        - positive tone
+
+                        ### Partial Fulfillment
+                        If some items are available but not the full quantity
+                        - explain that available items will ship
+                        - explain remaining items could not be fulfilled
+                        - include coupon if provided
+
+                        ### No Fulfillment
+                        If no items are available
+                        - explain the order cannot be fulfilled
+                        - include coupon if provided
+
+                        ## Writing Style
+
+                        Emails must be:
+                        - clear
+                        - concise
+                        - polite
+                        - customer-friendly
+
+                        Do not mention internal systems, agents, tools, or workflows.
+
+                        ## Output Requirements
+
+                        Return valid JSON only.
+
+                        Structure:
+
+                        {
+                            "orderId": "string",
+                            "emailType": "FullFulfillment | PartialFulfillment | NoFulfillment",
+                            "emailSubject": "string",
+                            "emailBody": "string"
+                        }
+                        """,
+                    ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                        schema: AIJsonUtilities.CreateJsonSchema(typeof(EmailResult)),
+                        schemaName: "EmailResult",
+                        schemaDescription: "A follow-up email to a customer regarding their order fulfillment status, containing recipient name, email, and message body."
+                    )
+                }
+            },
+            chatClient: chatClient
+        );
+        
+        return agent;
+    }
+);
+
+// The workflow will consist of two agents:
+// 1. Inventory Agent - responsible for gathering details on the avaialble inventory and if the order can be fulfilled. This agent will call tools to check inventory levels. It will produce a structured output with its findings.
+// 2. Customer Messaging Agent - responsible for crafting the message to the customer based on the output of the Inventory Agent. It will produce the final message
+
+// var contextBuilderAgent = builder.AddAIAgent(
+//     name: "ContextBuilderAgent",
+//     (sp, key) =>
+//     {
+//         var chatClient = sp.GetRequiredKeyedService<IChatClient>("chat-model");
+
+//         AIAgent agent = new ChatClientAgent(
+//             options: new ChatClientAgentOptions
+//             {
+//                 Name = key,
+//                 ChatOptions = new ChatOptions
+//                 {
+//                     Tools = [],
+//                     Instructions = orderShortfallAgentInstructions,
+//                     ResponseFormat = ChatResponseFormat.ForJsonSchema(
+//                         schema: AIJsonUtilities.CreateJsonSchema(typeof(ContextBuilderOutput)),
+//                         schemaName: "ContextBuilderOutput",
+//                         schemaDescription: "The structured context output produced by the Context Builder Agent, containing all relevant factual information about the order shortfall scenario."
+//                     )
+//                 }
+//             },
+//             chatClient: chatClient);
+
+//         return agent;
+//     });
+
 
 var workflowAsAgent = builder.AddWorkflow("order-processing-workflow", (sp, key) =>
 {
-    var agent1 = sp.GetRequiredKeyedService<AIAgent>("frenchAgent");
-    var agent2 = sp.GetRequiredKeyedService<AIAgent>("germanAgent");
+    var inventoryAgent = sp.GetRequiredKeyedService<AIAgent>("InventoryAgent");
+    var orderEmailAgent = sp.GetRequiredKeyedService<AIAgent>("OrderEmailAgent");
 
     // add other agents to the workflow
 
-    return AgentWorkflowBuilder.BuildSequential(key, [agent1, agent2]);
+    return AgentWorkflowBuilder.BuildSequential(key, [inventoryAgent, orderEmailAgent]);
 }).AddAsAIAgent();
 
 

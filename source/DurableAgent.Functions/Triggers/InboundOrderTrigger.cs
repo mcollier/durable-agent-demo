@@ -49,7 +49,7 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
 
     [Function(nameof(TestWorkflowAsync))]
     public async Task<HttpResponseData> TestWorkflowAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "test-workflow")]
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "test-workflow")]
         HttpRequestData request,
         CancellationToken cancellationToken)
     {
@@ -59,11 +59,38 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
 
         logger.LogInformation("Starting test workflow execution. Endpoint={Endpoint}, Deployment={Deployment}", endpoint, deployment);
 
+        OrderRequest? order = null;
+        try
+        {
+            order = await JsonSerializer.DeserializeAsync<OrderRequest>(request.Body, JsonOptions, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Failed to deserialize order request body.");
+        }
+
+        if (order is null)
+        {
+            var badRequest = request.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+            await badRequest.WriteStringAsync("Request body must be a valid OrderRequest JSON object.", cancellationToken);
+            return badRequest;
+        }
+
+        var errors = order.Validate();
+        if (errors.Count > 0)
+        {
+            var badRequest = request.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+            await badRequest.WriteAsJsonAsync(new { errors }, cancellationToken);
+            return badRequest;
+        }
+
+        logger.LogInformation("Processing order {OrderReference} for workflow.", order.OrderReference);
+
         AgentSession session = await orderAgent.CreateSessionAsync(cancellationToken);
 
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.User, "hello world")
+            new(ChatRole.User, $"Determine if this order can be fulfilled: {JsonSerializer.Serialize(order, JsonOptions)}")
         };
 
         var result = await orderAgent.RunAsync(messages, session, cancellationToken: cancellationToken);
