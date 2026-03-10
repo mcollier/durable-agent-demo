@@ -6,7 +6,9 @@ using DurableAgent.Functions.Services;
 using DurableAgent.Functions.Tools;
 
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Hosting;
 using Microsoft.Agents.AI.Hosting.AzureFunctions;
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
@@ -198,7 +200,6 @@ var chatClient = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCreden
     .UseOpenTelemetry(sourceName: sourceName, configure: (cfg) => cfg.EnableSensitiveData = isDevelopment)
     .Build();
 
-
 // Create the AI agent following standard Microsoft Agent Framework patterns.
 AIAgent customerServiceAgent = chatClient
     .AsAIAgent(new ChatClientAgentOptions()
@@ -247,6 +248,58 @@ AIAgent emailAgent = chatClient
             )
         }
     });
+
+// Define the agents for order processing. Will refactor later.
+// Do I need this?
+// builder.Services.AddSingleton(chatClient);
+builder.Services.AddKeyedSingleton<IChatClient>("chat-model", chatClient);
+
+
+// Context Builder Agent - collect everything the decision needs consistently.
+// - get flavor details
+// - get inventory levels
+// - get substitution options
+
+var frenchAgent = builder.AddAIAgent(
+    "frenchAgent",
+    instructions: "You are a translation assistant that translates the provided text to French",
+    // description: "Agent responsible for gathering and structuring all relevant context for an order, including flavor details, inventory levels, and substitution options.",
+    chatClientServiceKey: "chat-model");
+
+var germanAgent = builder.AddAIAgent(
+    "germanAgent",
+    instructions: "You are a translation assistant that translates the provided text to German",
+    // description: "Agent responsible for gathering and structuring all relevant context for an order, including flavor details, inventory levels, and substitution options.",
+    chatClientServiceKey: "chat-model");
+
+
+// Substitution Agent - if the requested flavor is out of stock, find the best substitution based on flavor profiles and inventory levels.
+// - flavor catalog
+// - inventory levels
+// - substitution rules (e.g. if strawberry is out of stock, substitute with raspberry)
+// outout - top 2-3 candidates with scores and recommended quantity to offer
+
+// Customer messaging agent - craft customer-facing message
+// - candidate substitution
+// - incentive?
+// - approval instructions
+// output - messages to customer
+
+// Decision Packager Agent
+// produce the final single structured output for the orchestration to act on
+// Could this be a function executor (code, not an LLM)
+
+var workflowAsAgent = builder.AddWorkflow("order-processing-workflow", (sp, key) =>
+{
+    var agent1 = sp.GetRequiredKeyedService<AIAgent>("frenchAgent");
+    var agent2 = sp.GetRequiredKeyedService<AIAgent>("germanAgent");
+
+    // add other agents to the workflow
+
+    return AgentWorkflowBuilder.BuildSequential(key, [agent1, agent2]);
+}).AddAsAIAgent();
+
+
 
 builder.ConfigureFunctionsWebApplication();
 

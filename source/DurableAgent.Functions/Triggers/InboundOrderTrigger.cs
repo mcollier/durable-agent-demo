@@ -9,6 +9,7 @@ using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DurableAgent.Functions.Triggers;
@@ -17,7 +18,8 @@ namespace DurableAgent.Functions.Triggers;
 /// Receives messages from the inbound-orders Service Bus queue and
 /// logs each order. No orchestration is started — this is a no-op stub.
 /// </summary>
-public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger)
+public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
+[FromKeyedServices("order-processing-workflow")] AIAgent orderAgent)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -57,46 +59,60 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger)
 
         logger.LogInformation("Starting test workflow execution. Endpoint={Endpoint}, Deployment={Deployment}", endpoint, deployment);
 
-        var chatClient = new AzureOpenAIClient(
-            new Uri(endpoint),
-            new DefaultAzureCredential())
-        .GetChatClient(deployment)
-        .AsIChatClient();
+        AgentSession session = await orderAgent.CreateSessionAsync(cancellationToken);
 
-        // Agents
-        ChatClientAgent frenchAgent = GetTranslationAgent(chatClient, "French");
-        ChatClientAgent germanAgent = GetTranslationAgent(chatClient, "German");
-
-        // build the workflow by adding the executors and connecting them
-        var workflow = new WorkflowBuilder(frenchAgent)
-            .AddEdge(frenchAgent, germanAgent)
-            .Build();
-
-        logger.LogInformation("Workflow built successfully. Starting execution...");
-
-        await using Run run = await InProcessExecution.RunAsync(workflow, new ChatMessage(ChatRole.User, "hello world"));
-
-        RunStatus status = await run.GetStatusAsync();
-        logger.LogInformation("Workflow execution completed with status: {Status}", status);
-
-        foreach (WorkflowEvent evt in run.OutgoingEvents)
+        var messages = new List<ChatMessage>
         {
-            logger.LogInformation("Outgoing events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
-            // if (evt is ExecutorCompletedEvent executorCompleted)
-            // {
-            //     logger.LogInformation("Outgoing events -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);
-            // }
+            new(ChatRole.User, "hello world")
+        };
+
+        var result = await orderAgent.RunAsync(messages, session, cancellationToken: cancellationToken);
+
+        foreach (ChatMessage message in result.Messages)
+        {
+            logger.LogInformation("Agent response -- {Role}: {Content}", message.AuthorName, message.Contents);
         }
 
-        foreach (WorkflowEvent evt in run.NewEvents)
-        {
-            logger.LogInformation("New events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
+        // var chatClient = new AzureOpenAIClient(
+        //     new Uri(endpoint),
+        //     new DefaultAzureCredential())
+        // .GetChatClient(deployment)
+        // .AsIChatClient();
+
+        // // Agents
+        // ChatClientAgent frenchAgent = GetTranslationAgent(chatClient, "French");
+        // ChatClientAgent germanAgent = GetTranslationAgent(chatClient, "German");
+
+        // // build the workflow by adding the executors and connecting them
+        // var workflow = new WorkflowBuilder(frenchAgent)
+        //     .AddEdge(frenchAgent, germanAgent)
+        //     .Build();
+
+        // logger.LogInformation("Workflow built successfully. Starting execution...");
+
+        // await using Run run = await InProcessExecution.RunAsync(workflow, new ChatMessage(ChatRole.User, "hello world"));
+
+        // RunStatus status = await run.GetStatusAsync();
+        // logger.LogInformation("Workflow execution completed with status: {Status}", status);
+
+        // foreach (WorkflowEvent evt in run.OutgoingEvents)
+        // {
+        //     logger.LogInformation("Outgoing events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
+        //     // if (evt is ExecutorCompletedEvent executorCompleted)
+        //     // {
+        //     //     logger.LogInformation("Outgoing events -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);
+        //     // }
+        // }
+
+        // foreach (WorkflowEvent evt in run.NewEvents)
+        // {
+        //     logger.LogInformation("New events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
             
-            if (evt is ExecutorCompletedEvent executorCompleted)
-            {
-                logger.LogInformation("New events -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);
-            }
-        }
+        //     if (evt is ExecutorCompletedEvent executorCompleted)
+        //     {
+        //         logger.LogInformation("New events -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);
+        //     }
+        // }
 
         // execute the workflow
         // await using StreamingRun run = await InProcessExecution.StreamAsync(
