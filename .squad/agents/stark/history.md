@@ -82,3 +82,19 @@
 - **Registration**: `IOrderQueueSender` registered as singleton mapped to `ServiceBusOrderQueueSender` in `Program.cs`, immediately after the `IFeedbackQueueSender` registration — mirrors the same pattern.
 - **No new usings needed**: Both types are already in `DurableAgent.Functions.Services`, which was already imported.
 - **Build + tests**: 0 warnings, 0 errors. All 163 tests pass (51 Core + 112 Functions).
+
+### 2026-03-14 — Flavor IDs vs inventory SKU prefixes
+
+- **Two ID systems exist today**: `FlavorRepository` is the source of truth for `/api/flavors` and AI flavor listings, but it uses `flv-001`…`flv-010` while order-focused tests use `flavor-001` and `InventoryRepository` uses SKU prefixes like `VNE-TUB` and `MNC-TUB`.
+- **Web + Functions are format-agnostic but contract-coupled**: Order and feedback pages simply round-trip whatever `FlavorId` `/api/flavors` returns into `/api/orders` and `/api/feedback`, so changing canonical IDs mainly impacts returned payloads, posted payload examples, and assertions rather than validation logic.
+- **Inventory catalog is larger than flavor catalog**: Inventory currently includes `QCC-TUB` and `AAL-TUB`, but `FlavorRepository` has no matching `QCC` or `AAL` flavor records; any migration to 3-letter canonical flavor IDs must decide whether to add those flavors or remove the extra SKUs.
+
+
+### 2026-03-14 — FlavorId migration to canonical 3-letter codes
+
+- **Canonical contract**: `FlavorId` is now the 3-letter flavor code (`MNC`, `VNE`, etc.), while inventory keeps the derived SKU shape `{FlavorId}-TUB`. `FlavorRepository` is the canonical flavor catalog and now uses those 10 codes directly.
+- **Single bridge point**: `InventoryRepository.GetSkuForFlavorId()` is the single code path that converts `FlavorId` → SKU, and `CheckInventoryTool` now accepts canonical `FlavorId` values instead of raw SKUs.
+- **Catalog alignment**: Removed inventory-only `QCC-TUB` and `AAL-TUB` entries so inventory matches the real 10-flavor catalog instead of carrying orphan SKUs.
+- **Prompt/schema cleanup**: Order-processing prompts now distinguish FlavorId from SKU; order intake canonical line items carry `flavorId`, while fulfillment output still reports inventory `sku` values.
+- **Validation status**: Baseline `dotnet test` initially failed because `InboundOrderTriggerTests` lagged behind the trigger constructor. After updating that fixture and the FlavorId literals, the full suite passed: 176 tests green.
+- **Romanoff handoff**: Updated the order/trigger tests and added `InventoryRepositoryTests` so Romanoff has coverage for the FlavorId→SKU bridge and the removed orphan inventory SKUs.

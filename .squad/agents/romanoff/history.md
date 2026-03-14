@@ -49,3 +49,12 @@
 - **`WhenValidRequest_ThenEnqueuesOrder` is distinct from `WhenValidOrderPayload_ThenReturns200`.** The 200 test only checks status code. The enqueue test uses `A.CallTo(() => sender.SendAsync(A<OrderRequest>.That.Matches(...), A<CancellationToken>._)).MustHaveHappenedOnceExactly()` to confirm the correct payload was sent. Both are needed.
 - **No-op triggers log as their only observable side effect.** `InboundOrderTrigger` is a stub that does no orchestration. Its only testable behavior is `LogInformation` on success and `LogWarning` on null body. Tests for stubs should focus on log level assertions rather than downstream side effects.
 - **`BinaryData.FromString("null")` triggers null-body path in Service Bus triggers.** `message.Body.ToObjectFromJson<T>()` returns `null` when the JSON literal `"null"` is passed — reliable way to exercise the `order is null` guard in `InboundOrderTrigger`.
+
+### 2026-03-14 — Flavor ID Migration Audit
+
+- **Three test suites have hardcoded legacy IDs:** `FlavorTests.cs`, `GetFlavorsTriggerTests.cs`, `SubmitOrderTriggerTests.cs`. All use `flv-001` or `flavor-001` and will fail red when repository changes to SKU codes.
+- **HTTP payload format differs from repository format:** Tests use `"flavor-001"` but repository uses `"flv-001"`; test.http mixes `"VNE-TUB"` (SKU) with `"flavor-001"` (legacy order format). Ambiguity must be resolved before implementation.
+- **Inventory-only codes need decision:** `QCC` and `AAL` exist in `InventoryRepository` but not in `FlavorRepository`. Tests don't reference them, so removal is low-risk; addition would require test updates to expect 12 flavors instead of 10.
+- **No SKU bridge test exists:** Currently no test verifies that a flavor ID correctly converts to inventory SKU. E2E gap.
+- **Invalid flavor ID handling not covered:** Tests don't verify what happens when an order references a non-existent flavor ID. Current validation only checks non-empty, not existence.
+- **API contract breaking change documented:** Clients that POST `flavor-001` or expect `flv-001` in responses will break. Mitigation: communicate change; no backward compat layer needed for demo.
