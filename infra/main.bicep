@@ -60,6 +60,11 @@ param modelSkuName string = 'GlobalStandard'
 @description('Deployment capacity in TPM units.')
 param modelCapacity int = 1
 
+// ─── Communication & Email Parameters ───────────────────────────────────────
+
+@description('Data location for Communication and Email services (e.g. United States, Europe, Asia Pacific, Australia).')
+param communicationDataLocation string = 'United States'
+
 // ─── Variables ──────────────────────────────────────────────────────────────
 
 var resourceToken = toLower(uniqueString(subscription().subscriptionId, resourceGroupName, baseName))
@@ -78,6 +83,8 @@ var webAppPlanName = 'asp-web-${baseName}-${resourceToken}'
 var webAppName = 'web-${baseName}-${resourceToken}'
 var aiFoundryName = 'ai-${baseName}-${resourceToken}'
 var aiProjectName = '${baseName}-proj'
+var emailServiceName = 'ecs-${baseName}-${resourceToken}'
+var communicationServiceName = 'acs-${baseName}-${resourceToken}'
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Resource Group
@@ -163,6 +170,38 @@ module durableTask 'modules/durable-task.bicep' = {
     taskHubName: taskHubName
     location: location
     tags: tags
+  }
+}
+
+// ─── Email Service ──────────────────────────────────────────────────────────
+module emailService 'br/public:avm/res/communication/email-service:0.4.4' = {
+  scope: rg
+  params: {
+    name: emailServiceName
+    location: 'global'
+    tags: tags
+    dataLocation: communicationDataLocation
+    domains: [
+      {
+        name: 'AzureManagedDomain'
+        domainManagement: 'AzureManaged'
+        location: 'global'
+      }
+    ]
+  }
+}
+
+// ─── Communication Service ──────────────────────────────────────────────────
+module communicationService 'br/public:avm/res/communication/communication-service:0.4.3' = {
+  scope: rg
+  params: {
+    name: communicationServiceName
+    location: 'global'
+    tags: tags
+    dataLocation: communicationDataLocation
+    linkedDomains: [
+      emailService.outputs.domainResourceIds[0]
+    ]
   }
 }
 
@@ -270,6 +309,8 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
           AI_FOUNDRY_ENDPOINT: aiFoundry.outputs.accountEndpoint
           AI_FOUNDRY_DEPLOYMENT_NAME: aiFoundry.outputs.deploymentName
           AI_FOUNDRY_PROJECT_NAME: aiFoundry.outputs.projectName
+          // Communication Service
+          COMMUNICATION_SERVICE_ENDPOINT: 'https://${communicationService.outputs.name}.communication.azure.com'
         }
       }
     ]
@@ -327,6 +368,7 @@ module rbac 'modules/rbac.bicep' = {
     serviceBusNamespaceName: serviceBusNamespaceName
     schedulerName: schedulerName
     aiFoundryAccountName: aiFoundryName
+    communicationServiceName: communicationServiceName
     functionAppName: functionAppName
     principalId: functionApp.outputs.?systemAssignedMIPrincipalId ?? ''
   }
@@ -374,3 +416,9 @@ output webAppName string = webApp.outputs.name
 
 @description('Default hostname of the Web App.')
 output webAppHostname string = webApp.outputs.defaultHostname
+
+@description('Communication Service endpoint URL.')
+output communicationServiceEndpoint string = 'https://${communicationService.outputs.name}.communication.azure.com'
+
+@description('Email Service name.')
+output emailServiceName string = emailService.outputs.name
