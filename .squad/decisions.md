@@ -369,3 +369,84 @@ Verify `IOrderQueueSender.SendAsync` is called exactly once with the correct `Or
 - All meaningful changes require team consensus
 - Document architectural decisions here
 - Keep history focused on work, decisions focused on direction
+# Decision: Flavor ID Alignment — SKU Codes as Primary Identity
+
+**Date:** 2026-03-09  
+**Author:** Fury (Lead)  
+**Requested by:** Michael S. Collier  
+**Status:** Approved (pending implementation)
+
+---
+
+## Decision
+
+Replace sequential numeric Flavor IDs (`flv-001` through `flv-010`) with 3-letter SKU codes (`MNC`, `VNE`, `BBC`, etc.) as the canonical Flavor ID across the application.
+
+### Mapping
+
+| Old ID | SKU | Flavor Name |
+|--------|-----|-------------|
+| flv-001 | MNC | Mint Condition |
+| flv-002 | BBC | Berry Blockchain Blast |
+| flv-003 | CCN | Cookie Container |
+| flv-004 | RRS | Recursive Raspberry |
+| flv-005 | VNE | Vanilla Exception |
+| flv-006 | NPP | Null Pointer Pistachio |
+| flv-007 | JJT | Java Jolt |
+| flv-008 | PBP | Peanut Butter Protocol |
+| flv-009 | CCC | Cloud Caramel Cache |
+| flv-010 | AIA | AIçaí Bowl |
+
+---
+
+## Rationale
+
+1. **Single Source of Truth:** The SKU code (`VNE-TUB`) is the enterprise identifier used by `InventoryRepository`. Using it as the Flavor ID eliminates redundant mappings and manual cross-referencing.
+
+2. **Alignment with Domain:** Product inventory is managed by SKU; flavors should use the same key. This is a domain-driven design principle: one entity, one identity.
+
+3. **Reduced Bugs:** Fewer ID systems mean fewer opportunities for lookup mismatches (e.g., ordering flavor `flv-005` but checking inventory for SKU `VNE`).
+
+4. **API Clarity:** Clients see the same ID in both the flavor list and inventory systems, making integration simpler.
+
+---
+
+## Scope
+
+- **Files Modified:** 9 files (1 core model update, 1 repository update, 7 test updates).
+- **Breaking Changes:** GET `/api/flavors` response JSON will use new IDs; POST `/api/orders` request payloads must use new IDs.
+- **Backward Compatibility:** Not maintained (this is a demo app; no legacy clients are assumed to exist).
+
+---
+
+## Implementation Plan
+
+See `/home/vscode/.copilot/session-state/f0c53eae-022b-4309-8569-4c18e2a1ce59/plan.md` for detailed steps, file-by-file changes, and test considerations.
+
+---
+
+## Risks & Mitigations
+
+| Risk | Mitigation |
+|------|-----------|
+| External clients depend on `flv-XXX` IDs | Communicate breaking change; provide migration notes if needed. |
+| Test assertions hardcoded to old IDs | Systematic grep for `flv-` before commit; review test files carefully. |
+| UI form binding breaks | Verify Razor Pages model binding still works post-change. |
+
+---
+
+## Approval
+
+- **Lead (Fury):** ✓ Approved for planning and implementation.
+- **Project Owner (Michael S. Collier):** Pending review of plan.
+
+---
+
+## Next Steps
+
+1. Implement changes per plan (8 todo items, phased approach).
+2. Run full xUnit test suite to validate.
+3. Manual E2E testing: web form → inventory → confirmation.
+4. Commit with conventional commit message.
+5. Update release notes / API documentation.
+
