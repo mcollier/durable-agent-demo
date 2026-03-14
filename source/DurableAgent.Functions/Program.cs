@@ -2,6 +2,7 @@ using Azure.AI.OpenAI;
 using Azure.Identity;
 
 using DurableAgent.Core.Models;
+using DurableAgent.Functions.Models;
 using DurableAgent.Functions.Services;
 using DurableAgent.Functions.Tools;
 
@@ -433,15 +434,284 @@ var orderEmailAgent = builder.AddAIAgent(
 // 1. Inventory Agent - responsible for gathering details on the avaialble inventory and if the order can be fulfilled. This agent will call tools to check inventory levels. It will produce a structured output with its findings.
 // 2. Customer Messaging Agent - responsible for crafting the message to the customer based on the output of the Inventory Agent. It will produce the final message
 
+// The order intake agent should:
+// - check for required fields, and convert the incoming order into a canonical format for the backend systems
+// - check against business rules (e.g. max order quantity, restricted products, etc) and reject orders that violate them with a clear message to the customer
+IHostedAgentBuilder orderIntakeAgent = builder.AddAIAgent(
+    name: "OrderIntakeAgent",
+    (sp, key) =>
+    {
+        var chatClient = sp.GetRequiredKeyedService<IChatClient>("chat-model");
+
+        AIAgent agent = new ChatClientAgent(
+            options: new ChatClientAgentOptions
+            {
+                Name = key,
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = """
+                        You are the Order Intake Agent for Froyo Foundry.
+
+                        Your job is to process incoming orders, validate them against business rules, and produce a structured output that can be used by downstream agents in the order processing workflow.
+
+                        ## Responsibilities
+
+                        1. Validate incoming order data for required fields and correct formatting.
+                        2. Check orders against business rules (e.g., max quantity limits, restricted products).
+                        3. Produce a canonical order object that includes all necessary information for fulfillment.
+                        4. If the order violates any rules, produce a clear and specific error message indicating the issue.
+
+                        ## Business Rules
+
+                        - Maximum quantity per item is 10.
+                        - Minimum quantity per item is 1.
+                        - Restricted products include "Rainbow Sherbet" and "Chocolate Chip Cookie Dough".
+                        - Orders must include customer name, email, shipping address, and at least one line item with SKU and quantity.
+
+                        ## Output Requirements
+
+                        Return valid JSON only.
+
+                        For valid orders, structure your response as follows:
+
+                        {
+                            "isValid": true,
+                            "order": {
+                                "orderId": "string",
+                                "customerName": {
+                                    "firstName": "string",
+                                    "middleName": "string or null",
+                                    "lastName": "string"
+                                },
+                                "customerEmail": "string",
+                                "shippingAddress": {
+                                    "streetAddress": "string",
+                                    "addressLine2": "string or null",
+                                    "city": "string",
+                                    "state": "string",
+                                    "zipCode": "string"
+                                },
+                                "lineItems": [
+                                    {
+                                        "sku": "string",
+                                        "quantity": 0
+                                    }
+                                ]
+                            },
+                            "errorMessage": null
+                        }
+
+                        For invalid orders, structure your response as follows:
+
+                        {
+                            "isValid": false,
+                            "order": null,
+                            "errorMessage": "string describing the validation error"
+                        }
+                        """,
+                    ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                        schema: AIJsonUtilities.CreateJsonSchema(typeof(OrderIntakeResult)),
+                        schemaName: "OrderIntakeResult",
+                        schemaDescription: "The result of validating and processing an incoming order, including a canonical order object if valid or an error message if invalid."
+                    )
+                }
+            },
+            chatClient: chatClient
+        );
+        
+        return agent;
+    }
+);
+
+// The fulfillment decision agent should:
+// - use a tool check the inventory for the requested items
+// - decide if the order can be fulfilled, partially fulfilled, or not fulfilled at all based on the inventory data
+// - if the order cannot be fully fulfilled, it should provide a coupon code and recommend an alternative from available inventory
+IHostedAgentBuilder fulfillmentDecisionAgent = builder.AddAIAgent(
+    name: "FulfillmentDecisionAgent",
+    (sp, key) =>
+    {
+        var chatClient = sp.GetRequiredKeyedService<IChatClient>("chat-model");
+
+        AIAgent agent = new ChatClientAgent(
+            options: new ChatClientAgentOptions
+            {
+                Name = key,
+                ChatOptions = new ChatOptions
+                {
+                    Tools =
+                    [
+                        AIFunctionFactory.Create(CheckInventoryTool.CheckInventory),
+                        AIFunctionFactory.Create(GenerateCouponCodeTool.GenerateCouponCode)
+                    ],
+                    Instructions = """
+                        You are the Fulfillment Decision Agent for Froyo Foundry.
+
+                        Your job is to determine whether incoming orders can be fulfilled based on inventory levels, and to provide recommendations and coupon codes when orders cannot be fully fulfilled.
+
+                        ## Responsibilities
+
+                        1. Analyze the canonical order object produced by the Order Intake Agent.
+                        2. Use the CheckInventory tool to check stock levels for each line item in the order.
+                        3. Determine if the order can be fully fulfilled, partially fulfilled, or not fulfilled at all.
+                        4. If the order cannot be fully fulfilled, use the GenerateCouponCode tool to create a 25% discount coupon for the customer.
+                        5. Recommend alternative products that are in stock if any items cannot be fulfilled.
+
+                        ## Output Requirements
+
+                        Return valid JSON only.
+
+                        Structure your response as follows:
+
+                        {
+                            "orderId": "string",
+                            "customerEmail": "string",
+                            "items": [
+                                {
+                                    "sku": "string",
+                                    "productName": "string",
+                                    "requestedQty": 0,
+                                    "availableQty": 0,
+                                    "fulfillableQty": 0,
+                                    "shortfallQty": 0
+                                }
+                            ],
+                            "canFullyFulfill": false,
+                            "shouldGenerateCoupon": false,
+                            "coupon": {
+                                "code": "string",
+                                "discountPercent": 0
+                            },
+                            "alternativeRecommendations": [
+                                {
+                                    "sku": "string",
+                                    "productName": "string"
+                                }
+                            ]
+                        }
+
+                        - `coupon` must be `null` unless `shouldGenerateCoupon` is `true`.
+                        - `fulfillableQty` = min(`requestedQty`, `availableQty`).
+                        - `shortfallQty` = `requestedQty` − `fulfillableQty`.
+                        - `canFullyFulfill` = `true` only if `shortfallQty` is 0 for all items.
+                        - `shouldGenerateCoupon` = `true` when any item has a shortfall.
+
+                        ## Determinism Requirement
+                        - Rely solely on tool outputs for inventory data and coupon generation.
+                        - Do not fabricate information about stock levels, product attributes, or coupon codes.
+                        """,
+                    ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                        schema: AIJsonUtilities.CreateJsonSchema(typeof(FulfillmentDecisionResult)),
+                        schemaName: "FulfillmentDecisionResult",
+                        schemaDescription: "The result of analyzing an order's fulfillment status, including inventory details, fulfillment capability, coupon generation decision, and alternative product recommendations."
+                    )
+                }
+            },
+            chatClient: chatClient
+        );
+
+        return agent;
+    }
+);
+
+// The customer messaging agent should:
+// - take the output of the fulfillment decision agent and craft a clear and empathetic message to the customer about their order status, including any coupons or alternatives if applicable
+IHostedAgentBuilder customerMessagingAgent = builder.AddAIAgent(
+    name: "CustomerMessagingAgent",
+    (sp, key) =>
+    {
+        var chatClient = sp.GetRequiredKeyedService<IChatClient>("chat-model");
+
+        AIAgent agent = new ChatClientAgent(
+            options: new ChatClientAgentOptions
+            {
+                Name = key,
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = """
+                        You are the Customer Messaging Agent for Froyo Foundry.
+
+                        Your job is to craft clear and empathetic messages to customers about their order status based on the fulfillment analysis provided by the Fulfillment Decision Agent.
+
+                        ## Responsibilities
+
+                        1. Read the fulfillment decision output, including inventory details, fulfillment capability, coupon information, and alternative product recommendations.
+                        2. Determine the appropriate messaging scenario (full fulfillment, partial fulfillment, no fulfillment).
+                        3. Craft a clear, concise, and empathetic message to the customer regarding their order status.
+                        4. Include information about any coupons or alternative products if applicable.
+
+                        ## Email Scenarios
+
+                        ### Full Fulfillment
+                        If canFullyFulfill = true
+                        - confirm the full order will ship soon
+                        - positive tone
+
+                        ### Partial Fulfillment
+                        If some items are available but not the full quantity
+                        - explain that available items will ship
+                        - explain remaining items could not be fulfilled
+                        - include coupon if provided
+
+                        ### No Fulfillment
+                        If no items are available
+                        - explain the order cannot be fulfilled
+                        - include coupon if provided
+
+                        ## Writing Style
+
+                        Messages must be:
+                        - clear
+                        - concise
+                        - polite
+                        - customer-friendly
+
+                        Do not mention internal systems, agents, tools, or workflows.
+
+                        ## Output Requirements
+
+                        Return valid JSON only.
+
+                        Structure:
+
+                        {
+                            "orderId": "string",
+                            "message": "string"
+                        }
+                        """,
+                    ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                        schema: AIJsonUtilities.CreateJsonSchema(typeof(CustomerMessageResult)),
+                        schemaName: "CustomerMessageResult",
+                        schemaDescription: "A message to a customer regarding their order fulfillment status, containing the order ID and the message body."
+                    )
+                }
+            },
+            chatClient: chatClient
+        );
+
+        return agent;
+    }
+);
+
 
 var workflowAsAgent = builder.AddWorkflow("order-processing-workflow", (sp, key) =>
 {
-    var inventoryAgent = sp.GetRequiredKeyedService<AIAgent>("InventoryAgent");
-    var orderEmailAgent = sp.GetRequiredKeyedService<AIAgent>("OrderEmailAgent");
+    // var inventoryAgent = sp.GetRequiredKeyedService<AIAgent>("InventoryAgent");
+    // var orderEmailAgent = sp.GetRequiredKeyedService<AIAgent>("OrderEmailAgent");
+    var intakeAgent = sp.GetRequiredKeyedService<AIAgent>("OrderIntakeAgent");
+    var decisionAgent = sp.GetRequiredKeyedService<AIAgent>("FulfillmentDecisionAgent");
+    var commsAgent = sp.GetRequiredKeyedService<AIAgent>("CustomerMessagingAgent");
 
     // add other agents to the workflow
 
-    return AgentWorkflowBuilder.BuildSequential(key, [inventoryAgent, orderEmailAgent]);
+    return AgentWorkflowBuilder.BuildSequential(key, [intakeAgent, decisionAgent, commsAgent]);
+    // WorkflowBuilder workflowBuilder = new (intakeAgent);
+    // workflowBuilder.AddEdge(intakeAgent, decisionAgent);
+    // workflowBuilder.AddEdge(intakeAgent, commsAgent); // in case intake agent rejects the order, we still want to send a message to the customer    
+    // workflowBuilder.AddEdge(decisionAgent, commsAgent);
+
+    // return workflowBuilder.Build();
+    
 }).AddAsAIAgent();
 
 builder.ConfigureFunctionsWebApplication();

@@ -5,6 +5,7 @@ using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Hosting;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -19,7 +20,7 @@ namespace DurableAgent.Functions.Triggers;
 /// logs each order. No orchestration is started — this is a no-op stub.
 /// </summary>
 public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
-[FromKeyedServices("order-processing-workflow")] AIAgent orderAgent)
+[FromKeyedServices("order-processing-workflow")] AIAgent orderWorkflow) //Workflow orderWorkflow
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -86,14 +87,37 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
 
         logger.LogInformation("Processing order {OrderReference} for workflow.", order.OrderReference);
 
-        AgentSession session = await orderAgent.CreateSessionAsync(cancellationToken);
+        AgentSession session = await orderWorkflow.CreateSessionAsync(cancellationToken);
 
         var messages = new List<ChatMessage>
         {
             new(ChatRole.User, $"Determine if this order can be fulfilled: {JsonSerializer.Serialize(order, JsonOptions)}")
         };
 
-        var result = await orderAgent.RunAsync(messages, session, cancellationToken: cancellationToken);
+        var result = await orderWorkflow.RunAsync(messages, session, cancellationToken: cancellationToken);
+        // var result = await InProcessExecution.RunAsync(orderWorkflow, messages, cancellationToken: cancellationToken);
+
+        // List<ChatMessage> allMessages = [];
+        // foreach (WorkflowEvent evt in result.NewEvents)
+        // {
+        //     // logger.LogInformation("Outgoing events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
+
+        //     if (evt is WorkflowOutputEvent outputEvent)
+        //     {
+        //         // logger.LogInformation("Workflow output -- {Data}", outputEvent.Data);
+
+        //         allMessages = (List<ChatMessage>)outputEvent.Data!;
+        //     }
+        // }
+
+        // logger.LogInformation("Total messages in workflow output: {Count}", allMessages.Count);
+
+        // foreach (ChatMessage message in allMessages)
+        // {
+        //     // log the full ChatMessage object
+        //     logger.LogInformation("Full ChatMessage object: {Message}", JsonSerializer.Serialize(message, JsonOptions));
+        //     logger.LogInformation("Agent response -- {Role}: {Content}", message.Role, message.Contents);
+        // }
 
         foreach (ChatMessage message in result.Messages)
         {
