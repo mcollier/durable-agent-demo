@@ -433,32 +433,6 @@ var orderEmailAgent = builder.AddAIAgent(
 // 1. Inventory Agent - responsible for gathering details on the avaialble inventory and if the order can be fulfilled. This agent will call tools to check inventory levels. It will produce a structured output with its findings.
 // 2. Customer Messaging Agent - responsible for crafting the message to the customer based on the output of the Inventory Agent. It will produce the final message
 
-// var contextBuilderAgent = builder.AddAIAgent(
-//     name: "ContextBuilderAgent",
-//     (sp, key) =>
-//     {
-//         var chatClient = sp.GetRequiredKeyedService<IChatClient>("chat-model");
-
-//         AIAgent agent = new ChatClientAgent(
-//             options: new ChatClientAgentOptions
-//             {
-//                 Name = key,
-//                 ChatOptions = new ChatOptions
-//                 {
-//                     Tools = [],
-//                     Instructions = orderShortfallAgentInstructions,
-//                     ResponseFormat = ChatResponseFormat.ForJsonSchema(
-//                         schema: AIJsonUtilities.CreateJsonSchema(typeof(ContextBuilderOutput)),
-//                         schemaName: "ContextBuilderOutput",
-//                         schemaDescription: "The structured context output produced by the Context Builder Agent, containing all relevant factual information about the order shortfall scenario."
-//                     )
-//                 }
-//             },
-//             chatClient: chatClient);
-
-//         return agent;
-//     });
-
 
 var workflowAsAgent = builder.AddWorkflow("order-processing-workflow", (sp, key) =>
 {
@@ -469,8 +443,6 @@ var workflowAsAgent = builder.AddWorkflow("order-processing-workflow", (sp, key)
 
     return AgentWorkflowBuilder.BuildSequential(key, [inventoryAgent, orderEmailAgent]);
 }).AddAsAIAgent();
-
-
 
 builder.ConfigureFunctionsWebApplication();
 
