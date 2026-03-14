@@ -77,9 +77,9 @@ public sealed record OrderShippingAddress
 /// </summary>
 public sealed record OrderLineItem
 {
-    /// <summary>Stock-keeping unit for the requested item.</summary>
-    public required string Sku { get; init; }
+    /// <summary>Canonical three-letter FlavorId for the requested item.</summary>
+    public required string FlavorId { get; init; }
 
-    /// <summary>Requested quantity for the SKU.</summary>
+    /// <summary>Requested quantity for the flavor.</summary>
     public required int Quantity { get; init; }
 }

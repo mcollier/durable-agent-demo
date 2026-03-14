@@ -9,7 +9,7 @@ public class FlavorTests
     {
         var flavor = CreateTestFlavor();
 
-        Assert.Equal("flv-001", flavor.FlavorId);
+        Assert.Equal("MNC", flavor.FlavorId);
         Assert.Equal("Mint Condition", flavor.Name);
         Assert.Equal("Classic", flavor.Category);
         Assert.True(flavor.ContainsDairy);
@@ -30,7 +30,7 @@ public class FlavorTests
     public void WhenTwoFlavorsHaveDifferentIds_ThenTheyAreNotEqual()
     {
         var a = CreateTestFlavor();
-        var b = CreateTestFlavor() with { FlavorId = "flv-999" };
+        var b = CreateTestFlavor() with { FlavorId = "VNE" };
 
         Assert.NotEqual(a, b);
     }
@@ -53,7 +53,7 @@ public class FlavorTests
 
     private static Flavor CreateTestFlavor() => new()
     {
-        FlavorId = "flv-001",
+        FlavorId = "MNC",
         Name = "Mint Condition",
         Category = "Classic",
         ContainsDairy = true,

@@ -30,9 +30,9 @@ public class GetFlavorsTriggerTests
         
         Assert.NotNull(flavors);
         Assert.Equal(10, flavors.Length);
-        Assert.Contains(flavors, f => f.FlavorId == "flv-001" && f.Name == "Mint Condition");
-        Assert.Contains(flavors, f => f.FlavorId == "flv-002" && f.Name == "Berry Blockchain Blast");
-        Assert.Contains(flavors, f => f.FlavorId == "flv-010" && f.Name == "AIçaí Bowl");
+        Assert.Contains(flavors, f => f.FlavorId == "MNC" && f.Name == "Mint Condition");
+        Assert.Contains(flavors, f => f.FlavorId == "BBC" && f.Name == "Berry Blockchain Blast");
+        Assert.Contains(flavors, f => f.FlavorId == "AIA" && f.Name == "AIçaí Bowl");
     }
 
     [Fact]

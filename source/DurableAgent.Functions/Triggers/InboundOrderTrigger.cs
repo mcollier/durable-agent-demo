@@ -29,7 +29,7 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
     };
 
     [Function(nameof(InboundOrderTrigger))]
-    public Task RunAsync(
+    public async Task RunAsync(
         [ServiceBusTrigger("%ORDER_QUEUE_NAME%", Connection = "messaging")]
         ServiceBusReceivedMessage message,
         CancellationToken cancellationToken)
@@ -41,11 +41,35 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
         if (order is null)
         {
             logger.LogWarning("Received null or empty order message. MessageId={MessageId}", message.MessageId);
-            return Task.CompletedTask;
+            return;
         }
 
         logger.LogInformation("Received order {OrderReference}.", order.OrderReference);
-        return Task.CompletedTask;
+
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.User, $"Determine if this order can be fulfilled: {JsonSerializer.Serialize(order, JsonOptions)}")
+        };
+
+        var result = await orderWorkflow.RunAsync(messages, cancellationToken: cancellationToken);
+
+        string customerMessage = string.Empty;
+
+        foreach (ChatMessage chatMessage in result.Messages)
+        {
+            logger.LogInformation("Agent response -- {Role}: {Content}", chatMessage.AuthorName, chatMessage.Contents);
+
+            if (chatMessage.AuthorName == "CustomerMessagingAgent")
+            {
+                logger.LogInformation("Final message for customer -- {Content}", chatMessage.Contents);
+
+                customerMessage = chatMessage.Contents.ToString() ?? string.Empty;
+            }
+        }
+
+        // TODO: Get the final email message and then send it to the customer using an email agent (not built yet)
+
+        return;
     }
 
     [Function(nameof(TestWorkflowAsync))]

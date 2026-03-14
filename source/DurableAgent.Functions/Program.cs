@@ -264,7 +264,7 @@ var inventoryAgentInstructions = """
 
     ## Responsibilities
 
-    1. Check if the ordered SKU is in stock.
+    1. Check if the ordered flavor is in stock.
     2. If not in stock, find substitute products that are similar in flavor profile.
     3. Provide a structured output indicating whether the order can be fulfilled or not.
     4. If unable to fulfill, create a 25% discount coupon for the customer.
@@ -273,7 +273,7 @@ var inventoryAgentInstructions = """
 
     | Tool | Purpose |
     |------|---------|
-    | `CheckInventory(Sku)` | Returns available quantity for the given SKU. |
+    | `CheckInventory(flavorId)` | Returns available quantity for the given canonical FlavorId. The tool converts it to the inventory SKU internally. |
 
     ## Output Format
 
@@ -309,6 +309,7 @@ var inventoryAgentInstructions = """
     - `shouldGenerateCoupon` = `true` when any item has a shortfall.
 
     ## Determinism Requirement
+    - Incoming orders use canonical three-letter FlavorIds such as `VNE`. Inventory SKUs remain `{FlavorId}-TUB`, and the tool handles that conversion for you.
     - Rely solely on tool outputs for inventory data and product details.
     - Do not fabricate information about stock levels or product attributes.
     """;
@@ -466,7 +467,7 @@ IHostedAgentBuilder orderIntakeAgent = builder.AddAIAgent(
                         - Maximum quantity per item is 10.
                         - Minimum quantity per item is 1.
                         - Restricted products include "Rainbow Sherbet" and "Chocolate Chip Cookie Dough".
-                        - Orders must include customer name, email, shipping address, and at least one line item with SKU and quantity.
+                        - Orders must include customer name, email, shipping address, and at least one line item with FlavorId and quantity.
 
                         ## Output Requirements
 
@@ -493,7 +494,7 @@ IHostedAgentBuilder orderIntakeAgent = builder.AddAIAgent(
                                 },
                                 "lineItems": [
                                     {
-                                        "sku": "string",
+                                        "flavorId": "string",
                                         "quantity": 0
                                     }
                                 ]
@@ -542,7 +543,8 @@ IHostedAgentBuilder fulfillmentDecisionAgent = builder.AddAIAgent(
                     Tools =
                     [
                         AIFunctionFactory.Create(CheckInventoryTool.CheckInventory),
-                        AIFunctionFactory.Create(GenerateCouponCodeTool.GenerateCouponCode)
+                        AIFunctionFactory.Create(GenerateCouponCodeTool.GenerateCouponCode),
+                        AIFunctionFactory.Create(ListFlavorsTool.ListFlavors)
                     ],
                     Instructions = """
                         You are the Fulfillment Decision Agent for Froyo Foundry.
@@ -590,6 +592,8 @@ IHostedAgentBuilder fulfillmentDecisionAgent = builder.AddAIAgent(
                             ]
                         }
 
+                        - Each incoming line item provides a canonical three-letter `flavorId` such as `VNE`. Call `CheckInventory(flavorId)` directly; the tool converts that FlavorId to the inventory SKU `{FlavorId}-TUB`.
+                        - Populate output `sku` values with the corresponding inventory SKU in `{FlavorId}-TUB` format.
                         - `coupon` must be `null` unless `shouldGenerateCoupon` is `true`.
                         - `fulfillableQty` = min(`requestedQty`, `availableQty`).
                         - `shortfallQty` = `requestedQty` − `fulfillableQty`.

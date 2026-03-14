@@ -2,6 +2,8 @@ using Azure.Messaging.ServiceBus;
 using DurableAgent.Functions.Models;
 using DurableAgent.Functions.Triggers;
 using FakeItEasy;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 namespace DurableAgent.Functions.Tests.Triggers;
@@ -9,11 +11,12 @@ namespace DurableAgent.Functions.Tests.Triggers;
 public class InboundOrderTriggerTests
 {
     private readonly ILogger<InboundOrderTrigger> _logger = A.Fake<ILogger<InboundOrderTrigger>>();
+    private readonly AIAgent _orderWorkflow = new FakeOrderWorkflowAgent();
 
     private static OrderRequest CreateValidOrder() => new()
     {
         OrderReference = "FRY-20260308-AB12",
-        FlavorId = "flavor-001",
+        FlavorId = "VNE",
         FirstName = "Jane",
         LastName = "Smith",
         StreetAddress = "123 Main St",
@@ -30,7 +33,7 @@ public class InboundOrderTriggerTests
         var order = CreateValidOrder();
         var body = BinaryData.FromObjectAsJson(order);
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-1");
-        var trigger = new InboundOrderTrigger(_logger);
+        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow);
 
         await trigger.RunAsync(message, CancellationToken.None);
 
@@ -48,7 +51,7 @@ public class InboundOrderTriggerTests
         // "null" deserializes to null for a reference type — triggers the LogWarning path
         var body = BinaryData.FromString("null");
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-null");
-        var trigger = new InboundOrderTrigger(_logger);
+        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow);
 
         // Should not throw — trigger handles null body gracefully
         await trigger.RunAsync(message, CancellationToken.None);
@@ -63,9 +66,52 @@ public class InboundOrderTriggerTests
     [Fact]
     public async Task WhenMessageIsNull_ThenThrowsArgumentNullException()
     {
-        var trigger = new InboundOrderTrigger(_logger);
+        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow);
 
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             trigger.RunAsync(null!, CancellationToken.None));
+    }
+
+    private sealed class FakeOrderWorkflowAgent : AIAgent
+    {
+        protected override ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(A.Fake<AgentSession>());
+        }
+
+        protected override ValueTask<System.Text.Json.JsonElement> SerializeSessionCoreAsync(
+            AgentSession? session,
+            System.Text.Json.JsonSerializerOptions? serializerOptions,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(default(System.Text.Json.JsonElement));
+        }
+
+        protected override ValueTask<AgentSession> DeserializeSessionCoreAsync(
+            System.Text.Json.JsonElement sessionState,
+            System.Text.Json.JsonSerializerOptions? serializerOptions,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(A.Fake<AgentSession>());
+        }
+
+        protected override Task<AgentResponse> RunCoreAsync(
+            IEnumerable<ChatMessage> messages,
+            AgentSession? session,
+            AgentRunOptions? options,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new AgentResponse(new List<ChatMessage>()));
+        }
+
+        protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(
+            IEnumerable<ChatMessage> messages,
+            AgentSession? session,
+            AgentRunOptions? options,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
     }
 }

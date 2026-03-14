@@ -30,7 +30,7 @@ public class SubmitOrderTriggerTests
 
     private static object CreateValidRequestBody() => new
     {
-        flavorId = "flavor-001",
+        flavorId = "VNE",
         firstName = "Jane",
         lastName = "Smith",
         streetAddress = "123 Main St",
@@ -69,7 +69,7 @@ public class SubmitOrderTriggerTests
         A.CallTo(() => _orderQueueSender.SendAsync(
                 A<OrderRequest>.That.Matches(o =>
                     o.OrderReference == "FRY-20260308-AB12" &&
-                    o.FlavorId == "flavor-001" &&
+                    o.FlavorId == "VNE" &&
                     o.FirstName == "Jane"),
                 A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
@@ -84,7 +84,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith",
             streetAddress = "123 Main St",
@@ -136,7 +136,7 @@ public class SubmitOrderTriggerTests
         var trigger = new SubmitOrderTrigger(_logger, _orderQueueSender);
         var request = CreateRequest(new
         {
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith",
             streetAddress = "123 Main St",
@@ -181,7 +181,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             lastName = "Smith",
             streetAddress = "123 Main St",
             city = "Springfield",
@@ -204,7 +204,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith"
         });
@@ -226,7 +226,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith",
             streetAddress = "123 Main St",
@@ -250,7 +250,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith",
             streetAddress = "123 Main St",
@@ -274,7 +274,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith",
             streetAddress = "123 Main St",
@@ -299,7 +299,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith",
             streetAddress = "123 Main St",
@@ -322,7 +322,7 @@ public class SubmitOrderTriggerTests
         var request = CreateRequest(new
         {
             orderReference = "FRY-20260308-AB12",
-            flavorId = "flavor-001",
+            flavorId = "VNE",
             firstName = "Jane",
             lastName = "Smith",
             streetAddress = "123 Main St",
