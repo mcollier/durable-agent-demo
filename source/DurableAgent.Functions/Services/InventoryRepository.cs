@@ -39,6 +39,16 @@ public static class InventoryRepository
         return Inventory.TryGetValue(sku.ToUpperInvariant(), out int qty) ? qty : 0;
     }
 
+    /// <summary>
+    /// Returns all available inventory items where the quantity in stock is greater than zero.
+    /// </summary>
+    /// <returns>A dictionary mapping SKU to available quantity, excluding out-of-stock items.</returns>
+    public static Dictionary<string, int> GetAllAvailableInventory()
+    {
+        return Inventory.Where(kvp => kvp.Value > 0)
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
     // In a real implementation this would query a database or inventory service.
     private static readonly Dictionary<string, int> Inventory = new(StringComparer.OrdinalIgnoreCase)
     {

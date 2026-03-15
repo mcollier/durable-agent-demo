@@ -17,4 +17,10 @@ public static class CheckInventoryTool
 
         return InventoryRepository.GetAvailableQuantityForFlavorId(flavorId);
     }
+
+    [Description("Returns a dictionary of all available inventory items where the quantity in stock is greater than zero. The keys are SKUs and the values are available quantities.")]
+    public static Dictionary<string, int> GetAvailableInventory()
+    {
+        return InventoryRepository.GetAllAvailableInventory();  
+    }
 }

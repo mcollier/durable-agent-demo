@@ -543,6 +543,7 @@ IHostedAgentBuilder fulfillmentDecisionAgent = builder.AddAIAgent(
                     Tools =
                     [
                         AIFunctionFactory.Create(CheckInventoryTool.CheckInventory),
+                        AIFunctionFactory.Create(CheckInventoryTool.GetAvailableInventory),
                         AIFunctionFactory.Create(GenerateCouponCodeTool.GenerateCouponCode),
                         AIFunctionFactory.Create(ListFlavorsTool.ListFlavors)
                     ],
@@ -557,7 +558,7 @@ IHostedAgentBuilder fulfillmentDecisionAgent = builder.AddAIAgent(
                         2. Use the CheckInventory tool to check stock levels for each line item in the order.
                         3. Determine if the order can be fully fulfilled, partially fulfilled, or not fulfilled at all.
                         4. If the order cannot be fully fulfilled, use the GenerateCouponCode tool to create a 25% discount coupon for the customer.
-                        5. Recommend alternative products that are in stock if any items cannot be fulfilled.
+                        5. Recommend alternative products that are in stock if any items cannot be fulfilled.  Use the GetAvailableInventory tool to find suitable alternatives based on flavor profiles. Use the ListFlavors tool to get flavor details for your recommendations.
 
                         ## Output Requirements
 
