@@ -1,3 +1,5 @@
+using Azure;
+using Azure.Communication.Email;
 using Azure.Messaging.ServiceBus;
 using DurableAgent.Functions.Models;
 using DurableAgent.Functions.Triggers;
@@ -5,6 +7,7 @@ using FakeItEasy;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DurableAgent.Functions.Tests.Triggers;
 
@@ -12,6 +15,22 @@ public class InboundOrderTriggerTests
 {
     private readonly ILogger<InboundOrderTrigger> _logger = A.Fake<ILogger<InboundOrderTrigger>>();
     private readonly AIAgent _orderWorkflow = new FakeOrderWorkflowAgent();
+    private readonly EmailClient _emailClient = A.Fake<EmailClient>();
+    private readonly IOptions<EmailSettings> _emailSettings = Options.Create(new EmailSettings
+    {
+        RecipientEmailAddress = "test@example.com",
+        SenderEmailAddress = "sender@example.com",
+        ServiceEndpoint = "https://email.example.com"
+    });
+
+    public InboundOrderTriggerTests()
+    {
+        var sendResult = EmailModelFactory.EmailSendResult("op-1", EmailSendStatus.Succeeded);
+        var fakeOperation = A.Fake<EmailSendOperation>();
+        A.CallTo(() => fakeOperation.Value).Returns(sendResult);
+        A.CallTo(() => _emailClient.SendAsync(A<WaitUntil>._, A<EmailMessage>._, A<CancellationToken>._))
+            .Returns(fakeOperation);
+    }
 
     private static OrderRequest CreateValidOrder() => new()
     {
@@ -33,7 +52,7 @@ public class InboundOrderTriggerTests
         var order = CreateValidOrder();
         var body = BinaryData.FromObjectAsJson(order);
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-1");
-        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow);
+        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow, _emailClient, _emailSettings);
 
         await trigger.RunAsync(message, CancellationToken.None);
 
@@ -42,7 +61,7 @@ public class InboundOrderTriggerTests
             .Where(call =>
                 call.Method.Name == "Log" &&
                 call.GetArgument<LogLevel>(0) == LogLevel.Information)
-            .MustHaveHappenedOnceExactly();
+            .MustHaveHappenedOnceOrMore();
     }
 
     [Fact]
@@ -51,7 +70,7 @@ public class InboundOrderTriggerTests
         // "null" deserializes to null for a reference type — triggers the LogWarning path
         var body = BinaryData.FromString("null");
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-null");
-        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow);
+        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow, _emailClient, _emailSettings);
 
         // Should not throw — trigger handles null body gracefully
         await trigger.RunAsync(message, CancellationToken.None);
@@ -66,7 +85,7 @@ public class InboundOrderTriggerTests
     [Fact]
     public async Task WhenMessageIsNull_ThenThrowsArgumentNullException()
     {
-        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow);
+        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow, _emailClient, _emailSettings);
 
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             trigger.RunAsync(null!, CancellationToken.None));

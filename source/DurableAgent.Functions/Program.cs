@@ -28,6 +28,8 @@ builder.AddDurableAgents();
 
 builder.RegisterWorkflow();
 
+builder.AddEmailService();
+
 builder.ConfigureFunctionsWebApplication();
 
 builder.Build().Run();

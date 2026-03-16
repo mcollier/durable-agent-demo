@@ -1,8 +1,8 @@
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure;
 using Azure.Communication.Email;
-using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
@@ -10,6 +10,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DurableAgent.Functions.Triggers;
 
@@ -18,7 +19,9 @@ namespace DurableAgent.Functions.Triggers;
 /// logs each order. No orchestration is started — this is a no-op stub.
 /// </summary>
 public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
-                                        [FromKeyedServices("order-processing-workflow")] AIAgent orderWorkflow) //Workflow orderWorkflow
+                                        [FromKeyedServices("order-processing-workflow")] AIAgent orderWorkflow,
+                                        EmailClient emailClient,
+                                        IOptions<EmailSettings> emailSettings)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -81,29 +84,28 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
         }
 
         // Send the email to the customer using Azure Communication Services Email SDK
-        string recipientEmail = Environment.GetEnvironmentVariable("RECEIPIENT_EMAIL_ADDRESS") 
-                                    ?? throw new InvalidOperationException("RECEIPIENT_EMAIL_ADDRESS environment variable is not set."); 
-        string senderEmail = Environment.GetEnvironmentVariable("SENDER_EMAIL_ADDRESS")
-                                    ?? throw new InvalidOperationException("SENDER_EMAIL_ADDRESS environment variable is not set.");
-        string emailServiceEndpoint = Environment.GetEnvironmentVariable("EMAIL_SERVICE_ENDPOINT")
-                                    ?? throw new InvalidOperationException("EMAIL_SERVICE_ENDPOINT environment variable is not set.");
-                                    
-        string endpoint = emailServiceEndpoint;
-        var emailClient = new EmailClient(new Uri(endpoint), new DefaultAzureCredential());
-        var emailMessage = new EmailMessage(
-            senderAddress: senderEmail,
-            recipientAddress: recipientEmail,
-            content: new EmailContent(subject)
-            {
-                PlainText = body,
-                Html = $"<html><body><p>{body}</p></body></html>"
-            }
-        );
+        logger.LogInformation("Sending email for order {OrderReference}. Subject: {Subject}, Body: {Body}", order.OrderReference, subject, body);
+        try
+        {
+            var settings = emailSettings.Value;
+            var emailMessage = new EmailMessage(
+                senderAddress: settings.SenderEmailAddress,
+                recipientAddress: settings.RecipientEmailAddress,
+                content: new EmailContent(subject)
+                {
+                    PlainText = body,
+                    Html = $"<html><body><p>{WebUtility.HtmlEncode(body)}</p></body></html>"
+                }
+            );
 
-        EmailSendOperation emailSendOperation = emailClient.Send(WaitUntil.Completed, emailMessage, cancellationToken);
-        logger.LogInformation("Email send operation completed with status: {Status}", emailSendOperation.Value.Status);
-
-        return;
+            EmailSendOperation emailSendOperation =
+                await emailClient.SendAsync(WaitUntil.Completed, emailMessage, cancellationToken);
+            logger.LogInformation("Email send operation completed with status: {Status}", emailSendOperation.Value.Status);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send email for order {OrderReference}.", order.OrderReference);
+        }
     }
 
     // [Function(nameof(TestWorkflowAsync))]
