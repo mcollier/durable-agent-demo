@@ -1,5 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Azure;
+using Azure.Communication.Email;
+using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
@@ -45,6 +48,8 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
         {
             new(ChatRole.User, $"Determine if this order can be fulfilled: {JsonSerializer.Serialize(order, JsonOptions)}")
         };
+        string subject = string.Empty;
+        string body = string.Empty;
 
         var result = await orderWorkflow.RunAsync(messages, cancellationToken: cancellationToken);
         foreach (ChatMessage chatMessage in result.Messages)
@@ -55,11 +60,48 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
             {
                 logger.LogInformation("Final message for customer -- {Content}", chatMessage.Contents);
 
-                string customerMessage = chatMessage.Contents.ToString() ?? string.Empty;
+                logger.LogInformation("There are {Count} contents in the message.", chatMessage.Contents?.Count ?? 0);
+
+                if (chatMessage.Contents is not null)
+                {
+                    foreach (AIContent content in chatMessage.Contents)
+                    {
+                        if (content is TextContent { Text: { Length: > 0 } text})
+                        {
+                            var x = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
+                            if (x?.Message is not null)
+                            {
+                                subject = $"Update on your order {x.OrderId}";
+                                body = x.Message;
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        // TODO: Get the final email message and then send it to the customer using Azure Email Service (not built yet)
+        // Send the email to the customer using Azure Communication Services Email SDK
+        string recipientEmail = Environment.GetEnvironmentVariable("RECEIPIENT_EMAIL_ADDRESS") 
+                                    ?? throw new InvalidOperationException("RECEIPIENT_EMAIL_ADDRESS environment variable is not set."); 
+        string senderEmail = Environment.GetEnvironmentVariable("SENDER_EMAIL_ADDRESS")
+                                    ?? throw new InvalidOperationException("SENDER_EMAIL_ADDRESS environment variable is not set.");
+        string emailServiceEndpoint = Environment.GetEnvironmentVariable("EMAIL_SERVICE_ENDPOINT")
+                                    ?? throw new InvalidOperationException("EMAIL_SERVICE_ENDPOINT environment variable is not set.");
+                                    
+        string endpoint = emailServiceEndpoint;
+        var emailClient = new EmailClient(new Uri(endpoint), new DefaultAzureCredential());
+        var emailMessage = new EmailMessage(
+            senderAddress: senderEmail,
+            recipientAddress: recipientEmail,
+            content: new EmailContent(subject)
+            {
+                PlainText = body,
+                Html = $"<html><body><p>{body}</p></body></html>"
+            }
+        );
+
+        EmailSendOperation emailSendOperation = emailClient.Send(WaitUntil.Completed, emailMessage, cancellationToken);
+        logger.LogInformation("Email send operation completed with status: {Status}", emailSendOperation.Value.Status);
 
         return;
     }
@@ -174,7 +216,7 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
     //     // foreach (WorkflowEvent evt in run.NewEvents)
     //     // {
     //     //     logger.LogInformation("New events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
-            
+
     //     //     if (evt is ExecutorCompletedEvent executorCompleted)
     //     //     {
     //     //         logger.LogInformation("New events -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);

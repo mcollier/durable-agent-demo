@@ -22,6 +22,7 @@ public class CustomerMessagingAgentConfig
         2. Determine the appropriate messaging scenario (full fulfillment, partial fulfillment, no fulfillment).
         3. Craft a clear, concise, and empathetic message to the customer regarding their order status.
         4. Include information about any coupons or alternative products if applicable.
+        5. The message MUST be HTML formatted and suitable for sending directly to customers via email.
 
         ## Email Scenarios
 
