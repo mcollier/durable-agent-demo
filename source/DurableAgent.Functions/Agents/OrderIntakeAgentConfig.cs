@@ -74,13 +74,14 @@ public class OrderIntakeAgentConfig
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
     {
-        // Get the IChatClient from the DI container
-        var chatClient = builder.Services.BuildServiceProvider().GetRequiredService<IChatClient>();
 
         builder.AddAIAgent(
             name: AgentName,
             (sp, key) =>
             {
+                // Get the IChatClient from the DI container
+                var chatClient = sp.GetRequiredService<IChatClient>();
+
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {

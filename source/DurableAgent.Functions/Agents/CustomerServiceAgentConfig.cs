@@ -80,9 +80,6 @@ public class CustomerServiceAgentConfig
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
     {
-        // Get the IChatClient from the DI container
-        var chatClient = builder.Services.BuildServiceProvider().GetRequiredService<IChatClient>();
-
         ChatOptions customerServiceAgentOptions = new()
         {
             Tools =
@@ -105,6 +102,9 @@ public class CustomerServiceAgentConfig
             name: AgentName,
             (sp, key) =>
             {
+                // Get the IChatClient from the DI container
+                var chatClient = sp.GetRequiredService<IChatClient>();
+
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions()
                     {
