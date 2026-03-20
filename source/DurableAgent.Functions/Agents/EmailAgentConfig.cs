@@ -19,6 +19,7 @@ public class EmailAgentConfig
         ## Rules
         - `recipientName` = the customer's preferred name from the input.
         - `recipientEmail` = the customer's email address from the input.
+        - `subject` = a short, specific email subject line (no line breaks) that clearly reflects the purpose of the message (for example, thanking them for their feedback or addressing their concern).
         - `body` = the full email body text (plain text, no HTML).
 
         ## Tone Guidelines
