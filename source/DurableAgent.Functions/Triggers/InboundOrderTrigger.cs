@@ -72,20 +72,36 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                     {
                         if (content is TextContent { Text: { Length: > 0 } text})
                         {
+                            CustomerMessageResult? customerMessage = null;
                             try
                             {
-                                var x = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
-                                if (x?.Message is not null)
-                                {
-                                    subject = $"Update on your order {x.OrderId}";
-                                    body = x.Message;
-                                }
+                                customerMessage = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
                             }
                             catch (JsonException ex)
                             {
-                                logger.LogWarning(ex,
-                                    "Agent produced invalid JSON for order {OrderReference}. MessageId={MessageId}. Skipping customer message.",
-                                    order.OrderReference, message.MessageId);
+                                logger.LogWarning(
+                                    ex,
+                                    "Failed to deserialize CustomerMessagingAgent payload for order {OrderReference}. MessageId={MessageId}",
+                                    order.OrderReference,
+                                    message.MessageId);
+                            }
+                            if (customerMessage is not null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(customerMessage.OrderId) &&
+                                    !string.Equals(customerMessage.OrderId, order.OrderReference, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    logger.LogWarning(
+                                        "CustomerMessagingAgent payload OrderId {OrderId} does not match order reference {OrderReference}. Ignoring customer message.",
+                                        customerMessage.OrderId,
+                                        order.OrderReference);
+                                    continue;
+                                }
+
+                                if (customerMessage.Message is not null)
+                                {
+                                    subject = $"Update on your order {order.OrderReference}";
+                                    body = customerMessage.Message;
+                                }
                             }
                         }
                     }
