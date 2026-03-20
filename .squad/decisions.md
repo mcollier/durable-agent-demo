@@ -587,3 +587,63 @@ Pre-implementation audit to identify test surface risks, hardcoded literals, edg
 Consider adding Phase 3 test: parameterized test that submits orders for all 10 flavors and verifies inventory lookup succeeds or fails predictably. This would provide safety margin for the flavor → inventory pipeline.
 
 ---
+
+### Decision: Real Email Sending in SendCustomerEmailActivity
+
+**Author:** Stark  
+**Date:** 2026-03-20  
+**Status:** Implemented
+
+#### Context
+
+`SendCustomerEmailActivity` was a stub that logged and returned a string. The infrastructure (Azure Communication Services `EmailClient`, `EmailSettings` DI registration) was already in place via `builder.AddEmailService()` in Program.cs.
+
+#### Decision
+
+Implement real email sending using `EmailClient` from `Azure.Communication.Email` SDK, resolving it from DI in the static activity class.
+
+#### Implementation Details
+
+**Model Changes:**
+- Added `required string Subject { get; init; }` to `EmailResult` (Core) — after `RecipientEmail`, before `Body`.
+- Added `required string Subject { get; init; }` to `SendCustomerEmailInput` (Functions) — same position.
+
+**Orchestrator:**
+- Mapped `emailResult.Subject` in the `SendCustomerEmailInput` object initializer inside `FeedbackOrchestrator`.
+
+**Activity Signature:**
+- **Before:** `public static string Run([ActivityTrigger] SendCustomerEmailInput input, FunctionContext executionContext)`
+- **After:** `public static async Task<string> RunAsync([ActivityTrigger] SendCustomerEmailInput input, FunctionContext executionContext)`
+
+**DI Resolution in Static Class:**
+```csharp
+var emailClient = executionContext.InstanceServices.GetRequiredService<EmailClient>();
+var settings = executionContext.InstanceServices.GetRequiredService<IOptions<EmailSettings>>().Value;
+```
+
+**Email Construction:**
+- `senderAddress`: `settings.SenderEmailAddress` (configured ACS sender)
+- `recipientAddress`: `input.RecipientEmail` (the actual customer — NOT `settings.RecipientEmailAddress`)
+- `content`: `new EmailContent(input.Subject) { PlainText = input.Body, Html = input.Body }`
+
+**Error Handling:**
+- Wrapped `emailClient.SendAsync(WaitUntil.Completed, ...)` in try/catch
+- On error: `LogError` + rethrow (preserves Durable Functions retry policy)
+
+#### Test Pattern
+
+Faked `EmailClient` using `EmailModelFactory.EmailSendResult` + `A.Fake<EmailSendOperation>()`, registered in a `ServiceCollection` injected into the fake `FunctionContext.InstanceServices`. Mirrors the existing pattern in `InboundOrderTriggerTests`.
+
+#### Alternatives Considered
+
+- **SendGrid / SMTP:** Rejected — ACS is already provisioned and follows zero-secrets managed identity pattern.
+- **Class-based activity with constructor DI:** Rejected — project convention is static activities; DI resolved via `InstanceServices`.
+
+#### Validation
+
+- ✅ Project builds cleanly with no compilation errors
+- ✅ 176 tests pass (no regressions)
+- ✅ New test pattern mirrors existing conventions
+- ✅ Email model construction follows ACS best practices (PlainText + Html body)
+
+---
