@@ -23,6 +23,9 @@ public static class OrderProcessingWorkflow
                 sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName)
             };
 
+            // TODO: Add the workflow to the Durable Functions when updates published to NuGet.
+            // builder.ConfigureDurableWorkflows(workflows => workflows.AddWorkflows(workflow));
+
             return AgentWorkflowBuilder.BuildSequential(
                 workflowName: key,
                 agents: agents);
