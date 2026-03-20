@@ -21,14 +21,11 @@ namespace DurableAgent.Functions.Extensions
 
         public static FunctionsApplicationBuilder AddDurableAgents(this FunctionsApplicationBuilder builder)
         {
-            var customerServiceAgent = builder.Services.BuildServiceProvider()
-                .GetRequiredKeyedService<AIAgent>(CustomerServiceAgentConfig.AgentName);
-            var emailAgent = builder.Services.BuildServiceProvider()
-                .GetRequiredKeyedService<AIAgent>(EmailAgentConfig.AgentName);
-            
             builder.ConfigureDurableAgents(options =>
-                options.AddAIAgent(customerServiceAgent)
-                       .AddAIAgent(emailAgent));
+                options.AddAIAgentFactory(CustomerServiceAgentConfig.AgentName,
+                            sp => sp.GetRequiredKeyedService<AIAgent>(CustomerServiceAgentConfig.AgentName))
+                       .AddAIAgentFactory(EmailAgentConfig.AgentName,
+                            sp => sp.GetRequiredKeyedService<AIAgent>(EmailAgentConfig.AgentName)));
 
             return builder;
         }
