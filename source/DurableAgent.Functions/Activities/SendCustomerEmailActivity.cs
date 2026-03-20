@@ -25,15 +25,16 @@ public static class SendCustomerEmailActivity
         var settings = executionContext.InstanceServices.GetRequiredService<IOptions<EmailSettings>>().Value;
 
         logger.LogInformation(
-            "Sending follow-up email for case {CaseId} (feedback {FeedbackId}) to {RecipientName} <{RecipientEmail}>",
+            "Sending follow-up email for case {CaseId} (feedback {FeedbackId}) to {RecipientName} <{RecipientEmail}> via {SendToAddress}",
             input.CaseId,
             input.FeedbackId,
             input.RecipientName,
-            input.RecipientEmail);
+            input.RecipientEmail,
+            settings.RecipientEmailAddress);
 
         var emailMessage = new EmailMessage(
             senderAddress: settings.SenderEmailAddress,
-            recipientAddress: input.RecipientEmail,
+            recipientAddress: settings.RecipientEmailAddress,
             content: new EmailContent(input.Subject)
             {
                 PlainText = input.Body,
@@ -55,6 +56,6 @@ public static class SendCustomerEmailActivity
             throw;
         }
 
-        return $"Email sent to {input.RecipientEmail} for case {input.CaseId}";
+        return $"Email sent to {settings.RecipientEmailAddress} for case {input.CaseId}";
     }
 }

@@ -57,7 +57,7 @@ public class SendCustomerEmailActivityTests
 
         var result = await SendCustomerEmailActivity.RunAsync(input, context);
 
-        Assert.Contains("aidan@example.com", result);
+        Assert.Contains("recipient@example.com", result);
         Assert.Contains("CASE-500", result);
         Assert.StartsWith("Email sent to", result);
     }
@@ -72,14 +72,15 @@ public class SendCustomerEmailActivityTests
     }
 
     [Fact]
-    public async Task WhenDifferentRecipient_ThenResultReflectsRecipientEmail()
+    public async Task WhenDifferentInputRecipient_ThenResultAlwaysUsesSettingsRecipientAddress()
     {
         var input = CreateTestInput() with { RecipientEmail = "jordan@example.com" };
         var context = CreateFakeFunctionContext();
 
         var result = await SendCustomerEmailActivity.RunAsync(input, context);
 
-        Assert.Contains("jordan@example.com", result);
+        Assert.Contains("recipient@example.com", result);
+        Assert.DoesNotContain("jordan@example.com", result);
     }
 
     [Fact]
@@ -90,6 +91,6 @@ public class SendCustomerEmailActivityTests
 
         var result = await SendCustomerEmailActivity.RunAsync(input, context);
 
-        Assert.Equal("Email sent to aidan@example.com for case ", result);
+        Assert.Equal("Email sent to recipient@example.com for case ", result);
     }
 }
