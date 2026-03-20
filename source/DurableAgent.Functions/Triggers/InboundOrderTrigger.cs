@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 namespace DurableAgent.Functions.Triggers;
 
 /// <summary>
-/// Receives order messages from the orders Service Bus queue, runs the order-processing
+/// Receives order messages from the inbound-orders Service Bus queue, runs the order-processing
 /// AI agent workflow to determine fulfilment, and sends a follow-up email to the customer
 /// via Azure Communication Services.
 /// </summary>
