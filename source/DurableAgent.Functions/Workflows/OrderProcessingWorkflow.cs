@@ -36,13 +36,6 @@ public static class OrderProcessingWorkflow
 
         builder.AddWorkflow(WorkflowName, (sp, key) =>
         {
-            // var agents = new List<AIAgent>()
-            // {
-            //     orderIntakeAgent,
-            //     fulfillmentDecisionAgent,
-            //     customerMessagingAgent
-            // };
-
             return AgentWorkflowBuilder.BuildSequential(
                 workflowName: key,
                 agents: agents);
