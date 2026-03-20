@@ -24,7 +24,7 @@
         },
         "ghcr.io/devcontainers/features/copilot-cli": {
             "version": "latest"
-        }
+        }        
     },
     "containerEnv": {
         "DOTNET_ENVIRONMENT": "Development",
@@ -79,6 +79,8 @@
             "onAutoForward": "notify"
         }
     },
-    "onCreateCommand": "curl -sSL https://aspire.dev/install.sh | bash",
-    "postStartCommand": "dotnet dev-certs https --trust && dotnet build ./source/DurableAgent.slnx",
+    "onCreateCommand": "/bin/bash ./.devcontainer/on-create.sh > ~/on-create.log",
+
+    // "onCreateCommand": "curl -sSL https://aspire.dev/install.sh | bash",
+    "postStartCommand": "dotnet dev-certs https --trust && dotnet build ./source/DurableAgent.slnx"
 }
