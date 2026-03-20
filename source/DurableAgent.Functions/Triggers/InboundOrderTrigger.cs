@@ -15,8 +15,9 @@ using Microsoft.Extensions.Options;
 namespace DurableAgent.Functions.Triggers;
 
 /// <summary>
-/// Receives messages from the inbound-orders Service Bus queue and
-/// logs each order. No orchestration is started — this is a no-op stub.
+/// Receives order messages from the inbound-orders Service Bus queue, runs the order-processing
+/// AI agent workflow to determine fulfilment, and sends a follow-up email to the customer
+/// via Azure Communication Services.
 /// </summary>
 public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                                         [FromKeyedServices("order-processing-workflow")] AIAgent orderWorkflow,
