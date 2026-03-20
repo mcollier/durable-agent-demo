@@ -79,7 +79,11 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                             }
                             catch (JsonException ex)
                             {
-                                logger.LogWarning(ex, "Failed to deserialize CustomerMessagingAgent payload for order {OrderReference}.", order.OrderReference);
+                                logger.LogWarning(
+                                    ex,
+                                    "Failed to deserialize CustomerMessagingAgent payload for order {OrderReference}. MessageId={MessageId}",
+                                    order.OrderReference,
+                                    message.MessageId);
                             }
                             if (customerMessage?.Message is not null)
                             {
