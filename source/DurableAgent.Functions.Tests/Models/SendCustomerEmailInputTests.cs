@@ -13,6 +13,7 @@ public class SendCustomerEmailInputTests
         Assert.Equal("CASE-500", input.CaseId);
         Assert.Equal("Aidan", input.RecipientName);
         Assert.Equal("aidan@example.com", input.RecipientEmail);
+        Assert.Equal("Follow-up on your recent feedback", input.Subject);
         Assert.Equal("Thank you for your feedback!", input.Body);
     }
 
@@ -44,6 +45,7 @@ public class SendCustomerEmailInputTests
         Assert.Equal("fbk-10021", copy.FeedbackId);
         Assert.Equal("Aidan", copy.RecipientName);
         Assert.Equal("aidan@example.com", copy.RecipientEmail);
+        Assert.Equal("Follow-up on your recent feedback", copy.Subject);
         Assert.Equal("Thank you for your feedback!", copy.Body);
     }
 
@@ -53,6 +55,7 @@ public class SendCustomerEmailInputTests
         CaseId = "CASE-500",
         RecipientName = "Aidan",
         RecipientEmail = "aidan@example.com",
+        Subject = "Follow-up on your recent feedback",
         Body = "Thank you for your feedback!"
     };
 }

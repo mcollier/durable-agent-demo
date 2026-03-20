@@ -98,3 +98,11 @@
 - **Prompt/schema cleanup**: Order-processing prompts now distinguish FlavorId from SKU; order intake canonical line items carry `flavorId`, while fulfillment output still reports inventory `sku` values.
 - **Validation status**: Baseline `dotnet test` initially failed because `InboundOrderTriggerTests` lagged behind the trigger constructor. After updating that fixture and the FlavorId literals, the full suite passed: 176 tests green.
 - **Romanoff handoff**: Updated the order/trigger tests and added `InventoryRepositoryTests` so Romanoff has coverage for the FlavorId→SKU bridge and the removed orphan inventory SKUs.
+
+### 2026-03-14 — Real email sending via Azure Communication Services
+
+- **`Subject` added to models**: Added `required string Subject { get; init; }` to both `EmailResult` (Core) and `SendCustomerEmailInput` (Functions), positioned after `RecipientEmail` and before `Body`.
+- **`FeedbackOrchestrator` updated**: Mapped `emailResult.Subject` → `Subject` in the `SendCustomerEmailInput` object initializer passed to `CallActivityAsync`.
+- **`SendCustomerEmailActivity` refactored**: `Run` (sync `string`) → `RunAsync` (async `Task<string>`). Resolves `EmailClient` and `IOptions<EmailSettings>` from `executionContext.InstanceServices.GetRequiredService<T>()`. Sends via `emailClient.SendAsync(WaitUntil.Completed, emailMessage, CancellationToken.None)`. Uses `input.RecipientEmail` (the actual customer) NOT `settings.RecipientEmailAddress`. Wraps send in try/catch: logs error + rethrows so Durable Functions retry policy applies.
+- **Test updates** (compilation fix): `SendCustomerEmailActivityTests` converted from sync to async, `Run` → `RunAsync`. Faked `EmailClient` via `EmailModelFactory.EmailSendResult` + `A.Fake<EmailSendOperation>()` pattern (same as `InboundOrderTriggerTests`). Registered `EmailClient` and `IOptions<EmailSettings>` in fake service provider. `Subject` added to all test factory helpers in `SendCustomerEmailInputTests` and `EmailResultTests`.
+- **Build**: 0 warnings, 0 errors after all 7 files changed.

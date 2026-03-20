@@ -11,6 +11,7 @@ public class EmailResultTests
 
         Assert.Equal("Aidan", result.RecipientName);
         Assert.Equal("aidan@example.com", result.RecipientEmail);
+        Assert.Equal("Follow-up on your recent feedback", result.Subject);
         Assert.Equal("Thank you for your feedback!", result.Body);
     }
 
@@ -58,6 +59,7 @@ public class EmailResultTests
 
         Assert.Equal("Aidan", copy.RecipientName);
         Assert.Equal("aidan@example.com", copy.RecipientEmail);
+        Assert.Equal("Follow-up on your recent feedback", copy.Subject);
         Assert.Equal("Updated body.", copy.Body);
     }
 
@@ -65,6 +67,7 @@ public class EmailResultTests
     {
         RecipientName = "Aidan",
         RecipientEmail = "aidan@example.com",
+        Subject = "Follow-up on your recent feedback",
         Body = "Thank you for your feedback!"
     };
 }
