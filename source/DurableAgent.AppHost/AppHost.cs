@@ -10,7 +10,7 @@ var applicationInsightsConnectionString = builder.AddParameter("APPLICATIONINSIG
 var serviceBusResourceGroup = builder.AddParameter("SERVICEBUS-RESOURCE-GROUP");
 var serviceBusName = builder.AddParameter("SERVICEBUS-NAME");
 var senderEmailAddress = builder.AddParameter("SENDER-EMAIL-ADDRESS");
-var recipientEmailAddress = builder.AddParameter("RECEIPIENT-EMAIL-ADDRESS");
+var recipientEmailAddress = builder.AddParameter("RECIPIENT-EMAIL-ADDRESS");
 var emailServiceEndpoint = builder.AddParameter("EMAIL-SERVICE-ENDPOINT");
 
 var feedbackQueueName = builder.Configuration["Parameters:FEEDBACK_QUEUE_NAME"]
@@ -51,7 +51,7 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithEnvironment("OTEL_SOURCE_NAME", "DurableAgentDemo")
     .WithEnvironment("OTEL_SERVICE_NAME", "DurableAgentService")
     .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
-    .WithEnvironment("RECEIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
+    .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
     .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
     .WithEnvironment("EMAIL_SERVICE_ENDPOINT", emailServiceEndpoint)
     .WithExternalHttpEndpoints();

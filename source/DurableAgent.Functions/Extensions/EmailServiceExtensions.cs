@@ -14,8 +14,8 @@ public static class EmailServiceExtensions
         builder.Services.AddOptions<EmailSettings>()
             .Configure(opts =>
             {
-                opts.RecipientEmailAddress = Environment.GetEnvironmentVariable("RECEIPIENT_EMAIL_ADDRESS")
-                    ?? throw new InvalidOperationException("RECEIPIENT_EMAIL_ADDRESS environment variable is not set.");
+                opts.RecipientEmailAddress = Environment.GetEnvironmentVariable("RECIPIENT_EMAIL_ADDRESS")
+                    ?? throw new InvalidOperationException("RECIPIENT_EMAIL_ADDRESS environment variable is not set.");
                 opts.SenderEmailAddress = Environment.GetEnvironmentVariable("SENDER_EMAIL_ADDRESS")
                     ?? throw new InvalidOperationException("SENDER_EMAIL_ADDRESS environment variable is not set.");
                 opts.ServiceEndpoint = Environment.GetEnvironmentVariable("EMAIL_SERVICE_ENDPOINT")
