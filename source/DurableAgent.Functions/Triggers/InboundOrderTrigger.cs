@@ -92,10 +92,11 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
             }
         }
 
-        if (string.IsNullOrEmpty(body))
+        // Guard: if no CustomerMessagingAgent payload was produced, skip sending a blank email.
+        if (string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(body))
         {
             logger.LogWarning(
-                "No valid CustomerMessagingAgent response found for order {OrderReference}. Email will not be sent.",
+                "No customer message was produced by the CustomerMessagingAgent for order {OrderReference}. Skipping email.",
                 order.OrderReference);
             return;
         }
