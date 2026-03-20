@@ -14,32 +14,19 @@ public static class OrderProcessingWorkflow
 
     public static void RegisterWorkflow(FunctionsApplicationBuilder builder)
     {
-        var orderIntakeAgent = builder.Services.BuildServiceProvider()
-            .GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName);
-        var fulfillmentDecisionAgent = builder.Services.BuildServiceProvider()
-            .GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
-        var customerMessagingAgent = builder.Services.BuildServiceProvider()
-            .GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
-
-        // List the agents
-        var agents = new List<AIAgent>()
-        {
-            orderIntakeAgent,
-            fulfillmentDecisionAgent,
-            customerMessagingAgent
-        };
-
-        // var workflow = AgentWorkflowBuilder.BuildSequential(agents);
-
-        // TODO: Add the workflow to the Durable Functions when updates published to NuGet.
-        // builder.ConfigureDurableWorkflows(workflows => workflows.AddWorkflows(workflow));
-
         builder.AddWorkflow(WorkflowName, (sp, key) =>
         {
+            var agents = new List<AIAgent>()
+            {
+                sp.GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName),
+                sp.GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName),
+                sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName)
+            };
+
             return AgentWorkflowBuilder.BuildSequential(
                 workflowName: key,
                 agents: agents);
-                
+
         }).AddAsAIAgent();
     }
 }
