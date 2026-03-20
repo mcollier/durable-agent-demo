@@ -1,6 +1,7 @@
 using DurableAgent.Functions.Agents;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
+using Microsoft.Agents.AI.Hosting.AzureFunctions;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,15 +20,28 @@ public static class OrderProcessingWorkflow
             .GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
         var customerMessagingAgent = builder.Services.BuildServiceProvider()
             .GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
-        
+
+        // List the agents
+        var agents = new List<AIAgent>()
+        {
+            orderIntakeAgent,
+            fulfillmentDecisionAgent,
+            customerMessagingAgent
+        };
+
+        // var workflow = AgentWorkflowBuilder.BuildSequential(agents);
+
+        // TODO: Add the workflow to the Durable Functions when updates published to NuGet.
+        // builder.ConfigureDurableWorkflows(workflows => workflows.AddWorkflows(workflow));
+
         builder.AddWorkflow(WorkflowName, (sp, key) =>
         {
-            var agents = new List<AIAgent>()
-            {
-                orderIntakeAgent,
-                fulfillmentDecisionAgent,
-                customerMessagingAgent
-            };
+            // var agents = new List<AIAgent>()
+            // {
+            //     orderIntakeAgent,
+            //     fulfillmentDecisionAgent,
+            //     customerMessagingAgent
+            // };
 
             return AgentWorkflowBuilder.BuildSequential(
                 workflowName: key,
