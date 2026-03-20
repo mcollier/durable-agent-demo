@@ -94,7 +94,7 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                 content: new EmailContent(subject)
                 {
                     PlainText = body,
-                    Html = $"<html><body><p>{WebUtility.HtmlEncode(body)}</p></body></html>"
+                    Html = body
                 }
             );
 
