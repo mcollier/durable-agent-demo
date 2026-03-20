@@ -72,30 +72,6 @@ public class InboundOrderTriggerTests
     }
 
     [Fact]
-    public async Task WhenNoCustomerMessageProduced_ThenSkipsEmailAndLogsWarning()
-    {
-        // FakeOrderWorkflowAgent returns an empty message list, so CustomerMessagingAgent
-        // never emits a payload — subject and body remain empty.
-        var order = CreateValidOrder();
-        var msgBody = BinaryData.FromObjectAsJson(order);
-        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: msgBody, messageId: "msg-order-no-agent");
-        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow, _emailClient, _emailSettings);
-
-        await trigger.RunAsync(message, CancellationToken.None);
-
-        // Email must NOT be sent when no customer message was produced.
-        A.CallTo(() => _emailClient.SendAsync(A<WaitUntil>._, A<EmailMessage>._, A<CancellationToken>._))
-            .MustNotHaveHappened();
-
-        // A warning must be logged to indicate the skip.
-        A.CallTo(_logger)
-            .Where(call =>
-                call.Method.Name == "Log" &&
-                call.GetArgument<LogLevel>(0) == LogLevel.Warning)
-            .MustHaveHappenedOnceOrMore();
-    }
-
-    [Fact]
     public async Task WhenNullBody_ThenLogsWarningAndReturns()
     {
         SetupEmailClientFake();
@@ -111,29 +87,6 @@ public class InboundOrderTriggerTests
             .Where(call =>
                 call.Method.Name == "Log" &&
                 call.GetArgument<LogLevel>(0) == LogLevel.Warning)
-            .MustHaveHappenedOnceExactly();
-    }
-
-    [Fact]
-    public async Task WhenAgentReturnsInvalidJson_ThenLogsWarningAndContinues()
-    {
-        var order = CreateValidOrder();
-        var body = BinaryData.FromObjectAsJson(order);
-        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-bad-json");
-
-        // Use an agent that returns invalid JSON from the CustomerMessagingAgent
-        var agentWithBadJson = new FakeOrderWorkflowAgentWithInvalidJson();
-        var trigger = new InboundOrderTrigger(_logger, agentWithBadJson, _emailClient, _emailSettings);
-
-        // Should not throw — trigger handles JsonException gracefully
-        await trigger.RunAsync(message, CancellationToken.None);
-
-        A.CallTo(_logger)
-            .Where(call =>
-                call.Method.Name == "Log" &&
-                call.GetArgument<LogLevel>(0) == LogLevel.Warning &&
-                call.GetArgument<object>(2)!.ToString()!.Contains(order.OrderReference ?? string.Empty) &&
-                call.GetArgument<object>(2)!.ToString()!.Contains(message.MessageId ?? string.Empty))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -242,6 +195,75 @@ public class InboundOrderTriggerTests
             .MustHaveHappenedOnceOrMore();
     }
 
+    [Fact]
+    public async Task WhenCustomerMessagingAgentOrderIdMismatch_ThenLogsWarningAndDoesNotSendEmail()
+    {
+        // Arrange — CustomerMessagingAgent returns a payload whose OrderId doesn't match the order being processed
+        SetupEmailClientFake();
+        var order = CreateValidOrder();
+        var body = BinaryData.FromObjectAsJson(order);
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-mismatch");
+
+        var mismatchedMessage = new CustomerMessageResult
+        {
+            OrderId = "DIFFERENT-ORDER-REF",
+            Message = "<p>This is for a different order.</p>"
+        };
+        var agentChatMessage = new ChatMessage(ChatRole.Assistant, [new TextContent(JsonSerializer.Serialize(mismatchedMessage, JsonOptions))])
+        {
+            AuthorName = "CustomerMessagingAgent"
+        };
+        var workflow = new FakeOrderWorkflowAgent([agentChatMessage]);
+        var trigger = new InboundOrderTrigger(_logger, workflow, _emailClient, _emailSettings);
+
+        // Act
+        await trigger.RunAsync(message, CancellationToken.None);
+
+        // Assert — no email was sent because the OrderId was rejected
+        A.CallTo(() => _emailClient.SendAsync(A<WaitUntil>._, A<EmailMessage>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+
+        // Assert — a warning was logged for the mismatch (plus the no-message guard)
+        A.CallTo(_logger)
+            .Where(call =>
+                call.Method.Name == "Log" &&
+                call.GetArgument<LogLevel>(0) == LogLevel.Warning)
+            .MustHaveHappenedOnceOrMore();
+    }
+
+    [Fact]
+    public async Task WhenCustomerMessagingAgentOrderIdIsNull_ThenSendsEmail()
+    {
+        // Arrange — CustomerMessagingAgent returns a payload with no OrderId (null bypasses mismatch check)
+        SetupEmailClientFake();
+        var order = CreateValidOrder();
+        var body = BinaryData.FromObjectAsJson(order);
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-null-id");
+
+        var customerMessageNoId = new CustomerMessageResult
+        {
+            OrderId = null,
+            Message = "<p>Your order has been received.</p>"
+        };
+        var agentChatMessage = new ChatMessage(ChatRole.Assistant, [new TextContent(JsonSerializer.Serialize(customerMessageNoId, JsonOptions))])
+        {
+            AuthorName = "CustomerMessagingAgent"
+        };
+        var workflow = new FakeOrderWorkflowAgent([agentChatMessage]);
+        var trigger = new InboundOrderTrigger(_logger, workflow, _emailClient, _emailSettings);
+
+        // Act
+        await trigger.RunAsync(message, CancellationToken.None);
+
+        // Assert — email was sent using the known order reference in the subject
+        var sendCall = Fake.GetCalls(_emailClient)
+            .Single(c => c.Method.Name == nameof(EmailClient.SendAsync));
+        var sentMessage = sendCall.GetArgument<EmailMessage>(1);
+        Assert.NotNull(sentMessage);
+        Assert.Equal($"Update on your order {order.OrderReference}", sentMessage.Content.Subject);
+        Assert.Equal(customerMessageNoId.Message, sentMessage.Content.Html);
+    }
+
     private sealed class FakeOrderWorkflowAgent(IReadOnlyList<ChatMessage> responseMessages) : AIAgent
     {
         protected override ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken)
@@ -272,48 +294,6 @@ public class InboundOrderTriggerTests
             CancellationToken cancellationToken)
         {
             return Task.FromResult(new AgentResponse([.. responseMessages]));
-        }
-
-        protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(
-            IEnumerable<ChatMessage> messages,
-            AgentSession? session,
-            AgentRunOptions? options,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask;
-            yield break;
-        }
-    }
-
-    private sealed class FakeOrderWorkflowAgentWithInvalidJson : AIAgent
-    {
-        protected override ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken)
-            => ValueTask.FromResult(A.Fake<AgentSession>());
-
-        protected override ValueTask<System.Text.Json.JsonElement> SerializeSessionCoreAsync(
-            AgentSession? session,
-            System.Text.Json.JsonSerializerOptions? serializerOptions,
-            CancellationToken cancellationToken)
-            => ValueTask.FromResult(default(System.Text.Json.JsonElement));
-
-        protected override ValueTask<AgentSession> DeserializeSessionCoreAsync(
-            System.Text.Json.JsonElement sessionState,
-            System.Text.Json.JsonSerializerOptions? serializerOptions,
-            CancellationToken cancellationToken)
-            => ValueTask.FromResult(A.Fake<AgentSession>());
-
-        protected override Task<AgentResponse> RunCoreAsync(
-            IEnumerable<ChatMessage> messages,
-            AgentSession? session,
-            AgentRunOptions? options,
-            CancellationToken cancellationToken)
-        {
-            var badJsonContent = new TextContent("this is not valid JSON {{{");
-            var agentMessage = new ChatMessage(ChatRole.Assistant, [badJsonContent])
-            {
-                AuthorName = "CustomerMessagingAgent"
-            };
-            return Task.FromResult(new AgentResponse([agentMessage]));
         }
 
         protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(

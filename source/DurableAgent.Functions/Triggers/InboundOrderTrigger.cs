@@ -85,10 +85,23 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                                     order.OrderReference,
                                     message.MessageId);
                             }
-                            if (customerMessage?.Message is not null)
+                            if (customerMessage is not null)
                             {
-                                subject = $"Update on your order {customerMessage.OrderId}";
-                                body = customerMessage.Message;
+                                if (!string.IsNullOrWhiteSpace(customerMessage.OrderId) &&
+                                    !string.Equals(customerMessage.OrderId, order.OrderReference, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    logger.LogWarning(
+                                        "CustomerMessagingAgent payload OrderId {OrderId} does not match order reference {OrderReference}. Ignoring customer message.",
+                                        customerMessage.OrderId,
+                                        order.OrderReference);
+                                    continue;
+                                }
+
+                                if (customerMessage.Message is not null)
+                                {
+                                    subject = $"Update on your order {order.OrderReference}";
+                                    body = customerMessage.Message;
+                                }
                             }
                         }
                     }
