@@ -65,6 +65,30 @@ public class InboundOrderTriggerTests
     }
 
     [Fact]
+    public async Task WhenNoCustomerMessageProduced_ThenSkipsEmailAndLogsWarning()
+    {
+        // FakeOrderWorkflowAgent returns an empty message list, so CustomerMessagingAgent
+        // never emits a payload — subject and body remain empty.
+        var order = CreateValidOrder();
+        var msgBody = BinaryData.FromObjectAsJson(order);
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: msgBody, messageId: "msg-order-no-agent");
+        var trigger = new InboundOrderTrigger(_logger, _orderWorkflow, _emailClient, _emailSettings);
+
+        await trigger.RunAsync(message, CancellationToken.None);
+
+        // Email must NOT be sent when no customer message was produced.
+        A.CallTo(() => _emailClient.SendAsync(A<WaitUntil>._, A<EmailMessage>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+
+        // A warning must be logged to indicate the skip.
+        A.CallTo(_logger)
+            .Where(call =>
+                call.Method.Name == "Log" &&
+                call.GetArgument<LogLevel>(0) == LogLevel.Warning)
+            .MustHaveHappenedOnceOrMore();
+    }
+
+    [Fact]
     public async Task WhenNullBody_ThenLogsWarningAndReturns()
     {
         // "null" deserializes to null for a reference type — triggers the LogWarning path

@@ -84,6 +84,15 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
             }
         }
 
+        // Guard: if no CustomerMessagingAgent payload was produced, skip sending a blank email.
+        if (string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(body))
+        {
+            logger.LogWarning(
+                "No customer message was produced by the CustomerMessagingAgent for order {OrderReference}. Skipping email.",
+                order.OrderReference);
+            return;
+        }
+
         // Send the email to the customer using Azure Communication Services Email SDK
         logger.LogInformation("Sending email for order {OrderReference}. Subject: {Subject}, Body: {Body}", order.OrderReference, subject, body);
         try
