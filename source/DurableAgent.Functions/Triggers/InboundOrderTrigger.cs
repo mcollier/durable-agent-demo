@@ -93,7 +93,6 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                 recipientAddress: settings.RecipientEmailAddress,
                 content: new EmailContent(subject)
                 {
-                    PlainText = body,
                     Html = body
                 }
             );
