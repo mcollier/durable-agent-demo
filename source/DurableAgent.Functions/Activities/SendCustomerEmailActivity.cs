@@ -44,7 +44,7 @@ public static class SendCustomerEmailActivity
         try
         {
             EmailSendOperation emailSendOperation =
-                await emailClient.SendAsync(WaitUntil.Completed, emailMessage, CancellationToken.None);
+                await emailClient.SendAsync(WaitUntil.Completed, emailMessage, executionContext.CancellationToken);
             logger.LogInformation(
                 "Email send completed with status {Status} for case {CaseId}",
                 emailSendOperation.Value.Status,
