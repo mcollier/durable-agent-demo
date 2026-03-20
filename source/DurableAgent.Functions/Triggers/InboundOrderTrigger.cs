@@ -104,6 +104,8 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
         }
         catch (Exception ex)
         {
+            // Email sending is best-effort; log the failure and continue so the
+            // Service Bus message is completed and order processing is not retried.
             logger.LogError(ex, "Failed to send email for order {OrderReference}.", order.OrderReference);
         }
     }
