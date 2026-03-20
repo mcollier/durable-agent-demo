@@ -107,6 +107,29 @@ public class InboundOrderTriggerTests
     }
 
     [Fact]
+    public async Task WhenAgentReturnsInvalidJson_ThenLogsWarningAndContinues()
+    {
+        var order = CreateValidOrder();
+        var body = BinaryData.FromObjectAsJson(order);
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-bad-json");
+
+        // Use an agent that returns invalid JSON from the CustomerMessagingAgent
+        var agentWithBadJson = new FakeOrderWorkflowAgentWithInvalidJson();
+        var trigger = new InboundOrderTrigger(_logger, agentWithBadJson, _emailClient, _emailSettings);
+
+        // Should not throw — trigger handles JsonException gracefully
+        await trigger.RunAsync(message, CancellationToken.None);
+
+        A.CallTo(_logger)
+            .Where(call =>
+                call.Method.Name == "Log" &&
+                call.GetArgument<LogLevel>(0) == LogLevel.Warning &&
+                call.GetArgument<object>(2)!.ToString()!.Contains(order.OrderReference ?? string.Empty) &&
+                call.GetArgument<object>(2)!.ToString()!.Contains(message.MessageId ?? string.Empty))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
     public async Task WhenMessageIsNull_ThenThrowsArgumentNullException()
     {
         var trigger = new InboundOrderTrigger(_logger, _orderWorkflow, _emailClient, _emailSettings);
@@ -145,6 +168,48 @@ public class InboundOrderTriggerTests
             CancellationToken cancellationToken)
         {
             return Task.FromResult(new AgentResponse(new List<ChatMessage>()));
+        }
+
+        protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(
+            IEnumerable<ChatMessage> messages,
+            AgentSession? session,
+            AgentRunOptions? options,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+    }
+
+    private sealed class FakeOrderWorkflowAgentWithInvalidJson : AIAgent
+    {
+        protected override ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken)
+            => ValueTask.FromResult(A.Fake<AgentSession>());
+
+        protected override ValueTask<System.Text.Json.JsonElement> SerializeSessionCoreAsync(
+            AgentSession? session,
+            System.Text.Json.JsonSerializerOptions? serializerOptions,
+            CancellationToken cancellationToken)
+            => ValueTask.FromResult(default(System.Text.Json.JsonElement));
+
+        protected override ValueTask<AgentSession> DeserializeSessionCoreAsync(
+            System.Text.Json.JsonElement sessionState,
+            System.Text.Json.JsonSerializerOptions? serializerOptions,
+            CancellationToken cancellationToken)
+            => ValueTask.FromResult(A.Fake<AgentSession>());
+
+        protected override Task<AgentResponse> RunCoreAsync(
+            IEnumerable<ChatMessage> messages,
+            AgentSession? session,
+            AgentRunOptions? options,
+            CancellationToken cancellationToken)
+        {
+            var badJsonContent = new TextContent("this is not valid JSON {{{");
+            var agentMessage = new ChatMessage(ChatRole.Assistant, [badJsonContent])
+            {
+                AuthorName = "CustomerMessagingAgent"
+            };
+            return Task.FromResult(new AgentResponse([agentMessage]));
         }
 
         protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(

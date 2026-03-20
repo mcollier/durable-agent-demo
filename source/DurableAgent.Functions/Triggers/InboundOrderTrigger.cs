@@ -72,11 +72,20 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                     {
                         if (content is TextContent { Text: { Length: > 0 } text})
                         {
-                            var x = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
-                            if (x?.Message is not null)
+                            try
                             {
-                                subject = $"Update on your order {x.OrderId}";
-                                body = x.Message;
+                                var x = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
+                                if (x?.Message is not null)
+                                {
+                                    subject = $"Update on your order {x.OrderId}";
+                                    body = x.Message;
+                                }
+                            }
+                            catch (JsonException ex)
+                            {
+                                logger.LogWarning(ex,
+                                    "Agent produced invalid JSON for order {OrderReference}. MessageId={MessageId}. Skipping customer message.",
+                                    order.OrderReference, message.MessageId);
                             }
                         }
                     }
