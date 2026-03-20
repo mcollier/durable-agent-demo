@@ -72,16 +72,32 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
                     {
                         if (content is TextContent { Text: { Length: > 0 } text})
                         {
-                            var x = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
-                            if (x?.Message is not null)
+                            CustomerMessageResult? customerMessage = null;
+                            try
                             {
-                                subject = $"Update on your order {x.OrderId}";
-                                body = x.Message;
+                                customerMessage = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
+                            }
+                            catch (JsonException ex)
+                            {
+                                logger.LogWarning(ex, "Failed to deserialize CustomerMessagingAgent payload for order {OrderReference}.", order.OrderReference);
+                            }
+                            if (customerMessage?.Message is not null)
+                            {
+                                subject = $"Update on your order {customerMessage.OrderId}";
+                                body = customerMessage.Message;
                             }
                         }
                     }
                 }
             }
+        }
+
+        if (string.IsNullOrEmpty(body))
+        {
+            logger.LogWarning(
+                "No valid CustomerMessagingAgent response found for order {OrderReference}. Email will not be sent.",
+                order.OrderReference);
+            return;
         }
 
         // Send the email to the customer using Azure Communication Services Email SDK
