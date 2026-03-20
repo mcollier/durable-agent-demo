@@ -31,7 +31,7 @@ public class EmailAgentConfig
                             ResponseFormat = ChatResponseFormat.ForJsonSchema(
                                 schema: AIJsonUtilities.CreateJsonSchema(typeof(EmailResult)),
                                 schemaName: "EmailResult",
-                                schemaDescription: "A follow-up email to a customer who submitted feedback, containing recipient name, email, and message body."
+                                schemaDescription: "A follow-up email to a customer who submitted feedback, containing recipient name, email address, subject line, and message body."
                             )
                         }
                     },
