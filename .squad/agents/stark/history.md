@@ -114,3 +114,13 @@
 - **Return string**: `$"Email sent to {settings.RecipientEmailAddress} for case {input.CaseId}"` — reflects the actual address used.
 - **Test updates**: `WhenValidInput_ThenReturnsResultContainingEmailAndCaseId` now asserts on `"recipient@example.com"` (the `EmailSettings.RecipientEmailAddress` from faked `IOptions`). `WhenDifferentRecipient_ThenResultReflectsRecipientEmail` renamed to `WhenDifferentInputRecipient_ThenResultAlwaysUsesSettingsRecipientAddress` and updated to verify the settings address appears in the result and the input address does not. `WhenEmptyCaseId_ThenResultContainsEmptyCaseId` updated to assert on `"recipient@example.com"` instead of `"aidan@example.com"`.
 - **Test count**: 176 total (125 Functions + 51 Core) — all passing.
+
+### 2026-03-14 — README accuracy review (email/ACS additions)
+
+- **Reviewed**: `README.md` against `SendCustomerEmailActivity.cs`, `EmailServiceExtensions.cs`, `EmailSettings.cs`, `EmailResult.cs`, `SendCustomerEmailInput.cs`, `AppHost.cs`, and `infra/main.bicep`.
+- **Misspelled env var check**: README had no reference to `RECEIPIENT_EMAIL_ADDRESS` (old misspelling) — no fix needed there.
+- **TODO/placeholder check**: README did not describe `SendCustomerEmailActivity` as a TODO or placeholder — correct.
+- **Model shape check**: README does not document `EmailResult` or `SendCustomerEmailInput` properties — no update needed.
+- **Changes made**:
+  1. Added `Azure Communication Services` row to the Azure Resources table — ACS (email service + communication service) is fully deployed by `infra/main.bicep` and used by `SendCustomerEmailActivity` via `EmailClient`.
+  2. Updated the Data Flow description for `SendCustomerEmailActivity` to say "via **Azure Communication Services** to the configured recipient address (`RECIPIENT_EMAIL_ADDRESS`)" — previously the description was vague and omitted ACS and the routing-to-settings address behavior.

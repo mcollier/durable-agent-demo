@@ -647,3 +647,65 @@ Faked `EmailClient` using `EmailModelFactory.EmailSendResult` + `A.Fake<EmailSen
 - ✅ Email model construction follows ACS best practices (PlainText + Html body)
 
 ---
+
+### Decision: SendCustomerEmailActivity Routes All Emails to settings.RecipientEmailAddress
+
+**Author:** Stark (.NET Dev)  
+**Date:** 2026-03-09  
+**Requested by:** Michael S. Collier  
+**Status:** Implemented
+
+#### Decision
+
+`SendCustomerEmailActivity` sends all emails to `settings.RecipientEmailAddress` (the value of the `RECIPIENT_EMAIL_ADDRESS` environment variable, resolved via `IOptions<EmailSettings>`) rather than `input.RecipientEmail` (the customer's actual email address from the feedback input).
+
+#### Rationale
+
+- **Consistent with `InboundOrderTrigger` behavior**: The order trigger already routes all outbound emails to the settings recipient address — `SendCustomerEmailActivity` should match this pattern.
+- **Safe for development/testing**: Prevents accidental emails to real customer addresses in non-production environments.
+- **Traceability maintained**: `input.RecipientEmail` (the intended recipient) is still captured in the log line alongside `settings.RecipientEmailAddress` (the actual send-to address), so the full intent is observable without triggering unwanted delivery.
+
+#### Impact
+
+- **`SendCustomerEmailActivity.cs`**: `recipientAddress` in `EmailMessage` constructor changed from `input.RecipientEmail` to `settings.RecipientEmailAddress`. Log updated to include both addresses. Return string uses `settings.RecipientEmailAddress`.
+- **`SendCustomerEmailActivityTests.cs`**: Three tests updated to assert on `"recipient@example.com"` (the `RecipientEmailAddress` from the faked `IOptions<EmailSettings>`). `WhenDifferentRecipient_ThenResultReflectsRecipientEmail` renamed to `WhenDifferentInputRecipient_ThenResultAlwaysUsesSettingsRecipientAddress` with updated assertions verifying settings address is used and input address is not in the result.
+
+#### Validation
+
+✅ Implemented — 176 tests passing (125 Functions + 51 Core).
+
+---
+
+### Decision: README Accuracy Corrections — ACS Email
+
+**Author:** Stark (.NET Developer)  
+**Date:** 2026-03-20  
+**Requested by:** Michael S. Collier  
+**Status:** Complete
+
+#### What Was Reviewed
+
+Full README.md audit against:
+- `SendCustomerEmailActivity.cs` — now sends real emails via `EmailClient` (Azure Communication Services)
+- `EmailServiceExtensions.cs` — reads `RECIPIENT_EMAIL_ADDRESS`, `SENDER_EMAIL_ADDRESS`, `EMAIL_SERVICE_ENDPOINT`
+- `EmailSettings.cs` — correct spelling `RecipientEmailAddress`
+- `EmailResult.cs` + `SendCustomerEmailInput.cs` — both have `Subject` property
+- `AppHost.cs` — passes `RECIPIENT_EMAIL_ADDRESS` (correct spelling) to Functions env
+- `infra/main.bicep` — deploys both `emailService` (AVM) and `communicationService` (AVM)
+
+#### Findings
+
+| Check | Result |
+|---|---|
+| Misspelled `RECEIPIENT_EMAIL_ADDRESS` in README | ✅ Not present — no fix needed |
+| `SendCustomerEmailActivity` described as TODO/placeholder | ✅ Not present — no fix needed |
+| Model shapes (`EmailResult`, `SendCustomerEmailInput`) documented | ✅ Not documented in README — no inconsistency |
+| Azure Communication Services in resource table | ❌ Missing — fixed |
+| Email activity description mentions ACS | ❌ Vague ("send the follow-up email") — fixed |
+
+#### Changes Made
+
+1. **Azure Resources table**: Added `Azure Communication Services` row (ACS + Email Service are fully deployed by `infra/main.bicep` and required at runtime).
+2. **Data Flow section**: Updated `SendCustomerEmailActivity` line to say "via **Azure Communication Services** to the configured recipient address (`RECIPIENT_EMAIL_ADDRESS`)" — makes clear the mechanism and that all emails route to the settings address, not the customer's email directly.
+
+---
