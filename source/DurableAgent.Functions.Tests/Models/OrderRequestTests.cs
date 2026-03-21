@@ -7,7 +7,7 @@ public class OrderRequestTests
     private static OrderRequest CreateValidRequest() => new()
     {
         OrderReference = "FRY-20260308-AB12",
-        FlavorId = "flavor-001",
+        FlavorId = "VNE",
         FirstName = "Jane",
         LastName = "Smith",
         StreetAddress = "123 Main St",
@@ -154,7 +154,7 @@ public class OrderRequestTests
         var order = new OrderRequest
         {
             OrderReference = "FRY-20260308-AB12",
-            FlavorId = "flavor-001",
+            FlavorId = "VNE",
             Quantity = 5
         };
 

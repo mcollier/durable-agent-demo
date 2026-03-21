@@ -46,6 +46,7 @@ All inter-service communication uses **system-assigned managed identity** with R
 | Azure AI Foundry | Cognitive Services | Azure OpenAI endpoint for AI agent |
 | Azure Service Bus | Standard | Reliable async messaging (queues/topics) |
 | Azure Storage Account | Standard LRS | Function runtime deployment artifacts |
+| Azure Communication Services | — | Email sending for customer follow-ups |
 | Application Insights | Workspace-based | Monitoring, diagnostics, and telemetry |
 | Log Analytics Workspace | PerGB2018 | Backing store for Application Insights |
 
@@ -161,7 +162,7 @@ az bicep build --file infra/main.bicep --stdout
    - Uses `context.GetAgent("CustomerServiceAgent")` to obtain a `DurableAIAgent` — the durable wrapper that checkpoints agent calls within the orchestration.
    - Creates an `AgentSession` and calls `RunAsync<FeedbackResult>()` to analyze the feedback. The AI agent assesses sentiment, evaluates risk, recommends an action, and returns a structured `FeedbackResult` using tool-calling and JSON structured output.
    - Uses `context.GetAgent("EmailAgent")` to generate a structured follow-up email.
-   - Calls **`SendCustomerEmailActivity`** to send the follow-up email.
+   - Calls **`SendCustomerEmailActivity`** to send the follow-up email via **Azure Communication Services** to the configured recipient address (`RECIPIENT_EMAIL_ADDRESS`).
    - Calls **`ProcessFeedbackActivity`** to finalize processing.
    - All agent state and conversation history is automatically persisted by the Durable Task Scheduler, surviving failures and restarts.
 

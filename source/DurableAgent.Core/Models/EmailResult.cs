@@ -11,6 +11,9 @@ public sealed record EmailResult
     /// <summary>Email address of the recipient.</summary>
     public required string RecipientEmail { get; init; }
 
+    /// <summary>Subject line of the email to send.</summary>
+    public required string Subject { get; init; }
+
     /// <summary>Body content of the email to send.</summary>
     public required string Body { get; init; }
 }

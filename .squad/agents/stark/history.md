@@ -82,3 +82,45 @@
 - **Registration**: `IOrderQueueSender` registered as singleton mapped to `ServiceBusOrderQueueSender` in `Program.cs`, immediately after the `IFeedbackQueueSender` registration — mirrors the same pattern.
 - **No new usings needed**: Both types are already in `DurableAgent.Functions.Services`, which was already imported.
 - **Build + tests**: 0 warnings, 0 errors. All 163 tests pass (51 Core + 112 Functions).
+
+### 2026-03-14 — Flavor IDs vs inventory SKU prefixes
+
+- **Two ID systems exist today**: `FlavorRepository` is the source of truth for `/api/flavors` and AI flavor listings, but it uses `flv-001`…`flv-010` while order-focused tests use `flavor-001` and `InventoryRepository` uses SKU prefixes like `VNE-TUB` and `MNC-TUB`.
+- **Web + Functions are format-agnostic but contract-coupled**: Order and feedback pages simply round-trip whatever `FlavorId` `/api/flavors` returns into `/api/orders` and `/api/feedback`, so changing canonical IDs mainly impacts returned payloads, posted payload examples, and assertions rather than validation logic.
+- **Inventory catalog is larger than flavor catalog**: Inventory currently includes `QCC-TUB` and `AAL-TUB`, but `FlavorRepository` has no matching `QCC` or `AAL` flavor records; any migration to 3-letter canonical flavor IDs must decide whether to add those flavors or remove the extra SKUs.
+
+
+### 2026-03-14 — FlavorId migration to canonical 3-letter codes
+
+- **Canonical contract**: `FlavorId` is now the 3-letter flavor code (`MNC`, `VNE`, etc.), while inventory keeps the derived SKU shape `{FlavorId}-TUB`. `FlavorRepository` is the canonical flavor catalog and now uses those 10 codes directly.
+- **Single bridge point**: `InventoryRepository.GetSkuForFlavorId()` is the single code path that converts `FlavorId` → SKU, and `CheckInventoryTool` now accepts canonical `FlavorId` values instead of raw SKUs.
+- **Catalog alignment**: Removed inventory-only `QCC-TUB` and `AAL-TUB` entries so inventory matches the real 10-flavor catalog instead of carrying orphan SKUs.
+- **Prompt/schema cleanup**: Order-processing prompts now distinguish FlavorId from SKU; order intake canonical line items carry `flavorId`, while fulfillment output still reports inventory `sku` values.
+- **Validation status**: Baseline `dotnet test` initially failed because `InboundOrderTriggerTests` lagged behind the trigger constructor. After updating that fixture and the FlavorId literals, the full suite passed: 176 tests green.
+- **Romanoff handoff**: Updated the order/trigger tests and added `InventoryRepositoryTests` so Romanoff has coverage for the FlavorId→SKU bridge and the removed orphan inventory SKUs.
+
+### 2026-03-14 — Real email sending via Azure Communication Services
+
+- **`Subject` added to models**: Added `required string Subject { get; init; }` to both `EmailResult` (Core) and `SendCustomerEmailInput` (Functions), positioned after `RecipientEmail` and before `Body`.
+- **`FeedbackOrchestrator` updated**: Mapped `emailResult.Subject` → `Subject` in the `SendCustomerEmailInput` object initializer passed to `CallActivityAsync`.
+- **`SendCustomerEmailActivity` refactored**: `Run` (sync `string`) → `RunAsync` (async `Task<string>`). Resolves `EmailClient` and `IOptions<EmailSettings>` from `executionContext.InstanceServices.GetRequiredService<T>()`. Sends via `emailClient.SendAsync(WaitUntil.Completed, emailMessage, CancellationToken.None)`. Uses `input.RecipientEmail` (the actual customer) NOT `settings.RecipientEmailAddress`. Wraps send in try/catch: logs error + rethrows so Durable Functions retry policy applies.
+- **Test updates** (compilation fix): `SendCustomerEmailActivityTests` converted from sync to async, `Run` → `RunAsync`. Faked `EmailClient` via `EmailModelFactory.EmailSendResult` + `A.Fake<EmailSendOperation>()` pattern (same as `InboundOrderTriggerTests`). Registered `EmailClient` and `IOptions<EmailSettings>` in fake service provider. `Subject` added to all test factory helpers in `SendCustomerEmailInputTests` and `EmailResultTests`.
+- **Build**: 0 warnings, 0 errors after all 7 files changed.
+
+### 2026-03-09 — SendCustomerEmailActivity now routes all emails to settings.RecipientEmailAddress
+
+- **Routing change**: `SendCustomerEmailActivity` now uses `settings.RecipientEmailAddress` (from `RECEIPIENT_EMAIL_ADDRESS` env var via `IOptions<EmailSettings>`) as the actual send-to address for ALL emails, not `input.RecipientEmail`.
+- **Traceability preserved**: `input.RecipientEmail` (the intended customer recipient) is still logged as part of the `LogInformation` call before the send, alongside `settings.RecipientEmailAddress` as the actual send-to address. This mirrors the behavior of `InboundOrderTrigger`.
+- **Return string**: `$"Email sent to {settings.RecipientEmailAddress} for case {input.CaseId}"` — reflects the actual address used.
+- **Test updates**: `WhenValidInput_ThenReturnsResultContainingEmailAndCaseId` now asserts on `"recipient@example.com"` (the `EmailSettings.RecipientEmailAddress` from faked `IOptions`). `WhenDifferentRecipient_ThenResultReflectsRecipientEmail` renamed to `WhenDifferentInputRecipient_ThenResultAlwaysUsesSettingsRecipientAddress` and updated to verify the settings address appears in the result and the input address does not. `WhenEmptyCaseId_ThenResultContainsEmptyCaseId` updated to assert on `"recipient@example.com"` instead of `"aidan@example.com"`.
+- **Test count**: 176 total (125 Functions + 51 Core) — all passing.
+
+### 2026-03-14 — README accuracy review (email/ACS additions)
+
+- **Reviewed**: `README.md` against `SendCustomerEmailActivity.cs`, `EmailServiceExtensions.cs`, `EmailSettings.cs`, `EmailResult.cs`, `SendCustomerEmailInput.cs`, `AppHost.cs`, and `infra/main.bicep`.
+- **Misspelled env var check**: README had no reference to `RECEIPIENT_EMAIL_ADDRESS` (old misspelling) — no fix needed there.
+- **TODO/placeholder check**: README did not describe `SendCustomerEmailActivity` as a TODO or placeholder — correct.
+- **Model shape check**: README does not document `EmailResult` or `SendCustomerEmailInput` properties — no update needed.
+- **Changes made**:
+  1. Added `Azure Communication Services` row to the Azure Resources table — ACS (email service + communication service) is fully deployed by `infra/main.bicep` and used by `SendCustomerEmailActivity` via `EmailClient`.
+  2. Updated the Data Flow description for `SendCustomerEmailActivity` to say "via **Azure Communication Services** to the configured recipient address (`RECIPIENT_EMAIL_ADDRESS`)" — previously the description was vague and omitted ACS and the routing-to-settings address behavior.

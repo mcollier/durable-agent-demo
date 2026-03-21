@@ -97,6 +97,7 @@ public static class FeedbackOrchestrator
                 CaseId = feedbackResult.FollowUp?.CaseId ?? string.Empty,
                 RecipientName = emailResult.RecipientName,
                 RecipientEmail = emailResult.RecipientEmail,
+                Subject = emailResult.Subject,
                 Body = emailResult.Body
             });
 

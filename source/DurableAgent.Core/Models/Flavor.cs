@@ -5,7 +5,7 @@ namespace DurableAgent.Core.Models;
 /// </summary>
 public sealed record Flavor
 {
-    /// <summary>Unique identifier for the flavor (e.g., "flv-001").</summary>
+    /// <summary>Unique identifier for the flavor (e.g., "VNE").</summary>
     public required string FlavorId { get; init; }
 
     /// <summary>Display name of the flavor.</summary>

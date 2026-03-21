@@ -1,5 +1,5 @@
 # @hostname=http://localhost:7071
-@hostname=http://localhost:40441
+@hostname=http://localhost:42015
 
 ### Submit feedback - positive
 
@@ -86,7 +86,7 @@ POST {{hostname}}/api/orders HTTP/1.1
 Content-Type: application/json
 
 {
-    "flavorId": "flavor-001",
+    "flavorId": "VNE",
     "quantity": 2,
     "firstName": "Milo",
     "lastName": "Mustang",
@@ -97,5 +97,45 @@ Content-Type: application/json
     "zipCode": "78701",
     "email": "milo.mustang@example.com",
     "phoneNumber": "(555) 012-3456",
-    "orderReference": "FRY-20260308-MIKE"
+    "orderReference": "FRY-20260308-wf1"
+}
+
+### Test workflow
+GET {{hostname}}/api/test-workflow
+
+### Test workflow with input
+POST {{hostname}}/api/test-workflow HTTP/1.1
+Content-Type: application/json
+
+{
+    "flavorId": "VNE",
+    "quantity": 5,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "streetAddress": "123 Froyo Lane",
+    "addressLine2": "Apt 4B",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "email": "milo.mustang@example.com",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf1"
+}
+
+### invalid data
+POST {{hostname}}/api/test-workflow HTTP/1.1
+Content-Type: application/json
+
+{
+    "flavorId": "MNC",
+    "quantity": 10,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "streetAddress": "123 Froyo Lane",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "email": "milo.mustang@example.com",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf1"
 }
