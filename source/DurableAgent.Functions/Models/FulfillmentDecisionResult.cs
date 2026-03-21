@@ -1,33 +1,3 @@
-// create a class to represent the result of the fulfillment decision
-// example json
-/*
-{
-                            "orderId": "string",
-                            "customerEmail": "string",
-                            "items": [
-                                {
-                                    "sku": "string",
-                                    "productName": "string",
-                                    "requestedQty": 0,
-                                    "availableQty": 0,
-                                    "fulfillableQty": 0,
-                                    "shortfallQty": 0
-                                }
-                            ],
-                            "canFullyFulfill": false,
-                            "shouldGenerateCoupon": false,
-                            "coupon": {
-                                "code": "string",
-                                "discountPercent": 0
-                            },
-                            "alternativeRecommendations": [
-                                {
-                                    "sku": "string",
-                                    "productName": "string"
-                                }
-                            ]
-                        }
-*/
 namespace DurableAgent.Functions.Models;
 
 /// <summary>
