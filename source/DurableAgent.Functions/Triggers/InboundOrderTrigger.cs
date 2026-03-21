@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure;
@@ -55,7 +54,10 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
         string subject = string.Empty;
         string body = string.Empty;
 
+        // Run the order-processing workflow with the order details as input. The workflow will determine if the order can be fulfilled,
         var result = await orderWorkflow.RunAsync(messages, cancellationToken: cancellationToken);
+
+        // Use the workflow output to construct a customer message.
         foreach (ChatMessage chatMessage in result.Messages)
         {
             logger.LogInformation("Agent response -- {Role}: {Content}", chatMessage.AuthorName, chatMessage.Contents);
