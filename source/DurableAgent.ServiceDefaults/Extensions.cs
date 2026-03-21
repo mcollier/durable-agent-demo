@@ -58,6 +58,7 @@ public static class Extensions
             {
                 metrics
                     .AddMeter("*Microsoft.Agents.AI") // Agent Framework telemetry
+                    .AddMeter("*")
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();
@@ -68,9 +69,11 @@ public static class Extensions
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource("Microsoft.Agents.AI.Runtime.InProcess")
                     .AddSource("Microsoft.Agents.AI.Runtime.Abstractions.InMemoryActorStateStorage")
-                    .AddSource("*Microsoft.Agents.AI") // Agent Framework telemetry
+                    // .AddSource("*Microsoft.Agents.AI") // Agent Framework telemetry
                     .AddSource("*Microsoft.Extensions.AI") // Listen to the Experimental.Microsoft.Extensions.AI source for chat client telemetry.
                     .AddSource("*Microsoft.Extensions.Agents*") // Listen to the Experimental.Microsoft.Extensions.Agents source for agent telemetry.
+                    .AddSource("Microsoft.Agents.AI.Workflows*") // Listen to all sources starting with Microsoft.Agents.AI.Workflows for workflow telemetry.
+                    .AddSource("*")
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>
