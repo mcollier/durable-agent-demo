@@ -1,5 +1,6 @@
 
 using DurableAgent.Functions.Models;
+using DurableAgent.Functions.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -27,7 +28,7 @@ public class OrderIntakeAgentConfig
 
         - Maximum quantity per item is 10.
         - Minimum quantity per item is 1.
-        - Restricted products include "Rainbow Sherbet" and "Chocolate Chip Cookie Dough".
+        - Restricted products include "Null Pointer Pistachio" and "Cookie Container".
         - Orders must include customer name, email, shipping address, and at least one line item with FlavorId and quantity.
 
         ## Output Requirements
@@ -88,6 +89,10 @@ public class OrderIntakeAgentConfig
                         Name = key,
                         ChatOptions = new()
                         {
+                            Tools =
+                            [
+                                AIFunctionFactory.Create(ListFlavorsTool.ListFlavors)
+                            ],
                             Instructions = SystemPrompt,
                             ResponseFormat = ChatResponseFormat.ForJsonSchema(
                                 schema: AIJsonUtilities.CreateJsonSchema(typeof(OrderIntakeResult)),
