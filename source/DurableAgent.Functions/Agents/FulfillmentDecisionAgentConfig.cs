@@ -21,7 +21,7 @@ public class FulfillmentDecisionAgentConfig
 
         1. Analyze the canonical order object produced by the Order Intake Agent.
         2. Use the CheckInventory tool to check stock levels for each line item in the order.
-        3. Determine if the order can be fully fulfilled, partially fulfilled, or not fulfilled at all.
+        3. Determine if the order can be fully fulfilled, partially fulfilled, or not fulfilled at all. If the requested quantity is less than the available quantity, the order can be fulfilled. If the requested quantity exceeds available quantity but some stock exists, the order can be partially fulfilled. If no stock is available, the order cannot be fulfilled.
         4. If the order cannot be fully fulfilled, use the GenerateCouponCode tool to create a 25% discount coupon for the customer.
         5. Recommend alternative products that are in stock if any items cannot be fulfilled.  Use the GetAvailableInventory tool to find suitable alternatives based on flavor profiles. Use the ListFlavors tool to get flavor details for your recommendations.
 
