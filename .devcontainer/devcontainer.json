@@ -28,7 +28,8 @@
     },
     "containerEnv": {
         "DOTNET_ENVIRONMENT": "Development",
-        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true",
+        "SSL_CERT_DIR": "/home/vscode/.aspnet/dev-certs/trust:/usr/lib/ssl/certs"
     },
     "customizations": {
         "vscode": {
