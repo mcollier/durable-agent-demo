@@ -124,3 +124,13 @@
 - **Changes made**:
   1. Added `Azure Communication Services` row to the Azure Resources table — ACS (email service + communication service) is fully deployed by `infra/main.bicep` and used by `SendCustomerEmailActivity` via `EmailClient`.
   2. Updated the Data Flow description for `SendCustomerEmailActivity` to say "via **Azure Communication Services** to the configured recipient address (`RECIPIENT_EMAIL_ADDRESS`)" — previously the description was vague and omitted ACS and the routing-to-settings address behavior.
+
+### 2026-03-28 — README accuracy audit
+
+- **Project structure missing dirs**: Added `Agents/`, `Extensions/`, `Workflows/` to the Functions project listing in README. These directories exist and contain agent config classes (`CustomerServiceAgentConfig`, `EmailAgentConfig`, `FulfillmentDecisionAgentConfig`, `OrderIntakeAgentConfig`, `CustomerMessagingAgentConfig`), extension helpers, and `OrderProcessingWorkflow`.
+- **Services missing InventoryRepository**: Added `InventoryRepository.cs` to the Services listing (converts canonical FlavorId → inventory SKU).
+- **Models incomplete**: Added `OrderRequest`, `OrderIntakeResult`, `FulfillmentDecisionResult`, `CustomerMessageResult`, `EmailSettings` to Functions/Models listing; added `OrderEmailResult`, `InventoryAnalysisResult`, `ContextBuilderOutput` to Core/Models listing.
+- **Tool count wrong (5 → 7)**: README said CustomerServiceAgent had 5 tools — accurate for that agent, but project now has 7 total tools: `CheckInventoryTool` (used by FulfillmentDecisionAgent) and `RedactPiiTool` (general use) were omitted. Replaced the plain sentence with a full table mapping each tool to which agent uses it.
+- **Order Queue Path stale**: README said `InboundOrderTrigger` "processes the order" — it actually runs a full multi-agent `order-processing-workflow` (OrderIntakeAgent → FulfillmentDecisionAgent → CustomerMessagingAgent) and sends an email via ACS. Updated the data flow description accordingly.
+- **Key Decisions bullet updated**: Changed "agent has 5 tool functions" to "project exposes 7 tool functions across its agents".
+- **Build**: `DurableAgent.Functions` project builds with 0 errors. Pre-existing `WorkerExtensions` MSBuild artifact issue and CodeCoverage file-lock error in test project are unrelated environment issues.

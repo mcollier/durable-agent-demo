@@ -64,7 +64,9 @@ source/
     AppHost.cs                  # Wires Functions, Web, Azurite, Service Bus, and DTS
   DurableAgent.slnx             # .NET 10 solution
   DurableAgent.Core/            # Domain models — FeedbackMessage, FeedbackResult,
-                                #   CustomerInfo, Store, Flavor, EmailResult (zero cloud SDK deps)
+                                #   CustomerInfo, Store, Flavor, EmailResult,
+                                #   OrderEmailResult, InventoryAnalysisResult,
+                                #   ContextBuilderOutput (zero cloud SDK deps)
   DurableAgent.Core.Tests/      # xUnit tests for Core models
   DurableAgent.Functions/       # Azure Functions isolated worker
     Program.cs                  # App entry point — AI agent registration + DI
@@ -73,14 +75,22 @@ source/
                                 #   SubmitFeedback (HTTP POST), SubmitOrder (HTTP POST),
                                 #   GetStores / GetFlavors (HTTP GET)
     Orchestrations/             # FeedbackOrchestrator — durable workflow with AI agents
+    Workflows/                  # OrderProcessingWorkflow — sequential multi-agent workflow
     Activities/                 # SendCustomerEmail, ProcessFeedback
+    Agents/                     # Agent config classes: CustomerServiceAgent, EmailAgent,
+                                #   OrderIntakeAgent, FulfillmentDecisionAgent,
+                                #   CustomerMessagingAgent
+    Extensions/                 # AgentExtensions, AIServiceExtensions,
+                                #   EmailServiceExtensions, WorkflowExtensions
     Services/                   # IFeedbackQueueSender, ServiceBusFeedbackQueueSender,
                                 #   IOrderQueueSender, ServiceBusOrderQueueSender,
-                                #   StoreRepository, FlavorRepository
-    Models/                     # FeedbackSubmissionRequest, SendCustomerEmailInput
+                                #   StoreRepository, FlavorRepository, InventoryRepository
+    Models/                     # FeedbackSubmissionRequest, SendCustomerEmailInput,
+                                #   OrderRequest, OrderIntakeResult, FulfillmentDecisionResult,
+                                #   CustomerMessageResult, EmailSettings
     Tools/                      # AI tool functions: GenerateCouponCode, GetStoreDetails,
                                 #   ListFlavors, OpenCustomerServiceCase,
-                                #   GetCurrentUtcDateTime
+                                #   GetCurrentUtcDateTime, CheckInventory, RedactPii
   DurableAgent.Functions.Tests/ # xUnit + FakeItEasy tests for Functions
   DurableAgent.ServiceDefaults/ # Shared Aspire service defaults and OpenTelemetry setup
   DurableAgent.Web/             # ASP.NET Core Razor Pages UI for submitting feedback
@@ -176,11 +186,27 @@ az bicep build --file infra/main.bicep --stdout
 
 1. A client sends a `POST` request to `/api/orders` with an `OrderRequest` JSON body.
 2. **`SubmitOrderTrigger`** validates the request and enqueues it to the `inbound-orders` Service Bus queue via `IOrderQueueSender`.
-3. **`InboundOrderTrigger`** receives the message from Service Bus and processes the order.
+3. **`InboundOrderTrigger`** receives the message from Service Bus and runs the **`order-processing-workflow`** — a sequential multi-agent pipeline:
+   - **`OrderIntakeAgent`** validates and normalises the order against business rules.
+   - **`FulfillmentDecisionAgent`** checks inventory (via `CheckInventoryTool`) and generates a coupon code if stock is short.
+   - **`CustomerMessagingAgent`** crafts an HTML customer message based on the fulfillment outcome.
+4. The trigger sends the composed customer message to the configured recipient address via **Azure Communication Services**.
 
 ### AI Agent Tools
 
-The CustomerServiceAgent has access to 5 tool functions: `GetCurrentUtcDateTime`, `GenerateCouponCode`, `GetStoreDetails`, `ListFlavors`, and `OpenCustomerServiceCase`. These allow the AI to look up store info, generate coupons for unhappy customers, open support cases, and more.
+The project exposes **7 tool functions** across its agents:
+
+| Tool | Used By | Description |
+|---|---|---|
+| `GetCurrentUtcDateTime` | CustomerServiceAgent | Returns the current UTC timestamp |
+| `GenerateCouponCode` | CustomerServiceAgent, FulfillmentDecisionAgent | Generates a discount coupon code |
+| `GetStoreDetails` | CustomerServiceAgent | Looks up store info by store ID |
+| `ListFlavors` | CustomerServiceAgent, FulfillmentDecisionAgent | Lists the available frozen yogurt flavor catalog |
+| `OpenCustomerServiceCase` | CustomerServiceAgent | Opens a customer service support case |
+| `CheckInventory` | FulfillmentDecisionAgent | Returns available inventory quantity for a flavor ID |
+| `RedactPii` | (general use) | Redacts personally identifiable information from text |
+
+The `CustomerServiceAgent` uses 5 of these (`GetCurrentUtcDateTime`, `GenerateCouponCode`, `GetStoreDetails`, `ListFlavors`, `OpenCustomerServiceCase`). The order-processing workflow agents (`FulfillmentDecisionAgent`) use `CheckInventory` and `GenerateCouponCode`.
 
 ### Sample Message
 
@@ -208,7 +234,7 @@ The CustomerServiceAgent has access to 5 tool functions: `GetCurrentUtcDateTime`
 - **DurableAIAgent orchestration** — The orchestrator uses `context.GetAgent()` to get a `DurableAIAgent` wrapper that checkpoints agent calls within the durable orchestration framework
 - **Aspire local orchestration** — `DurableAgent.AppHost` coordinates the Functions app, web frontend, Azurite, service discovery, and local DTS emulation for development
 - **Structured AI output** — Azure OpenAI with `ChatResponseFormat.ForJsonSchema` produces typed `FeedbackResult` responses including sentiment, risk assessment, recommended actions, and optional coupons
-- **AI tool calling** — The agent has 5 tool functions (store lookup, coupon generation, case management, datetime, and flavor lookup) that it invokes autonomously during analysis
+- **AI tool calling** — The project exposes 7 tool functions across its agents: store lookup, coupon generation, case management, datetime, flavor listing, inventory checking, and PII redaction — invoked autonomously by the relevant agent during analysis
 - **Zero secrets** — All authentication uses system-assigned managed identity + RBAC
 - **Flex Consumption (FC1)** — Serverless scaling with per-execution billing; scales to zero when idle
 - **Durable Task Scheduler (Consumption)** — Fully managed orchestration backend that persists agent state and conversation history

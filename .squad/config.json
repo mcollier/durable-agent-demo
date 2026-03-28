@@ -1,4 +1,4 @@
 {
   "version": 1,
-  "teamRoot": "/workspaces/durable-agent-demo"
+  "teamRoot": "../durable-agent-demo"
 }
