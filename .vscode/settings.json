@@ -1,3 +1,6 @@
 {
-    "azureFunctions.projectSubpath": "source/DurableAgent.Functions"
+    "azureFunctions.projectSubpath": "source/DurableAgent.Functions",
+    // settings.json
+    "chat.plugins.enabled": true,
+    "chat.plugins.marketplaces": ["dotnet/skills"]
 }
