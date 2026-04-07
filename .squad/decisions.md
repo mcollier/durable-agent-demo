@@ -709,3 +709,39 @@ Full README.md audit against:
 2. **Data Flow section**: Updated `SendCustomerEmailActivity` line to say "via **Azure Communication Services** to the configured recipient address (`RECIPIENT_EMAIL_ADDRESS`)" — makes clear the mechanism and that all emails route to the settings address, not the customer's email directly.
 
 ---
+# README Audit Findings — 2026-03-28
+
+**Author:** Stark  
+**Requested by:** Michael S. Collier  
+**Scope:** Root `README.md` accuracy audit against actual source
+
+## Summary
+
+Six categories of inaccuracy were found and corrected directly in `README.md`. No design decisions were needed — all fixes are ground-truth corrections against existing code.
+
+## Findings & Corrections
+
+### 1. Project Structure — Missing Directories
+- **Added**: `Agents/` (5 agent config files), `Extensions/` (4 helper files), `Workflows/` (OrderProcessingWorkflow)
+- **Added**: `InventoryRepository.cs` under Services
+
+### 2. Core/Models — Incomplete List
+- **Added**: `OrderEmailResult`, `InventoryAnalysisResult`, `ContextBuilderOutput`
+
+### 3. Functions/Models — Incomplete List
+- **Added**: `OrderRequest`, `OrderIntakeResult`, `FulfillmentDecisionResult`, `CustomerMessageResult`, `EmailSettings`
+
+### 4. Tool Count: 5 → 7
+- README claimed 5 tools total; project has 7: `CheckInventoryTool` (FulfillmentDecisionAgent) and `RedactPiiTool` (general) were missing.
+- Replaced the prose sentence with a proper table mapping each tool to the agent that uses it.
+- Note: the CustomerServiceAgent still uses exactly 5 of those tools — this fact is preserved in the table notes.
+
+### 5. Order Queue Data Flow — Stale Description
+- README said `InboundOrderTrigger` "processes the order" — it actually executes a multi-agent workflow (`order-processing-workflow`): OrderIntakeAgent → FulfillmentDecisionAgent → CustomerMessagingAgent, then sends a customer email via ACS.
+- Updated the Order Queue Path section to describe all three agents and the ACS email step.
+
+### 6. Key Decisions Bullet
+- Updated "agent has 5 tool functions" to "project exposes 7 tool functions across its agents".
+
+## No Action Required from Team
+All corrections reflect existing code. No architectural decisions were made.
