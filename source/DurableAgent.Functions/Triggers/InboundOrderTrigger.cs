@@ -1,11 +1,15 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure;
 using Azure.Communication.Email;
 using Azure.Messaging.ServiceBus;
+using DurableAgent.Functions.Agents;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -19,7 +23,12 @@ namespace DurableAgent.Functions.Triggers;
 /// via Azure Communication Services.
 /// </summary>
 public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
-                                        [FromKeyedServices("order-processing-workflow")] AIAgent orderWorkflow,
+                                        IHttpClientFactory httpClientFactory,
+                                        // [FromKeyedServices("order-processing-workflow")] AIAgent orderWorkflow,
+                                        // [FromKeyedServices("order-processing-workflow")] Workflow orderWorkflow,
+                                        // [FromKeyedServices(OrderIntakeAgentConfig.AgentName)] AIAgent orderIntakeAgent,
+                                        // [FromKeyedServices(CustomerMessagingAgentConfig.AgentName)] AIAgent customerMessagingAgent,
+                                        // [FromKeyedServices(FulfillmentDecisionAgentConfig.AgentName)] AIAgent fulfillmentDecisionAgent,
                                         EmailClient emailClient,
                                         IOptions<EmailSettings> emailSettings)
 {
@@ -47,104 +56,181 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
 
         logger.LogInformation("Received order {OrderReference}.", order.OrderReference);
 
-        var messages = new List<ChatMessage>
-        {
-            new(ChatRole.User, $"Determine if this order can be fulfilled: {JsonSerializer.Serialize(order, JsonOptions)}")
-        };
-        string subject = string.Empty;
-        string body = string.Empty;
+        // Call the order-processing workflow HTTP endpoint exposed by the Durable Functions framework.
+        var client = httpClientFactory.CreateClient("self");
+        using var content = JsonContent.Create(order, options: JsonOptions);
+        using var response = await client.PostAsync(
+            "api/workflows/order-processing-workflow/run", content, cancellationToken);
 
-        // Run the order-processing workflow with the order details as input. The workflow will determine if the order can be fulfilled,
-        var result = await orderWorkflow.RunAsync(messages, cancellationToken: cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError(
+                "Workflow call failed for order {OrderReference}. Status={StatusCode}",
+                order.OrderReference, response.StatusCode);
+            throw new InvalidOperationException(
+                $"Workflow returned {response.StatusCode} for order {order.OrderReference}");
+        }
+
+        logger.LogInformation(
+            "Workflow completed for order {OrderReference}. Status={StatusCode}",
+            order.OrderReference, response.StatusCode);
+
+        // var messages = new List<ChatMessage>
+        // {
+        //     new(ChatRole.User, $"Determine if this order can be fulfilled: {JsonSerializer.Serialize(order, JsonOptions)}")
+        // };
+        // string subject = string.Empty;
+        // string body = string.Empty;
+
+        // // Run the order-processing workflow with the order details as input. The workflow will determine if the order can be fulfilled,
+        // var result = await orderWorkflow.RunAsync(messages, cancellationToken: cancellationToken);
 
         // Use the workflow output to construct a customer message.
-        foreach (ChatMessage chatMessage in result.Messages)
-        {
-            logger.LogInformation("Agent response -- {Role}: {Content}", chatMessage.AuthorName, chatMessage.Contents);
+        // foreach (ChatMessage chatMessage in result.Messages)
+        // {
+        //     logger.LogInformation("Agent response -- {Role}: {Content}", chatMessage.AuthorName, chatMessage.Contents);
 
-            if (chatMessage.AuthorName == "CustomerMessagingAgent")
-            {
-                logger.LogInformation("Final message for customer -- {Content}", chatMessage.Contents);
+        //     if (chatMessage.AuthorName == "CustomerMessagingAgent")
+        //     {
+        //         logger.LogInformation("Final message for customer -- {Content}", chatMessage.Contents);
 
-                logger.LogInformation("There are {Count} contents in the message.", chatMessage.Contents?.Count ?? 0);
+        //         logger.LogInformation("There are {Count} contents in the message.", chatMessage.Contents?.Count ?? 0);
 
-                if (chatMessage.Contents is not null)
-                {
-                    foreach (AIContent content in chatMessage.Contents)
-                    {
-                        if (content is TextContent { Text: { Length: > 0 } text})
-                        {
-                            CustomerMessageResult? customerMessage = null;
-                            try
-                            {
-                                customerMessage = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
-                            }
-                            catch (JsonException ex)
-                            {
-                                logger.LogWarning(
-                                    ex,
-                                    "Failed to deserialize CustomerMessagingAgent payload for order {OrderReference}. MessageId={MessageId}",
-                                    order.OrderReference,
-                                    message.MessageId);
-                            }
-                            if (customerMessage is not null)
-                            {
-                                if (!string.IsNullOrWhiteSpace(customerMessage.OrderId) &&
-                                    !string.Equals(customerMessage.OrderId, order.OrderReference, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    logger.LogWarning(
-                                        "CustomerMessagingAgent payload OrderId {OrderId} does not match order reference {OrderReference}. Ignoring customer message.",
-                                        customerMessage.OrderId,
-                                        order.OrderReference);
-                                    continue;
-                                }
+        //         if (chatMessage.Contents is not null)
+        //         {
+        //             foreach (AIContent content in chatMessage.Contents)
+        //             {
+        //                 if (content is TextContent { Text: { Length: > 0 } text})
+        //                 {
+        //                     CustomerMessageResult? customerMessage = null;
+        //                     try
+        //                     {
+        //                         customerMessage = JsonSerializer.Deserialize<CustomerMessageResult>(text, JsonOptions);
+        //                     }
+        //                     catch (JsonException ex)
+        //                     {
+        //                         logger.LogWarning(
+        //                             ex,
+        //                             "Failed to deserialize CustomerMessagingAgent payload for order {OrderReference}. MessageId={MessageId}",
+        //                             order.OrderReference,
+        //                             message.MessageId);
+        //                     }
+        //                     if (customerMessage is not null)
+        //                     {
+        //                         if (!string.IsNullOrWhiteSpace(customerMessage.OrderId) &&
+        //                             !string.Equals(customerMessage.OrderId, order.OrderReference, StringComparison.OrdinalIgnoreCase))
+        //                         {
+        //                             logger.LogWarning(
+        //                                 "CustomerMessagingAgent payload OrderId {OrderId} does not match order reference {OrderReference}. Ignoring customer message.",
+        //                                 customerMessage.OrderId,
+        //                                 order.OrderReference);
+        //                             continue;
+        //                         }
 
-                                if (customerMessage.Message is not null)
-                                {
-                                    subject = $"Update on your order {order.OrderReference}";
-                                    body = customerMessage.Message;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        //                         if (customerMessage.Message is not null)
+        //                         {
+        //                             subject = $"Update on your order {order.OrderReference}";
+        //                             body = customerMessage.Message;
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
-        // Guard: if no CustomerMessagingAgent payload was produced, skip sending a blank email.
-        if (string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(body))
-        {
-            logger.LogWarning(
-                "No customer message was produced by the CustomerMessagingAgent for order {OrderReference}. Skipping email.",
-                order.OrderReference);
-            return;
-        }
+        // // Guard: if no CustomerMessagingAgent payload was produced, skip sending a blank email.
+        // if (string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(body))
+        // {
+        //     logger.LogWarning(
+        //         "No customer message was produced by the CustomerMessagingAgent for order {OrderReference}. Skipping email.",
+        //         order.OrderReference);
+        //     return;
+        // }
 
-        // Send the email to the customer using Azure Communication Services Email SDK
-        logger.LogInformation("Sending email for order {OrderReference}. Subject: {Subject}, Body: {Body}", order.OrderReference, subject, body);
-        try
-        {
-            var settings = emailSettings.Value;
-            var emailMessage = new EmailMessage(
-                senderAddress: settings.SenderEmailAddress,
-                recipientAddress: settings.RecipientEmailAddress,
-                content: new EmailContent(subject)
-                {
-                    Html = body
-                }
-            );
+        // // Send the email to the customer using Azure Communication Services Email SDK
+        // logger.LogInformation("Sending email for order {OrderReference}. Subject: {Subject}, Body: {Body}", order.OrderReference, subject, body);
+        // try
+        // {
+        //     var settings = emailSettings.Value;
+        //     var emailMessage = new EmailMessage(
+        //         senderAddress: settings.SenderEmailAddress,
+        //         recipientAddress: settings.RecipientEmailAddress,
+        //         content: new EmailContent(subject)
+        //         {
+        //             Html = body
+        //         }
+        //     );
 
-            EmailSendOperation emailSendOperation =
-                await emailClient.SendAsync(WaitUntil.Completed, emailMessage, cancellationToken);
-            logger.LogInformation("Email send operation completed with status: {Status}", emailSendOperation.Value.Status);
-        }
-        catch (Exception ex)
-        {
-            // Email sending is best-effort; log the failure and continue so the
-            // Service Bus message is completed and order processing is not retried.
-            logger.LogError(ex, "Failed to send email for order {OrderReference}.", order.OrderReference);
-        }
+        //     EmailSendOperation emailSendOperation =
+        //         await emailClient.SendAsync(WaitUntil.Completed, emailMessage, cancellationToken);
+        //     logger.LogInformation("Email send operation completed with status: {Status}", emailSendOperation.Value.Status);
+        // }
+        // catch (Exception ex)
+        // {
+        //     // Email sending is best-effort; log the failure and continue so the
+        //     // Service Bus message is completed and order processing is not retried.
+        //     logger.LogError(ex, "Failed to send email for order {OrderReference}.", order.OrderReference);
+        // }
     }
+
+    // [Function(nameof(TestWorkflowAsync))]
+    // public async Task<HttpResponseData> TestWorkflowAsync(
+    //     [HttpTrigger(AuthorizationLevel.Function, "post", Route = "test-workflow")]
+    //     HttpRequestData request,
+    //     CancellationToken cancellationToken)
+    // {
+
+    //     OrderRequest? order = null;
+    //     try
+    //     {
+    //         order = await JsonSerializer.DeserializeAsync<OrderRequest>(request.Body, JsonOptions, cancellationToken);
+    //     }
+    //     catch (JsonException ex)
+    //     {
+    //         logger.LogWarning(ex, "Failed to deserialize order request body.");
+    //     }
+
+    //     var messages = new List<ChatMessage>
+    //     {
+    //         new(ChatRole.User, $"Determine if this order can be fulfilled: {JsonSerializer.Serialize(order, JsonOptions)}")
+    //     };
+
+    //     // Run result = await InProcessExecution.RunAsync(orderWorkflow, messages, cancellationToken: cancellationToken);
+
+    //     var workflow = AgentWorkflowBuilder.BuildSequential(
+    //         workflowName: "order-workflow",
+    //         agents:
+    //         [
+    //             orderIntakeAgent,
+    //             fulfillmentDecisionAgent,
+    //             customerMessagingAgent
+    //         ]
+    //     );
+    //     Run result = await InProcessExecution.RunAsync(workflow, messages, cancellationToken: cancellationToken);
+
+    //     // List<ChatMessage> allMessages = [];
+    //     foreach (WorkflowEvent evt in result.NewEvents)
+    //     {
+    //         // logger.LogInformation("Outgoing events -- {EventType}: {Data}", evt.GetType().Name, evt.Data);
+
+    //         if (evt is WorkflowOutputEvent outputEvent && evt is not AgentResponseUpdateEvent)
+    //         {
+    //             logger.LogInformation("Workflow output -- {Data}", outputEvent.Data);
+
+    //             // allMessages = (List<ChatMessage>)outputEvent.Data!;
+    //         }
+    //         // if (evt is ExecutorCompletedEvent executorCompleted)
+    //         // {
+    //         //     logger.LogInformation("Executor completed -- {ExecutorId}: {Data}", executorCompleted.ExecutorId, executorCompleted.Data);
+    //         // }
+    //     }
+
+    //     var response = request.CreateResponse(System.Net.HttpStatusCode.OK);
+    //     await response.WriteStringAsync("Workflow executed successfully.", cancellationToken);
+
+    //     return response;
+    // }
 
     // [Function(nameof(TestWorkflowAsync))]
     // public async Task<HttpResponseData> TestWorkflowAsync(

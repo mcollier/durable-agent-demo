@@ -8,6 +8,8 @@ public static class WorkflowServiceExtensions
     public static FunctionsApplicationBuilder RegisterWorkflow(this FunctionsApplicationBuilder builder)
     {
         OrderProcessingWorkflow.RegisterWorkflow(builder);
+
+        SampleOrderWorkflow.RegisterWorkflow(builder);
         
         return builder;
     }
