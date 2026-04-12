@@ -23,14 +23,15 @@ namespace DurableAgent.Functions.Triggers;
 /// via Azure Communication Services.
 /// </summary>
 public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
-                                        IHttpClientFactory httpClientFactory,
+                                        IHttpClientFactory httpClientFactory
                                         // [FromKeyedServices("order-processing-workflow")] AIAgent orderWorkflow,
                                         // [FromKeyedServices("order-processing-workflow")] Workflow orderWorkflow,
                                         // [FromKeyedServices(OrderIntakeAgentConfig.AgentName)] AIAgent orderIntakeAgent,
                                         // [FromKeyedServices(CustomerMessagingAgentConfig.AgentName)] AIAgent customerMessagingAgent,
                                         // [FromKeyedServices(FulfillmentDecisionAgentConfig.AgentName)] AIAgent fulfillmentDecisionAgent,
-                                        EmailClient emailClient,
-                                        IOptions<EmailSettings> emailSettings)
+                                        // EmailClient emailClient,
+                                        // IOptions<EmailSettings> emailSettings
+                                        )
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

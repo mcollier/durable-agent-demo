@@ -1,14 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Azure;
-using Azure.Communication.Email;
 using Azure.Messaging.ServiceBus;
 using DurableAgent.Functions.Models;
 using DurableAgent.Functions.Triggers;
 using FakeItEasy;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace DurableAgent.Functions.Tests.Triggers;
 
@@ -20,13 +17,6 @@ public class InboundOrderTriggerTests
     };
 
     private readonly ILogger<InboundOrderTrigger> _logger = A.Fake<ILogger<InboundOrderTrigger>>();
-    private readonly EmailClient _emailClient = A.Fake<EmailClient>();
-    private readonly IOptions<EmailSettings> _emailSettings = Options.Create(new EmailSettings
-    {
-        RecipientEmailAddress = "test@example.com",
-        SenderEmailAddress = "sender@example.com",
-        ServiceEndpoint = "https://email.example.com"
-    });
 
     private static OrderRequest CreateValidOrder() => new()
     {
@@ -60,7 +50,7 @@ public class InboundOrderTriggerTests
         var body = BinaryData.FromObjectAsJson(order);
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-1");
         var (factory, handler) = CreateFakeHttpClientFactory();
-        var trigger = new InboundOrderTrigger(_logger, factory, _emailClient, _emailSettings);
+        var trigger = new InboundOrderTrigger(_logger, factory);
 
         await trigger.RunAsync(message, CancellationToken.None);
 
@@ -80,7 +70,7 @@ public class InboundOrderTriggerTests
         var body = BinaryData.FromObjectAsJson(order);
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-1");
         var (factory, _) = CreateFakeHttpClientFactory();
-        var trigger = new InboundOrderTrigger(_logger, factory, _emailClient, _emailSettings);
+        var trigger = new InboundOrderTrigger(_logger, factory);
 
         await trigger.RunAsync(message, CancellationToken.None);
 
@@ -97,7 +87,7 @@ public class InboundOrderTriggerTests
         var body = BinaryData.FromString("null");
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-null");
         var (factory, handler) = CreateFakeHttpClientFactory();
-        var trigger = new InboundOrderTrigger(_logger, factory, _emailClient, _emailSettings);
+        var trigger = new InboundOrderTrigger(_logger, factory);
 
         await trigger.RunAsync(message, CancellationToken.None);
 
@@ -113,7 +103,7 @@ public class InboundOrderTriggerTests
     public async Task WhenMessageIsNull_ThenThrowsArgumentNullException()
     {
         var (factory, _) = CreateFakeHttpClientFactory();
-        var trigger = new InboundOrderTrigger(_logger, factory, _emailClient, _emailSettings);
+        var trigger = new InboundOrderTrigger(_logger, factory);
 
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             trigger.RunAsync(null!, CancellationToken.None));
@@ -126,7 +116,7 @@ public class InboundOrderTriggerTests
         var body = BinaryData.FromObjectAsJson(order);
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: body, messageId: "msg-order-fail");
         var (factory, _) = CreateFakeHttpClientFactory(HttpStatusCode.InternalServerError);
-        var trigger = new InboundOrderTrigger(_logger, factory, _emailClient, _emailSettings);
+        var trigger = new InboundOrderTrigger(_logger, factory);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             trigger.RunAsync(message, CancellationToken.None));
