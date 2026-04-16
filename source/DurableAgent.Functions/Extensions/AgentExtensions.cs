@@ -4,12 +4,19 @@ using Microsoft.Agents.AI.Hosting.AzureFunctions;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using SequentialWorkflow;
 
 namespace DurableAgent.Functions.Extensions
 {
+    /// <summary>
+    /// Extension methods for registering AI agents and durable workflows with the Functions application.
+    /// </summary>
     public static class AgentExtensions
     {
+        /// <summary>
+        /// Registers all AI agent configurations into the dependency injection container.
+        /// </summary>
+        /// <param name="builder">The Functions application builder.</param>
+        /// <returns>The <paramref name="builder"/> for chaining.</returns>
         public static FunctionsApplicationBuilder AddAgents(this FunctionsApplicationBuilder builder)
         {
             CustomerServiceAgentConfig.RegisterAgent(builder);
@@ -21,6 +28,12 @@ namespace DurableAgent.Functions.Extensions
             return builder;
         }
 
+        /// <summary>
+        /// Resolves registered AI agents and configures them as durable agents and workflows
+        /// with HTTP triggers and status endpoints.
+        /// </summary>
+        /// <param name="builder">The Functions application builder (agents must already be registered via <see cref="AddAgents"/>).</param>
+        /// <returns>The <paramref name="builder"/> for chaining.</returns>
         public static FunctionsApplicationBuilder AddDurableAgents(this FunctionsApplicationBuilder builder)
         {
             var customerServiceAgent = builder.Services.BuildServiceProvider()
@@ -46,32 +59,11 @@ namespace DurableAgent.Functions.Extensions
                                             .WithOutputFrom(customerMessagingAgent)
                                             .Build();
 
-            
-            // builder.ConfigureDurableAgents(options =>
-            //     options.AddAIAgent(customerServiceAgent)
-            //            .AddAIAgent(emailAgent));
-
-            // Set up the sample executors
-            // OrderLookup orderLookup = new();
-            // OrderCancel orderCancel = new();
-            // SendEmail sendEmail = new();
-
-            // // Build the CancelOrder workflow: OrderLookup -> OrderCancel -> SendEmail
-            // Workflow cancelOrder = new WorkflowBuilder(orderLookup)
-            //     .WithName("CancelOrder")
-            //     .WithDescription("Cancel an order and notify the customer")
-            //     .AddEdge(orderLookup, orderCancel)
-            //     .AddEdge(orderCancel, sendEmail)
-            //     .Build();
-
             builder.ConfigureDurableOptions(options =>
             {
-                // options.Agents.AddAIAgents([customerServiceAgent, emailAgent]);
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
 
-                // options.Workflows.AddWorkflow(cancelOrder);
-                // options.Workflows.AddWorkflows([orderProcessingWorkflow]);
                 options.Workflows.AddWorkflow(orderProcessingWorkflow, exposeStatusEndpoint: true, exposeMcpToolTrigger: false);
             });
 
@@ -79,14 +71,3 @@ namespace DurableAgent.Functions.Extensions
         }
     }
 }
-
-/*
-.ConfigureDurableOptions(options =>
-    {
-        // Register the standalone agent with HTTP and MCP tool triggers
-        options.Agents.AddAIAgent(assistant, enableHttpTrigger: true, enableMcpToolTrigger: true);
-
-        // Register the workflow with an HTTP endpoint and MCP tool trigger
-        options.Workflows.AddWorkflow(translateWorkflow, exposeStatusEndpoint: false, exposeMcpToolTrigger: true);
-    })
-*/

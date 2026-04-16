@@ -28,8 +28,6 @@ builder.AddAgents();
 
 builder.AddDurableAgents();
 
-// builder.RegisterWorkflow();
-
 // Named HttpClient for calling the app's own workflow HTTP endpoints.
 // Uses Aspire service discovery ("func" resolves to the app's own allocated endpoint).
 builder.Services.AddHttpClient("self", client =>

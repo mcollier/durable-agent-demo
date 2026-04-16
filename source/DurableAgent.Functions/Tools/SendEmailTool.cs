@@ -1,4 +1,3 @@
-
 using System.ComponentModel;
 using Azure;
 using Azure.Communication.Email;
