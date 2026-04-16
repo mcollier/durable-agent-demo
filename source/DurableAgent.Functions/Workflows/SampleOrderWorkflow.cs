@@ -15,9 +15,6 @@ public static class SampleOrderWorkflow
         OrderLookup orderLookup = new();
         OrderCancel orderCancel = new();
         SendEmail sendEmail = new();
-        // StatusReport statusReport = new();
-        // BatchCancelProcessor batchCancelProcessor = new();
-        // BatchCancelSummary batchCancelSummary = new();
 
         // Build the CancelOrder workflow: OrderLookup -> OrderCancel -> SendEmail
         Workflow cancelOrder = new WorkflowBuilder(orderLookup)
