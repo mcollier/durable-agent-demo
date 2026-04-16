@@ -1,10 +1,14 @@
 
+using Azure.Communication.Email;
 using DurableAgent.Functions.Models;
+using DurableAgent.Functions.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DurableAgent.Functions.Agents;
 
@@ -52,9 +56,17 @@ public class CustomerMessagingAgentConfig
 
         Do not mention internal systems, agents, tools, or workflows.
 
+        ## Sending the Email
+
+        After crafting the message body, you MUST call the SendEmail tool before returning your JSON output.
+
+        Use the following values when calling SendEmail:
+        - subject: "Update on your Froyo Foundry order {orderId}" (replace {orderId} with the actual order ID)
+        - body: the HTML-formatted message you composed
+
         ## Output Requirements
 
-        Return valid JSON only.
+        Return valid JSON only after calling SendEmail.
 
         Structure:
 
@@ -72,13 +84,21 @@ public class CustomerMessagingAgentConfig
             {
                 // Get the IChatClient from the DI container
                 var chatClient = sp.GetRequiredService<IChatClient>();
-                
+                var sendEmailTool = new SendEmailTool(
+                    sp.GetRequiredService<EmailClient>(),
+                    sp.GetRequiredService<IOptions<EmailSettings>>(),
+                    sp.GetRequiredService<ILoggerFactory>().CreateLogger<SendEmailTool>());
+
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
                         Name = key,
                         ChatOptions = new()
                         {
+                            Tools =
+                            [
+                                AIFunctionFactory.Create(sendEmailTool.SendEmail)
+                            ],
                             Instructions = SystemPrompt,
                             ResponseFormat = ChatResponseFormat.ForJsonSchema(
                                 schema: AIJsonUtilities.CreateJsonSchema(typeof(CustomerMessageResult)),

@@ -1,5 +1,5 @@
 # @hostname=http://localhost:7071
-@hostname=http://localhost:42015
+@hostname=http://localhost:45233
 
 ### Submit feedback - positive
 
@@ -139,3 +139,37 @@ Content-Type: application/json
     "phoneNumber": "(555) 012-3456",
     "orderReference": "FRY-20260308-wf1"
 }
+
+###
+
+POST http://localhost:46619/api/workflows/order-processing-workflow/run HTTP/1.1
+Content-Type: application/json
+
+{
+    "flavorId": "VNE",
+    "quantity": 5,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "streetAddress": "123 Froyo Lane",
+    "addressLine2": "Apt 4B",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "email": "milo.mustang@example.com",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf1"
+}
+
+### Get the status of a workflow run
+GET http://localhost:46619/api/workflows/order-processing-workflow/status/8adc6f2ad3aa4da58fb2d7160312a9fe
+
+###
+curl http://localhost:46619/api/workflows/order-processing-workflow/status/8adc6f2ad3aa4da58fb2d7160312a9fe
+
+###
+
+POST http://localhost:34813/api/workflows/CancelOrder/run
+Content-Type: text/plain
+
+12345
+

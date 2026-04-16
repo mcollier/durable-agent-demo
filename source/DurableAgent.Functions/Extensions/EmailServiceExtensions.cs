@@ -7,8 +7,19 @@ using Microsoft.Extensions.Options;
 
 namespace DurableAgent.Functions.Extensions;
 
+/// <summary>
+/// Extension methods for configuring email services in the Azure Functions application.
+/// </summary>
 public static class EmailServiceExtensions
 {
+    /// <summary>
+    /// Adds email service configuration and Azure Communication Services EmailClient to the dependency injection container.
+    /// </summary>
+    /// <param name="builder">The FunctionsApplicationBuilder to extend.</param>
+    /// <returns>The FunctionsApplicationBuilder for method chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when required environment variables (RECIPIENT_EMAIL_ADDRESS, SENDER_EMAIL_ADDRESS, or EMAIL_SERVICE_ENDPOINT) are not set.
+    /// </exception>
     public static FunctionsApplicationBuilder AddEmailService(this FunctionsApplicationBuilder builder)
     {
         builder.Services.AddOptions<EmailSettings>()

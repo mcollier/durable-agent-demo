@@ -80,6 +80,9 @@ else
         .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", durableTaskSchedulerConnectionString);
 }
 
+// Self-reference so the Functions app can resolve its own HTTP endpoint via Aspire service discovery.
+func.WithReference(func);
+
 var web = builder.AddProject<Projects.DurableAgent_Web>("web")
     .WithReference(func)
     .WithExternalHttpEndpoints()

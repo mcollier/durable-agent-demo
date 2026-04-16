@@ -1,5 +1,6 @@
 using DurableAgent.Core.Models;
 using DurableAgent.Functions.Activities;
+using DurableAgent.Functions.Agents;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DurableTask;
@@ -30,7 +31,7 @@ public static class FeedbackOrchestrator
         logger.LogInformation("Processing feedback {FeedbackId}", feedbackMessage.FeedbackId);
 
         // Use CustomerServiceAgent to analyze feedback and determine if follow-up is needed
-        DurableAIAgent customerServiceAgent = context.GetAgent("CustomerServiceAgent");
+        DurableAIAgent customerServiceAgent = context.GetAgent(CustomerServiceAgentConfig.AgentName);
         AgentSession agentSession = await customerServiceAgent.CreateSessionAsync();
 
         AgentResponse<FeedbackResult> agentResponse = await customerServiceAgent.RunAsync<FeedbackResult>(
