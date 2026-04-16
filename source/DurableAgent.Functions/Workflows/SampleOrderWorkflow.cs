@@ -1,7 +1,6 @@
 using Microsoft.Agents.AI.Hosting.AzureFunctions;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker.Builder;
-using SequentialWorkflow;
 
 namespace DurableAgent.Functions.Workflows;
 

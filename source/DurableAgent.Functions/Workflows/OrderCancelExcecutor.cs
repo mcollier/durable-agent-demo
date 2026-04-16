@@ -2,7 +2,7 @@
 
 using Microsoft.Agents.AI.Workflows;
 
-namespace SequentialWorkflow;
+namespace DurableAgent.Functions.Workflows;
 
 /// <summary>
 /// Looks up an order by its ID and return an Order object.
