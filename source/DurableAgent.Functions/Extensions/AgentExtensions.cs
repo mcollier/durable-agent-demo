@@ -36,20 +36,13 @@ namespace DurableAgent.Functions.Extensions
         /// <returns>The <paramref name="builder"/> for chaining.</returns>
         public static FunctionsApplicationBuilder AddDurableAgents(this FunctionsApplicationBuilder builder)
         {
-            var customerServiceAgent = builder.Services.BuildServiceProvider()
-                .GetRequiredKeyedService<AIAgent>(CustomerServiceAgentConfig.AgentName);
+            var sp = builder.Services.BuildServiceProvider();
 
-            var emailAgent = builder.Services.BuildServiceProvider()
-                .GetRequiredKeyedService<AIAgent>(EmailAgentConfig.AgentName);
-
-            var orderIntakeAgent = builder.Services.BuildServiceProvider()
-                .GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName);
-
-            var fulfillmentDecisionAgent = builder.Services.BuildServiceProvider()
-                .GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
-
-            var customerMessagingAgent = builder.Services.BuildServiceProvider()
-                .GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
+            var customerServiceAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerServiceAgentConfig.AgentName);
+            var emailAgent = sp.GetRequiredKeyedService<AIAgent>(EmailAgentConfig.AgentName);
+            var orderIntakeAgent = sp.GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName);
+            var fulfillmentDecisionAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
+            var customerMessagingAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
 
             Workflow orderProcessingWorkflow = new WorkflowBuilder(orderIntakeAgent)
                                             .WithName("order-processing-workflow")
