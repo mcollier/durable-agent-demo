@@ -36,6 +36,9 @@ namespace DurableAgent.Functions.Extensions
         /// <returns>The <paramref name="builder"/> for chaining.</returns>
         public static FunctionsApplicationBuilder AddDurableAgents(this FunctionsApplicationBuilder builder)
         {
+            // ConfigureDurableOptions requires live AIAgent instances, not factories, so we must
+            // resolve them before builder.Build(). This creates a temporary container snapshot —
+            // all agent registrations must already be complete (i.e. AddAgents() called first).
             var sp = builder.Services.BuildServiceProvider();
 
             var customerServiceAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerServiceAgentConfig.AgentName);
