@@ -21,11 +21,11 @@ public sealed class SendEmailTool(EmailClient emailClient, IOptions<EmailSetting
         var settings = emailSettings.Value;
 
         logger.LogInformation(
-            "Sending email. From={Sender} To={Recipient} Subject={Subject} Body={Body}",
+            "Sending email. From={Sender} To={Recipient} Subject={Subject} BodyLength={BodyLength}",
             settings.SenderEmailAddress,
             settings.RecipientEmailAddress,
             subject,
-            body);
+            body.Length);
 
         var message = new EmailMessage(
             senderAddress: settings.SenderEmailAddress,
