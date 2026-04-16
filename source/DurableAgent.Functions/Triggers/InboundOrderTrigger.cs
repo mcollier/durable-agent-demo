@@ -49,11 +49,17 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
 
         if (!response.IsSuccessStatusCode)
         {
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            var normalizedResponseBody = string.IsNullOrWhiteSpace(responseBody) ? null : responseBody;
+
             logger.LogError(
-                "Workflow call failed for order {OrderReference}. Status={StatusCode}",
-                order.OrderReference, response.StatusCode);
+                "Workflow call failed for order {OrderReference}. Status={StatusCode}. ResponseBody={ResponseBody}",
+                order.OrderReference, response.StatusCode, normalizedResponseBody);
+
             throw new InvalidOperationException(
-                $"Workflow returned {response.StatusCode} for order {order.OrderReference}");
+                normalizedResponseBody is null
+                    ? $"Workflow returned {response.StatusCode} for order {order.OrderReference}"
+                    : $"Workflow returned {response.StatusCode} for order {order.OrderReference}. Response body: {normalizedResponseBody}");
         }
 
         logger.LogInformation(
