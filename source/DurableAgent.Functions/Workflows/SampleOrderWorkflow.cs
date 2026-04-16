@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker.Builder;
 
 namespace DurableAgent.Functions.Workflows;
 
+[Obsolete("SampleOrderWorkflow is not currently used and may be removed in a future release.")]
 public static class SampleOrderWorkflow
 {
     public const string WorkflowName = "sample-order-workflow";

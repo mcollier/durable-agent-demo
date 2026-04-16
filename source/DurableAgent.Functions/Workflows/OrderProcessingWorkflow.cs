@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DurableAgent.Functions.Workflows;
 
+[Obsolete("OrderProcessingWorkflow is not currently used and may be removed in a future release.")]
 public static class OrderProcessingWorkflow
 {
     public const string WorkflowName = "order-processing-workflow";
