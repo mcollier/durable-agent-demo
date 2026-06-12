@@ -58,7 +58,7 @@ public static class Extensions
             {
                 metrics
                     // .AddMeter("Microsoft.Agents.AI*") // Agent Framework telemetry
-                    .AddMeter("*")
+                    .AddMeter("Microsoft.Agents.AI") // Agent Framework telemetry
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();
