@@ -1,4 +1,5 @@
 using Azure.Communication.Email;
+using Azure.Core;
 using Azure.Identity;
 using DurableAgent.Functions.Models;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -34,10 +35,16 @@ public static class EmailServiceExtensions
             })
             .ValidateOnStart();
 
+        string environmentName = builder.Environment.EnvironmentName;
+
+        TokenCredential credential = environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase)
+            ? new AzureCliCredential()
+            : new DefaultAzureCredential();
+        
         builder.Services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<EmailSettings>>().Value;
-            return new EmailClient(new Uri(settings.ServiceEndpoint), new DefaultAzureCredential());
+            return new EmailClient(new Uri(settings.ServiceEndpoint), credential);
         });
 
         return builder;

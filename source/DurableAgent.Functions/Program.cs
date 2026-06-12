@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Azure.Identity;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -14,7 +15,13 @@ builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
 
-builder.AddAzureServiceBusClient(connectionName: "messaging");
+bool isDevelopment = builder.Environment.IsDevelopment();
+builder.AddAzureServiceBusClient(connectionName: "messaging", settings =>
+{
+    settings.Credential = isDevelopment
+        ? new AzureCliCredential()
+        : new DefaultAzureCredential();
+});
 
 builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSender>();
 builder.Services.AddSingleton<IOrderQueueSender, ServiceBusOrderQueueSender>();

@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "source/DurableAgent.AppHost/DurableAgent.AppHost.csproj"
+  }
+}

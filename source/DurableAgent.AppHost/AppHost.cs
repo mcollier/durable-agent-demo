@@ -32,9 +32,30 @@ var storage = builder.AddAzureStorage("storage")
             .WithLifetime(ContainerLifetime.Persistent);
     });
 
+    // Service bus (emulated).
+    // var serviceBusName = "servicebus";
+    // var serviceBus = builder.AddAzureServiceBus(serviceBusName)
+    //     .RunAsEmulator(e => e
+    //         .WithContainerName("your-servicebus-container")
+    //         .WithLifetime(ContainerLifetime.Persistent)
+    //     );
+    // // Rename the SQL container created by the Service Bus emulator (hack):
+    // var serviceBusSql = builder.Resources.OfType<ContainerResource>().Last(x => x.Name == $"{serviceBusName}-mssql");
+    // serviceBusSql.Annotations.Add(new ContainerNameAnnotation { Name = "your-servicebus-mssql-container" });
+
+
 // Set up Azure Service Bus. This assumes you have an existing Service Bus namespace and queue set up in Azure,
 // and you are providing the necessary connection information via parameters.
 var sb = builder.AddAzureServiceBus("messaging")
+                // .RunAsEmulator();
+            // .RunAsEmulator(emulator => 
+            // {
+            //     emulator.WithContainerName("your-servicebus-container")
+            //             .WithLifetime(ContainerLifetime.Persistent);
+            // });
+            // var serviceBusSql = builder.Resources.OfType<ContainerResource>().Last(x => x.Name == $"messaging-mssql");
+            // serviceBusSql.Annotations.Add(new ContainerNameAnnotation { Name = "your-servicebus-mssql-container" });
+            
         .AsExisting(serviceBusName, serviceBusResourceGroup);
 
 _ = sb.AddServiceBusQueue(feedbackQueueName);
@@ -55,6 +76,8 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
     .WithEnvironment("EMAIL_SERVICE_ENDPOINT", emailServiceEndpoint)
     .WithExternalHttpEndpoints();
+    // .WaitFor(storage);
+    // .WaitFor(sb);
 
 if (useDtsEmulator)
 {
