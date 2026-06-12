@@ -1,4 +1,5 @@
 using Azure.AI.OpenAI;
+using Azure.Core;
 using Azure.Identity;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
@@ -28,10 +29,22 @@ namespace DurableAgent.Functions.Extensions
                 "Production";
 
             bool isDevelopment = environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase);
+
+            TokenCredential credential;
+
+            if (isDevelopment)
+            {
+                credential = new AzureCliCredential();
+            }
+            else
+            {
+                // TODO: Use ManagedIdentityCredential in production for better security. This requires the function app to have a user assigned managed identity with the appropriate permissions to access the Azure OpenAI resource.
+                credential = new DefaultAzureCredential();
+            }
             
             IChatClient chatClient = new AzureOpenAIClient(
                 new Uri(endpoint),
-                new DefaultAzureCredential())
+                credential)
                 .GetChatClient(deploymentName)
                 .AsIChatClient()
                 .AsBuilder()

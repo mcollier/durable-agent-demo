@@ -1,4 +1,5 @@
 using Azure.Communication.Email;
+using Azure.Core;
 using Azure.Identity;
 using DurableAgent.Functions.Models;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -34,10 +35,29 @@ public static class EmailServiceExtensions
             })
             .ValidateOnStart();
 
+        // check if we're running in development environment and if so, use AzureCliCredential for local development. In production, DefaultAzureCredential will automatically pick the best available credential, which may be a managed identity if available.
+        var environmentName =
+            Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT") ??
+            Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ??
+            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
+            "Production";
+            
+        TokenCredential credential;
+
+        if (environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase))
+        {
+            credential = new AzureCliCredential();
+        }
+        else
+        {
+            // TODO: Use ManagedIdentityCredential in production for better security. This requires the function app to have a user assigned managed identity with the appropriate permissions to access the Azure Communication Services resource.
+            credential = new DefaultAzureCredential();
+        }
+        
         builder.Services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<EmailSettings>>().Value;
-            return new EmailClient(new Uri(settings.ServiceEndpoint), new DefaultAzureCredential());
+            return new EmailClient(new Uri(settings.ServiceEndpoint), credential);
         });
 
         return builder;

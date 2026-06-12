@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Azure.Identity;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -14,7 +15,12 @@ builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
 
-builder.AddAzureServiceBusClient(connectionName: "messaging");
+builder.AddAzureServiceBusClient(connectionName: "messaging", settings =>
+{
+    // TODO: Use ManagedIdentityCredential in production for better security. This requires the function app to have a user assigned managed identity with the appropriate permissions to access the Service Bus namespace.
+    // See https://aspire.dev/integrations/cloud/azure/azure-default-credential/
+    settings.Credential = new AzureCliCredential();
+});
 
 builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSender>();
 builder.Services.AddSingleton<IOrderQueueSender, ServiceBusOrderQueueSender>();
