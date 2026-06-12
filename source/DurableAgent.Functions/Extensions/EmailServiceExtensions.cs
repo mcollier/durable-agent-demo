@@ -35,24 +35,11 @@ public static class EmailServiceExtensions
             })
             .ValidateOnStart();
 
-        // check if we're running in development environment and if so, use AzureCliCredential for local development. In production, DefaultAzureCredential will automatically pick the best available credential, which may be a managed identity if available.
-        var environmentName =
-            Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT") ??
-            Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ??
-            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
-            "Production";
-            
-        TokenCredential credential;
+        string environmentName = builder.Environment.EnvironmentName;
 
-        if (environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase))
-        {
-            credential = new AzureCliCredential();
-        }
-        else
-        {
-            // TODO: Use ManagedIdentityCredential in production for better security. This requires the function app to have a user assigned managed identity with the appropriate permissions to access the Azure Communication Services resource.
-            credential = new DefaultAzureCredential();
-        }
+        TokenCredential credential = environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase)
+            ? new AzureCliCredential()
+            : new DefaultAzureCredential();
         
         builder.Services.AddSingleton(sp =>
         {
