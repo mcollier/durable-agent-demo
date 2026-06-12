@@ -4,6 +4,7 @@ using Azure.Identity;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Resources;
 
 namespace DurableAgent.Functions.Extensions
@@ -22,13 +23,8 @@ namespace DurableAgent.Functions.Extensions
 
             string sourceName = builder.Environment.ApplicationName;
 
-            var environmentName =
-                Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT") ??
-                Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ??
-                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
-                "Production";
-
-            bool isDevelopment = environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            string environmentName = builder.Environment.EnvironmentName;
+            bool isDevelopment = builder.Environment.IsDevelopment();
 
             TokenCredential credential;
 
