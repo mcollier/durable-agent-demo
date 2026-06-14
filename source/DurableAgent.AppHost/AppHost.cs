@@ -71,6 +71,7 @@ _ = sb.AddServiceBusQueue(orderQueueName);
 
 var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("func")
     .WithHostStorage(storage)
+    .WithReference(dtsTaskHub)
     .WithReference(sb)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAIEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT", azureOpenAIDeployment)
@@ -83,8 +84,6 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
     .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
     .WithEnvironment("EMAIL_SERVICE_ENDPOINT", emailServiceEndpoint)
-    .WithEnvironment("TASKHUB_NAME", dtsTaskHub.Resource.TaskHubName)
-    .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", dtsScheduler)
     .WithExternalHttpEndpoints()
     .WaitFor(storage)
     .WaitFor(dtsScheduler)
