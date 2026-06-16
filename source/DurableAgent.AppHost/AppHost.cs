@@ -1,11 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-const string DtsEmulatorTaskHubName = "default";
-
 var azureOpenAIEndpoint = builder.AddParameter("AZURE-OPENAI-ENDPOINT");
 var azureOpenAIDeployment = builder.AddParameter("AZURE-OPENAI-DEPLOYMENT");
-var taskHubName = builder.AddParameter("TASKHUB-NAME");
-var durableTaskSchedulerConnectionString = builder.AddParameter("DURABLE-TASK-SCHEDULER-CONNECTION-STRING");
 var applicationInsightsConnectionString = builder.AddParameter("APPLICATIONINSIGHTS-CONNECTION-STRING");
 var serviceBusResourceGroup = builder.AddParameter("SERVICEBUS-RESOURCE-GROUP");
 var serviceBusName = builder.AddParameter("SERVICEBUS-NAME");
@@ -18,19 +14,31 @@ var feedbackQueueName = builder.Configuration["Parameters:FEEDBACK_QUEUE_NAME"]
 var orderQueueName = builder.Configuration["Parameters:ORDER_QUEUE_NAME"]
     ?? throw new InvalidOperationException("Missing Parameters:ORDER_QUEUE_NAME.");
 
-var useDtsEmulator = ResolveDurableTaskSchedulerMode(
-    builder.Configuration["DurableTaskScheduler:Mode"],
-    builder.ExecutionContext.IsRunMode);
+// Azure Durable Task Scheduler
 
-// Set up Azure Storage Emulator (Azurite) for local development and testing.
-var storage = builder.AddAzureStorage("storage")
-    .RunAsEmulator(azurite =>
+#pragma warning disable ASPIREDURABLETASK001
+
+var dtsScheduler = builder.AddDurableTaskScheduler("scheduler");
+if (builder.ExecutionContext.IsRunMode)
+{
+    dtsScheduler.RunAsEmulator();
+}
+var dtsTaskHub = dtsScheduler.AddTaskHub("default");
+
+#pragma warning restore ASPIREDURABLETASK001
+
+// Azure Storage: emulator for local development, real Azure Storage when published.
+var storage = builder.AddAzureStorage("storage");
+if (builder.ExecutionContext.IsRunMode)
+{
+    storage.RunAsEmulator(azurite =>
     {
         azurite.WithBlobPort(10000)
-            .WithQueuePort(10001)
-            .WithTablePort(10002)
-            .WithLifetime(ContainerLifetime.Persistent);
+               .WithQueuePort(10001)
+               .WithTablePort(10002)
+               .WithLifetime(ContainerLifetime.Persistent);
     });
+}
 
     // Service bus (emulated).
     // var serviceBusName = "servicebus";
@@ -63,6 +71,7 @@ _ = sb.AddServiceBusQueue(orderQueueName);
 
 var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("func")
     .WithHostStorage(storage)
+    .WithReference(dtsTaskHub)
     .WithReference(sb)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAIEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT", azureOpenAIDeployment)
@@ -75,33 +84,10 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
     .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
     .WithEnvironment("EMAIL_SERVICE_ENDPOINT", emailServiceEndpoint)
-    .WithExternalHttpEndpoints();
-    // .WaitFor(storage);
-    // .WaitFor(sb);
-
-if (useDtsEmulator)
-{
-    // Local runs default to the DTS emulator unless configuration explicitly overrides the mode.
-    var dts = builder.AddContainer("dts", "mcr.microsoft.com/dts/dts-emulator", "latest")
-        .WithEndpoint(name: "grpc", targetPort: 8080)
-        .WithHttpEndpoint(name: "http", targetPort: 8081)
-        .WithHttpEndpoint(name: "dashboard", targetPort: 8082);
-
-    var grpcEndpoint = dts.GetEndpoint("grpc");
-    var dtsConnectionString = ReferenceExpression.Create(
-        $"Endpoint=http://{grpcEndpoint.Property(EndpointProperty.Host)}:{grpcEndpoint.Property(EndpointProperty.Port)};Authentication=None");
-
-    func = func
-        .WithEnvironment("TASKHUB_NAME", DtsEmulatorTaskHubName)
-        .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", dtsConnectionString)
-        .WaitFor(dts);
-}
-else
-{
-    func = func
-        .WithEnvironment("TASKHUB_NAME", taskHubName)
-        .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", durableTaskSchedulerConnectionString);
-}
+    .WithExternalHttpEndpoints()
+    .WaitFor(storage)
+    .WaitFor(dtsScheduler)
+    .WaitFor(sb);
 
 // Self-reference so the Functions app can resolve its own HTTP endpoint via Aspire service discovery.
 func.WithReference(func);
@@ -112,26 +98,3 @@ var web = builder.AddProject<Projects.DurableAgent_Web>("web")
     .WaitFor(func);
 
 builder.Build().Run();
-
-// Centralize DTS backend selection so the Functions app can keep consuming a single
-// connection-string setting regardless of whether AppHost is running locally or publishing.
-static bool ResolveDurableTaskSchedulerMode(string? configuredMode, bool isRunMode)
-{
-    if (string.IsNullOrWhiteSpace(configuredMode))
-    {
-        // When no override is configured, follow Aspire's execution context:
-        // local run mode uses the emulator and non-run contexts use Azure.
-        return isRunMode;
-    }
-
-    return configuredMode.Trim().ToLowerInvariant() switch
-    {
-        // Auto preserves the default behavior while still allowing explicit overrides
-        // for local runs that need to target the provisioned Azure scheduler.
-        "auto" => isRunMode,
-        "emulator" => true,
-        "azure" => false,
-        _ => throw new InvalidOperationException(
-            "Unsupported DurableTaskScheduler:Mode value. Supported values are Auto, Emulator, or Azure.")
-    };
-}
