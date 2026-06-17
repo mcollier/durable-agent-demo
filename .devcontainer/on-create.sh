@@ -1,5 +1,8 @@
 ## Aspire
-curl -sSL https://aspire.dev/install.sh | bash
+curl -sSL https://aspire.dev/install.sh | 
+
+## Squad
+npm install -g @bradygaster/squad-cli
 
 ## OH-MY-POSH ##
 echo Install oh-my-posh
