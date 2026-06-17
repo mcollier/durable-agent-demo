@@ -1,5 +1,5 @@
 ## Aspire
-curl -sSL https://aspire.dev/install.sh | 
+curl -sSL https://aspire.dev/install.sh | bash
 
 ## Squad
 npm install -g @bradygaster/squad-cli
