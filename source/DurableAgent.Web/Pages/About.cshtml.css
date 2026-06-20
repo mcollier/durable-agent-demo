@@ -1,0 +1,107 @@
+/* ─── Mission Card ───────────────────────────────────────────── */
+
+.mission-eyebrow {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--froyo-strawberry);
+    margin-bottom: 0.5rem;
+}
+
+.mission-quote {
+    font-style: italic;
+    color: var(--froyo-chocolate);
+    border-left: 4px solid var(--froyo-strawberry);
+    padding-left: 1rem;
+    margin-top: 1rem;
+}
+
+/* ─── Founder Section ────────────────────────────────────────── */
+
+.founder-portrait {
+    background: linear-gradient(135deg, var(--froyo-pink) 0%, var(--froyo-mint) 100%);
+    border-radius: 15px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 3px solid var(--froyo-strawberry);
+}
+
+.founder-portrait-emoji {
+    font-size: 5rem;
+    line-height: 1;
+}
+
+.founder-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #BB0000; /* Ohio State scarlet — founder name only */
+}
+
+.founder-title {
+    font-size: 0.95rem;
+    color: var(--froyo-chocolate);
+    font-weight: 500;
+}
+
+/* ─── Passion Cards ──────────────────────────────────────────── */
+
+.passion-card {
+    background: white;
+    border-radius: 12px;
+    border: 2px solid var(--froyo-mint);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    height: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.passion-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.passion-card-emoji {
+    font-size: 2.5rem;
+    line-height: 1;
+    margin-bottom: 0.75rem;
+}
+
+.passion-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--froyo-chocolate);
+    margin-bottom: 0.5rem;
+}
+
+.passion-card p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+/* ─── CTA Section ────────────────────────────────────────────── */
+
+.about-cta {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    background: linear-gradient(135deg, var(--froyo-vanilla) 0%, var(--froyo-pink) 100%);
+    border-radius: 15px;
+    border: 3px solid var(--froyo-mint);
+    margin-top: 2rem;
+}
+
+.about-cta h2 {
+    color: var(--froyo-strawberry);
+    font-weight: 700;
+}
+
+.about-cta p {
+    color: var(--froyo-chocolate);
+    font-size: 1.1rem;
+}

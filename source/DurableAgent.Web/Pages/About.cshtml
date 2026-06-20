@@ -1,0 +1,106 @@
+@page
+@model AboutModel
+@{
+    ViewData["Title"] = "About Us";
+}
+
+<section class="hero-section" aria-labelledby="about-hero-heading">
+    <div class="decorative-scoop" aria-hidden="true">🍦 🤎 🍨 🌿 🍧</div>
+    <h1 id="about-hero-heading" class="display-4">About Froyo Foundry</h1>
+    <p class="lead">Where passion meets frozen yogurt — one perfect scoop at a time.</p>
+</section>
+
+<section class="froyo-card" aria-labelledby="mission-heading">
+    <span class="mission-eyebrow" id="mission-heading">Our Mission</span>
+    <h2 class="froyo-heading">Delighting Every Customer</h2>
+    <p>
+        At Froyo Foundry, we believe frozen yogurt is more than a treat — it's a moment of joy.
+        Our mission is to craft delicious, high-quality frozen yogurt experiences that bring people
+        together, celebrate community, and put a smile on every face.
+    </p>
+    <p>
+        We are committed to <strong>quality ingredients</strong>, <strong>warm hospitality</strong>,
+        and constantly listening to our customers to make every visit better than the last.
+    </p>
+    <blockquote class="mission-quote">
+        "Life is better with a scoop in your hand and good people by your side."
+    </blockquote>
+</section>
+
+<section aria-labelledby="founder-heading">
+    <h2 id="founder-heading" class="froyo-heading mb-4">Meet the Founder</h2>
+    <div class="row align-items-center g-4">
+        <div class="col-md-4">
+            <div class="founder-portrait">
+                <div class="founder-portrait-emoji" aria-hidden="true">🍦</div>
+                <div class="founder-name">Michael Collier</div>
+                <div class="founder-title">Founder &amp; Flavor Champion</div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <p>
+                <strong>Michael Collier</strong> founded Froyo Foundry with a simple idea: that great food,
+                like great people, should be celebrated every day. A proud <strong>Ohio State Buckeyes</strong>
+                fan through and through, Michael carries the Buckeye spirit of hard work, community, and
+                never giving up into everything he does.
+            </p>
+            <p>
+                When he's not perfecting a new flavor, you'll find Michael at the grill — a dedicated
+                <strong>BBQ enthusiast</strong> who believes low-and-slow patience is just as important
+                in business as it is in barbecue. His love of craft and process shows in every detail at
+                Froyo Foundry.
+            </p>
+            <p>
+                An <strong>avid golfer</strong>, Michael knows that consistency, practice, and staying calm
+                under pressure are the keys to a great round — and a great business. He brings that same
+                steady focus to building a brand customers can count on.
+            </p>
+            <p>
+                Above all, Michael is a <strong>family man</strong>. The values instilled by his family —
+                generosity, laughter, and showing up for one another — are the heart of Froyo Foundry's culture.
+                Every customer who walks through our doors is welcomed like family.
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="mt-5" aria-labelledby="passions-heading">
+    <h2 id="passions-heading" class="froyo-heading mb-4">Passion in Every Scoop</h2>
+    <p class="mb-4">Michael's personal passions aren't just hobbies — they're the DNA of Froyo Foundry.</p>
+    <div class="row g-3">
+        <div class="col-sm-6 col-lg-3">
+            <div class="passion-card">
+                <div class="passion-card-emoji" aria-hidden="true">🏈</div>
+                <h3>Buckeye Pride</h3>
+                <p>Team spirit and community loyalty inspire us to root for our neighbors and celebrate wins together.</p>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="passion-card">
+                <div class="passion-card-emoji" aria-hidden="true">🔥</div>
+                <h3>BBQ Craft</h3>
+                <p>The patience and care of great barbecue guides how we develop every flavor — slowly, thoughtfully, with love.</p>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="passion-card">
+                <div class="passion-card-emoji" aria-hidden="true">⛳</div>
+                <h3>Golfer's Focus</h3>
+                <p>One shot at a time. We focus on the details that matter so every customer experience is on par — or better.</p>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="passion-card">
+                <div class="passion-card-emoji" aria-hidden="true">❤️</div>
+                <h3>Family Values</h3>
+                <p>A family-first mindset means we treat everyone who visits Froyo Foundry with warmth, respect, and a big smile.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="about-cta mt-5">
+    <h2>Ready to Taste the Difference?</h2>
+    <p>Come experience the flavor, the warmth, and the Froyo Foundry difference for yourself.</p>
+    <a asp-page="/Order" class="froyo-btn-primary">Place an Order</a>
+</div>
