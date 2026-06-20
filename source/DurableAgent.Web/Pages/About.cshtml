@@ -1,0 +1,96 @@
+@page "/about"
+@model AboutModel
+@{
+    ViewData["Title"] = "About Us";
+}
+
+<div class="hero-section">
+    <div class="decorative-scoop" aria-hidden="true">🍦 💡 🍨 🧑‍💻 🍧</div>
+    <h1 class="display-4">About Froyo Foundry</h1>
+    <p class="lead"><code>README.md</code> — Our story, our mission, our <em>flavor</em>.</p>
+</div>
+
+<section class="froyo-card mt-4" aria-labelledby="overview-heading">
+    <div class="text-center mb-3">
+        <span aria-hidden="true" class="ice-cream-icon">📋</span>
+        <h2 id="overview-heading" class="froyo-heading">Company Overview</h2>
+        <p class="text-muted small"><code>// README.md · mission statement</code></p>
+    </div>
+    <div class="row text-center">
+        <div class="col-md-4 mb-3">
+            <div aria-hidden="true" class="about-icon">🎯</div>
+            <h3 class="froyo-heading h5">Our Mission</h3>
+            <p>To compile the perfect frozen yogurt experience — every scoop shipped to production with zero defects and maximum delight.</p>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div aria-hidden="true" class="about-icon">⚡</div>
+            <h3 class="froyo-heading h5">Our Values</h3>
+            <p>Freshness, creativity, and relentless iteration. We treat every customer visit like a pull request: reviewed, improved, and merged with care.</p>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div aria-hidden="true" class="about-icon">🚀</div>
+            <h3 class="froyo-heading h5">Why We Exist</h3>
+            <p>Because the world deserves frozen yogurt that's as thoughtfully crafted as the software we love — fast, reliable, and always improving.</p>
+        </div>
+    </div>
+</section>
+
+<section class="froyo-card" aria-labelledby="founder-heading">
+    <div class="text-center mb-3">
+        <span aria-hidden="true" class="ice-cream-icon">🧑‍💻</span>
+        <h2 id="founder-heading" class="froyo-heading">Founder Story</h2>
+        <p class="text-muted small"><code>git log --author=Michael --oneline</code></p>
+    </div>
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <p>Michael didn't set out to build a frozen yogurt empire — he set out to find the perfect post-hackathon dessert. An Ohio State Buckeyes fan at heart <span aria-hidden="true">🌰</span>, Michael channeled the same drive that fuels a fourth-quarter comeback into every recipe he developed.</p>
+            <p>When he's not perfecting flavor profiles, you'll find him manning the backyard BBQ <span aria-hidden="true">🔥</span>, chasing par on the golf course <span aria-hidden="true">⛳</span>, or spending time with his family <span aria-hidden="true">👨‍👩‍👧‍👦</span>. Those passions — precision, patience, and a love of bringing people together — are baked into every cup of froyo we serve.</p>
+            <p>Michael's philosophy: <em>"Treat the recipe like a codebase. Refactor until it's beautiful. Ship when it's ready."</em></p>
+        </div>
+        <div class="col-md-4 text-center">
+            <div class="founder-badge">
+                <div class="founder-avatar" aria-hidden="true">🍦</div>
+                <p class="fw-bold mb-1">Michael</p>
+                <p class="text-muted small mb-1">Founder &amp; Chief Flavor Officer</p>
+                <p class="text-muted small"><code>Ohio State '<span aria-hidden="true">🌰</span> · BBQ <span aria-hidden="true">🔥</span> · Golf <span aria-hidden="true">⛳</span></code></p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="froyo-card" aria-labelledby="narrative-heading">
+    <div class="text-center mb-3">
+        <span aria-hidden="true" class="ice-cream-icon">🔗</span>
+        <h2 id="narrative-heading" class="froyo-heading">Where Passion Compiles Into Product</h2>
+        <p class="text-muted small"><code>// how passions compile into the product</code></p>
+    </div>
+    <div class="row text-center">
+        <div class="col-md-3 mb-3">
+            <div aria-hidden="true" class="about-icon">🌰</div>
+            <h3 class="froyo-heading h5">Buckeye Spirit</h3>
+            <p>Championship-level commitment. We don't cut corners in the fourth quarter — and we don't cut corners on flavor.</p>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div aria-hidden="true" class="about-icon">🔥</div>
+            <h3 class="froyo-heading h5">BBQ Craft</h3>
+            <p>Low-and-slow mastery. Some flavors are developed over months — because the best things take time to build.</p>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div aria-hidden="true" class="about-icon">⛳</div>
+            <h3 class="froyo-heading h5">Golfer's Precision</h3>
+            <p>Every topping, measured. Every batch, calibrated. We know that one degree off on the green — or in the freezer — changes everything.</p>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div aria-hidden="true" class="about-icon">👨‍👩‍👧‍👦</div>
+            <h3 class="froyo-heading h5">Family First</h3>
+            <p>Froyo Foundry was built for real moments — after games, after projects, after long days. Made to be shared.</p>
+        </div>
+    </div>
+</section>
+
+<section class="froyo-card text-center" aria-labelledby="cta-heading">
+    <div aria-hidden="true" class="decorative-scoop">🍦 🚀 🍨 ✨ 🍧</div>
+    <h2 id="cta-heading" class="froyo-heading">Ready to Ship an Order?</h2>
+    <p class="lead">Join the Froyo Foundry community and taste the difference that passion-driven development makes.</p>
+    <a asp-page="/Order" class="froyo-btn-primary mt-3">npm run order <span aria-hidden="true">🍦</span></a>
+</section>

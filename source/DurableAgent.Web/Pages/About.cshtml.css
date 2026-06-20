@@ -1,0 +1,18 @@
+.about-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.founder-badge {
+    background: linear-gradient(135deg, var(--froyo-vanilla, #FFF8DC) 0%, var(--froyo-blueberry, #A8D8EA) 100%);
+    border-radius: 15px;
+    border: 3px solid var(--froyo-strawberry, #FF6B9D);
+    padding: 1.5rem;
+    display: inline-block;
+    width: 100%;
+}
+
+.founder-avatar {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+}
