@@ -19,6 +19,8 @@
 | Pepper | ⚛️ Frontend Dev | [charter](agents/pepper/charter.md) | ✅ Active |
 | Scribe | 📋 Session Logger | [charter](agents/scribe/charter.md) | ✅ Active |
 | Ralph | 🔄 Work Monitor | — | 🔄 Monitor |
+| Rai | 🛡️ RAI Reviewer | [charter](agents/Rai/charter.md) | ✅ Active |
+| Fact Checker | 🔍 Fact Checker | [charter](agents/fact-checker/charter.md) | ✅ Active |
 
 ## Project Context
 
