@@ -91,3 +91,4 @@ source/DurableAgent.AppHost/appsettings.Development.json
 
 # Internal notes (not for source control)
 notes/
+scratch.txt
