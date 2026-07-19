@@ -21,7 +21,7 @@ var orderQueueName = builder.Configuration["Parameters:ORDER_QUEUE_NAME"]
 var dtsScheduler = builder.AddDurableTaskScheduler("scheduler");
 if (builder.ExecutionContext.IsRunMode)
 {
-    dtsScheduler.RunAsEmulator();
+    dtsScheduler.RunAsEmulator(dts => dts.WithLifetime(ContainerLifetime.Persistent));
 }
 var dtsTaskHub = dtsScheduler.AddTaskHub("default");
 
