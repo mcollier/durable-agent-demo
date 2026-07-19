@@ -20,7 +20,7 @@ builder.AddAzureServiceBusClient(connectionName: "messaging", settings =>
 {
     settings.Credential = isDevelopment
         ? new AzureCliCredential()
-        : new DefaultAzureCredential();
+        : new DefaultAzureCredential();  // TODO: Use better ManagedIdentityCredential for production.
 });
 
 builder.Services.AddSingleton<IFeedbackQueueSender, ServiceBusFeedbackQueueSender>();
