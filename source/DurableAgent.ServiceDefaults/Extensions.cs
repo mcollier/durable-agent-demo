@@ -57,8 +57,14 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics
-                    // .AddMeter("Microsoft.Agents.AI*") // Agent Framework telemetry
-                    .AddMeter("Microsoft.Agents.AI") // Agent Framework telemetry
+                    // Microsoft.Extensions.AI's OpenTelemetryChatClient (used by AddAzureOpenAI's
+                    // UseOpenTelemetry(sourceName: ApplicationName)) creates its Meter using that
+                    // same sourceName, not a fixed "Microsoft.Agents.AI" name. The Agent Framework
+                    // assemblies themselves (Microsoft.Agents.AI*) do not emit any metrics — all
+                    // Gen AI metrics (gen_ai.client.token.usage, gen_ai.client.operation.duration,
+                    // etc.) originate from this chat-client-level meter, so it must be registered
+                    // by application name for those metrics to reach the OTLP exporter/dashboard.
+                    .AddMeter(builder.Environment.ApplicationName)
 
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
@@ -67,13 +73,8 @@ public static class Extensions
             .WithTracing(tracing =>
             {
                 tracing
-                    .AddSource(builder.Environment.ApplicationName)
-                    .AddSource("Microsoft.Agents.AI.Runtime.InProcess")
-                    .AddSource("Microsoft.Agents.AI.Runtime.Abstractions.InMemoryActorStateStorage")
-                    .AddSource("Experimental.Microsoft.Extensions.AI")
-                    .AddSource("Microsoft.Agents.AI") // Agent Framework telemetry
-                    // .AddSource("Microsoft.Extensions.AI*") // Listen to the Experimental.Microsoft.Extensions.AI source for chat client telemetry.
-                    .AddSource("Microsoft.Agents.AI.Workflows") // Agent Framework workflow telemetry
+                    // Catch-all: subscribes to every ActivitySource in the process (app, Agent
+                    // Framework, chat client, etc.), so explicit per-source registrations aren't needed.
                     .AddSource("*")
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
