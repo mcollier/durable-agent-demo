@@ -9,4 +9,7 @@ sudo chmod +x /usr/local/bin/oh-my-posh
 # Initialize oh-my-posh in bash with 1_shell theme
 echo 'eval "$(oh-my-posh init bash --config https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/refs/heads/main/themes/1_shell.omp.json)"' >> ~/.bashrc
 
+# Install Squad
+npm install -g @bradygaster/squad-cli
+
 echo DONE!
