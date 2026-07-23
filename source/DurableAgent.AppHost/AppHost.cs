@@ -8,6 +8,8 @@ var serviceBusName = builder.AddParameter("SERVICEBUS-NAME");
 var senderEmailAddress = builder.AddParameter("SENDER-EMAIL-ADDRESS");
 var recipientEmailAddress = builder.AddParameter("RECIPIENT-EMAIL-ADDRESS");
 var emailServiceEndpoint = builder.AddParameter("EMAIL-SERVICE-ENDPOINT");
+var dtsConnectionString = builder.AddParameter("DTS-CONNECTION-STRING");
+var dtsTaskHubName = builder.AddParameter("DTS-TASKHUB-NAME");
 
 var feedbackQueueName = builder.Configuration["Parameters:FEEDBACK_QUEUE_NAME"]
     ?? throw new InvalidOperationException("Missing Parameters:FEEDBACK_QUEUE_NAME.");
@@ -18,12 +20,18 @@ var orderQueueName = builder.Configuration["Parameters:ORDER_QUEUE_NAME"]
 
 #pragma warning disable ASPIREDURABLETASK001
 
-var dtsScheduler = builder.AddDurableTaskScheduler("scheduler");
-if (builder.ExecutionContext.IsRunMode)
-{
-    dtsScheduler.RunAsEmulator(dts => dts.WithLifetime(ContainerLifetime.Persistent));
-}
-var dtsTaskHub = dtsScheduler.AddTaskHub("default");
+var dtsScheduler = builder.AddDurableTaskScheduler("scheduler")
+                    .RunAsExisting(dtsConnectionString);
+var dtsTaskHub = dtsScheduler.AddTaskHub("taskhub").WithTaskHubName(dtsTaskHubName);
+
+// if (builder.ExecutionContext.IsRunMode)
+// {
+//     dtsScheduler.RunAsEmulator(dts => {
+//         dts.WithLifetime(ContainerLifetime.Persistent);
+//     });
+// }
+
+// var dtsTaskHub = dtsScheduler.AddTaskHub("default");
 
 #pragma warning restore ASPIREDURABLETASK001
 
@@ -65,7 +73,7 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithEnvironment("EMAIL_SERVICE_ENDPOINT", emailServiceEndpoint)
     .WithExternalHttpEndpoints()
     .WaitFor(storage)
-    .WaitFor(dtsScheduler)
+    // .WaitFor(dtsScheduler)
     .WaitFor(sb);
 
 // Self-reference so the Functions app can resolve its own HTTP endpoint via Aspire service discovery.
