@@ -39,11 +39,24 @@ public static class FeedbackOrchestrator
             session: agentSession);
 
         FeedbackResult feedbackResult = agentResponse.Result;
+        var processedFeedbackRecord = new ProcessedFeedbackRecord
+        {
+            Feedback = feedbackMessage,
+            Analysis = feedbackResult,
+            OrchestrationInstanceId = context.InstanceId
+        };
 
-        // if (context.IsReplaying)
-        // {
-        //     Console.WriteLine($"***REPLAYING**** Received agent response for feedback {feedbackMessage.FeedbackId} during replay: {feedbackResult}");
-        // }
+        var persistenceRetryPolicy = new RetryPolicy(
+            maxNumberOfAttempts: 4,
+            firstRetryInterval: TimeSpan.FromSeconds(5),
+            backoffCoefficient: 2.0,
+            maxRetryInterval: TimeSpan.FromMinutes(1),
+            retryTimeout: null);
+
+        string persistenceResult = await context.CallActivityAsync<string>(
+            nameof(ProcessFeedbackActivity),
+            processedFeedbackRecord,
+            TaskOptions.FromRetryPolicy(persistenceRetryPolicy));
 
         // Check if the feedback result requires human follow-up
         if (feedbackResult.FollowUp?.RequiresHuman == true)
@@ -51,6 +64,10 @@ public static class FeedbackOrchestrator
             logger.LogWarning("Feedback {FeedbackId} requires human review. Escalating.", feedbackMessage.FeedbackId);
 
             bool humanReviewCompleted = await context.WaitForExternalEvent<bool>(HumanReviewCompletedEvent);
+            logger.LogInformation(
+                "Human review completed for feedback {FeedbackId}: {HumanReviewCompleted}",
+                feedbackMessage.FeedbackId,
+                humanReviewCompleted);
 
             // TODO: Call activity function to get human review result.
         }
@@ -102,13 +119,9 @@ public static class FeedbackOrchestrator
                 Body = emailResult.Body
             });
 
-        var result = await context.CallActivityAsync<string>(
-            nameof(ProcessFeedbackActivity),
-            feedbackMessage);
+        logger.LogInformation("Feedback {FeedbackId} processed: {Result}", feedbackMessage.FeedbackId, persistenceResult);
 
-        logger.LogInformation("Feedback {FeedbackId} processed: {Result}", feedbackMessage.FeedbackId, result);
-
-        return result;
+        return persistenceResult;
     }
 }
 

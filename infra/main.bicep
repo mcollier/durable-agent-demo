@@ -129,6 +129,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.31.0' = {
     blobServices: {
       containers: [
         { name: deploymentStorageContainerName }
+        { name: 'customer-feedback' }
       ]
     }
   }
@@ -241,7 +242,7 @@ module applicationInsights 'br/public:avm/res/insights/component:0.7.1' = {
 // ═════════════════════════════════════════════════════════════════════════════
 
 // ─── App Service Plan (Flex Consumption FC1) ────────────────────────────────
-module appServicePlan 'br/public:avm/res/web/serverfarm:0.6.0' = {
+module appServicePlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
   scope: rg
   params: {
     name: appServicePlanName
@@ -253,7 +254,7 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.6.0' = {
 }
 
 // ─── Function App (Flex Consumption) ────────────────────────────────────────
-module functionApp 'br/public:avm/res/web/site:0.21.0' = {
+module functionApp 'br/public:avm/res/web/site:0.23.1' = {
   scope: rg
   params: {
     name: functionAppName
@@ -297,6 +298,7 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
           // Storage — managed identity
           AzureWebJobsStorage__blobServiceUri: storageAccount.outputs.primaryBlobEndpoint
           AzureWebJobsStorage__credential: 'managedidentity'
+          CUSTOMER_FEEDBACK_BLOB_SERVICE_URI: storageAccount.outputs.primaryBlobEndpoint
           // Service Bus — managed identity
           ServiceBusConnection__fullyQualifiedNamespace: '${serviceBusNamespace.outputs.name}.servicebus.windows.net'
           // Service Bus — queue names
@@ -318,7 +320,7 @@ module functionApp 'br/public:avm/res/web/site:0.21.0' = {
 }
 
 // ─── App Service Plan (Web App — B1 Linux) ─────────────────────────────────
-module webAppPlan 'br/public:avm/res/web/serverfarm:0.6.0' = {
+module webAppPlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
   scope: rg
   params: {
     name: webAppPlanName
@@ -330,7 +332,7 @@ module webAppPlan 'br/public:avm/res/web/serverfarm:0.6.0' = {
 }
 
 // ─── Web App (Razor Pages frontend) ─────────────────────────────────────────
-module webApp 'br/public:avm/res/web/site:0.21.0' = {
+module webApp 'br/public:avm/res/web/site:0.23.1' = {
   scope: rg
   params: {
     name: webAppName

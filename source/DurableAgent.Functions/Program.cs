@@ -30,6 +30,7 @@ builder.Services.AddSingleton<IOrderQueueSender, ServiceBusOrderQueueSender>();
 builder.AddAzureOpenAI();
 
 builder.AddEmailService();
+builder.AddFeedbackBlobStorage();
 
 builder.AddAgents();
 

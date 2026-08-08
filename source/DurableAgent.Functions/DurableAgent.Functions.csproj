@@ -29,6 +29,7 @@
     <PackageReference Include="Aspire.Azure.Messaging.ServiceBus" Version="13.4.6" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.28.0" />
     <PackageReference Include="Microsoft.Agents.AI.Hosting.AzureFunctions" Version="1.6.1-preview.260514.1" />
     <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.6.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
