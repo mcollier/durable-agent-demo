@@ -13,7 +13,7 @@ namespace DurableAgent.Functions.Extensions;
 /// </summary>
 public static class BlobStorageExtensions
 {
-    private const string CustomerFeedbackBlobServiceUriKey = "CUSTOMER_FEEDBACK_BLOB_SERVICE_URI";
+    private const string AzureWebJobsStorageConnectionStringKey = "AzureWebJobsStorage";
     private const string AzureWebJobsBlobServiceUriKey = "AzureWebJobsStorage__blobServiceUri";
 
     /// <summary>
@@ -21,18 +21,30 @@ public static class BlobStorageExtensions
     /// </summary>
     public static FunctionsApplicationBuilder AddFeedbackBlobStorage(this FunctionsApplicationBuilder builder)
     {
-        string blobServiceUri = builder.Configuration[CustomerFeedbackBlobServiceUriKey]
-            ?? builder.Configuration[AzureWebJobsBlobServiceUriKey]
-            ?? throw new InvalidOperationException(
-                $"Neither {CustomerFeedbackBlobServiceUriKey} nor {AzureWebJobsBlobServiceUriKey} configuration value is set.");
-
-        TokenCredential credential = builder.Environment.IsDevelopment()
-            ? new AzureCliCredential()
-            : new DefaultAzureCredential();
-
-        builder.Services.AddSingleton(_ => new BlobServiceClient(new Uri(blobServiceUri), credential));
+        builder.Services.AddSingleton(_ => CreateBlobServiceClient(builder));
         builder.Services.AddSingleton<IFeedbackBlobStorageService, AzureBlobFeedbackStorageService>();
 
         return builder;
+    }
+
+    private static BlobServiceClient CreateBlobServiceClient(FunctionsApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (builder.Environment.IsDevelopment())
+        {
+            string connectionString = builder.Configuration[AzureWebJobsStorageConnectionStringKey]
+                ?? throw new InvalidOperationException(
+                    $"Development storage requires the {AzureWebJobsStorageConnectionStringKey} configuration value.");
+
+            return new BlobServiceClient(connectionString);
+        }
+
+        string blobServiceUri = builder.Configuration[AzureWebJobsBlobServiceUriKey]
+            ?? throw new InvalidOperationException(
+                $"Production storage requires the {AzureWebJobsBlobServiceUriKey} configuration value.");
+
+        TokenCredential credential = new DefaultAzureCredential();
+        return new BlobServiceClient(new Uri(blobServiceUri), credential);
     }
 }

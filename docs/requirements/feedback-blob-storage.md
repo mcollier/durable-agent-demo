@@ -179,13 +179,11 @@ blobServices: {
 
 ### Configuration changes
 
-One explicit blob endpoint setting should be added for application code clarity, even though it points at the same storage account already used by the Functions host:
+Reuse the Function App's existing host storage account in every environment:
 
-- Function App app setting in `infra/main.bicep`: `CUSTOMER_FEEDBACK_BLOB_SERVICE_URI`
-- Value: `storageAccount.outputs.primaryBlobEndpoint`
-- In local/Aspire development, do **not** point this setting at Azurite. Instead, align with the repo's existing local pattern for Azure-backed dependencies (`Program.cs`, `AIServiceExtensions.cs`, `EmailServiceExtensions.cs`): local runs use `AzureCliCredential` against a real Azure resource endpoint, while deployed Azure uses `DefaultAzureCredential`.
-- In `source/DurableAgent.AppHost/AppHost.cs`, expose the setting as a real-Azure parameter (mirroring how Service Bus, Azure OpenAI, and email settings are already passed through), then forward it into the Functions project as `CUSTOMER_FEEDBACK_BLOB_SERVICE_URI`.
-- Keep Aspire host storage (`WithHostStorage(storage)`) separate from this feature's blob endpoint. The Functions host may continue using Azurite for runtime storage in run mode, but feedback-blob persistence itself must target a real Azure Storage account endpoint for local development.
+- In deployed Azure, application code should use `AzureWebJobsStorage__blobServiceUri` with `DefaultAzureCredential`.
+- In local/Aspire development, `WithHostStorage(storage)` + `RunAsEmulator(...)` already injects `AzureWebJobsStorage` as an Azurite connection string (`DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;...`), so application code can construct `BlobServiceClient` directly from that connection string.
+- No separate `CUSTOMER_FEEDBACK_BLOB_SERVICE_URI` setting or Aspire parameter is needed.
 
 ## Code Changes Needed
 
@@ -200,7 +198,7 @@ One explicit blob endpoint setting should be added for application code clarity,
 - `source/DurableAgent.Functions/Models/ProcessedFeedbackRecordJsonSerializerOptions.cs`
   - shared static JSON options for persisted feedback blobs (`ProcessedFeedbackRecordJsonSerializerOptions.Default`)
 - `source/DurableAgent.Functions/Extensions/BlobStorageExtensions.cs`
-  - registers the blob client/service using managed identity and the configured blob endpoint
+  - registers the blob client/service using Azurite's injected connection string locally and managed identity with `AzureWebJobsStorage__blobServiceUri` in deployed Azure
 
 ### Existing files to change
 
@@ -220,7 +218,7 @@ One explicit blob endpoint setting should be added for application code clarity,
   - serialize and upload the JSON blob
   - return a message that includes the blob path or feedback ID
 - `source/DurableAgent.AppHost/AppHost.cs`
-  - pass through `CUSTOMER_FEEDBACK_BLOB_SERVICE_URI` for local orchestration using a real Azure Storage endpoint parameter, not Azurite blob emulation
+  - rely solely on `WithHostStorage(storage)` for both local and deployed storage wiring
 
 ### Implementation notes aligned to repo conventions
 
