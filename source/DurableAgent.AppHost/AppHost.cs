@@ -38,6 +38,7 @@ var dtsTaskHub = dtsScheduler.AddTaskHub("taskhub").WithTaskHubName(dtsTaskHubNa
 
 // Azure Storage: emulator for local development, real Azure Storage when published.
 var storage = builder.AddAzureStorage("storage");
+var feedbackBlobs = storage.AddBlobContainer("feedbackblobs", blobContainerName: "customer-feedback");
 if (builder.ExecutionContext.IsRunMode)
 {
     storage.RunAsEmulator(azurite =>
@@ -72,11 +73,20 @@ var func = builder.AddAzureFunctionsProject<Projects.DurableAgent_Functions>("fu
     .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
     .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
     .WithEnvironment("EMAIL_SERVICE_ENDPOINT", emailServiceEndpoint)
-    .WithEnvironment("CUSTOMER_FEEDBACK_BLOB_SERVICE_URI", customerFeedbackBlobServiceUri)
     .WithExternalHttpEndpoints()
     .WaitFor(storage)
     // .WaitFor(dtsScheduler)
     .WaitFor(sb);
+
+if (builder.ExecutionContext.IsRunMode)
+{
+    func.WithEnvironment("CUSTOMER_FEEDBACK_BLOB_SERVICE_URI", customerFeedbackBlobServiceUri);
+}
+else
+{
+    func.WithReference(feedbackBlobs)
+        .WaitFor(feedbackBlobs);
+}
 
 // Self-reference so the Functions app can resolve its own HTTP endpoint via Aspire service discovery.
 func.WithReference(func);
