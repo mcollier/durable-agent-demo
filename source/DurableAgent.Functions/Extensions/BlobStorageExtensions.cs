@@ -14,7 +14,7 @@ namespace DurableAgent.Functions.Extensions;
 public static class BlobStorageExtensions
 {
     private const string CustomerFeedbackBlobServiceUriKey = "CUSTOMER_FEEDBACK_BLOB_SERVICE_URI";
-    private const string AspireFeedbackBlobsUriKey = "FEEDBACKBLOBS_URI";
+    private const string AzureWebJobsBlobServiceUriKey = "AzureWebJobsStorage__blobServiceUri";
 
     /// <summary>
     /// Adds Azure Blob Storage services for persisting processed feedback records.
@@ -22,9 +22,9 @@ public static class BlobStorageExtensions
     public static FunctionsApplicationBuilder AddFeedbackBlobStorage(this FunctionsApplicationBuilder builder)
     {
         string blobServiceUri = builder.Configuration[CustomerFeedbackBlobServiceUriKey]
-            ?? builder.Configuration[AspireFeedbackBlobsUriKey]
+            ?? builder.Configuration[AzureWebJobsBlobServiceUriKey]
             ?? throw new InvalidOperationException(
-                $"Neither {CustomerFeedbackBlobServiceUriKey} nor {AspireFeedbackBlobsUriKey} configuration value is set.");
+                $"Neither {CustomerFeedbackBlobServiceUriKey} nor {AzureWebJobsBlobServiceUriKey} configuration value is set.");
 
         TokenCredential credential = builder.Environment.IsDevelopment()
             ? new AzureCliCredential()

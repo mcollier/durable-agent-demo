@@ -298,7 +298,6 @@ module functionApp 'br/public:avm/res/web/site:0.23.1' = {
           // Storage — managed identity
           AzureWebJobsStorage__blobServiceUri: storageAccount.outputs.primaryBlobEndpoint
           AzureWebJobsStorage__credential: 'managedidentity'
-          CUSTOMER_FEEDBACK_BLOB_SERVICE_URI: storageAccount.outputs.primaryBlobEndpoint
           // Service Bus — managed identity
           ServiceBusConnection__fullyQualifiedNamespace: '${serviceBusNamespace.outputs.name}.servicebus.windows.net'
           // Service Bus — queue names
