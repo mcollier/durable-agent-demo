@@ -67,3 +67,6 @@
 - **Order Queue Path stale**: README said `InboundOrderTrigger` "processes the order" — it actually runs a full multi-agent `order-processing-workflow` (OrderIntakeAgent → FulfillmentDecisionAgent → CustomerMessagingAgent) and sends an email via ACS. Updated the data flow description accordingly.
 - **Key Decisions bullet updated**: Changed "agent has 5 tool functions" to "project exposes 7 tool functions across its agents".
 - **Build**: `DurableAgent.Functions` project builds with 0 errors. Pre-existing `WorkerExtensions` MSBuild artifact issue and CodeCoverage file-lock error in test project are unrelated environment issues.
+
+### 2026-08-08T21:54:30.921+00:00 — Feedback blob storage implementation and simplification
+- Implemented blob persistence in Functions/AppHost, including pre-human-review persistence ordering, DI-backed storage service, serializer options, and Azure Storage wiring; later simplified runtime config to fall back to `AzureWebJobsStorage__blobServiceUri` in deployed Azure while keeping a local real-Azure override for `aspire run`.

@@ -58,3 +58,6 @@
 - **No SKU bridge test exists:** Currently no test verifies that a flavor ID correctly converts to inventory SKU. E2E gap.
 - **Invalid flavor ID handling not covered:** Tests don't verify what happens when an order references a non-existent flavor ID. Current validation only checks non-empty, not existence.
 - **API contract breaking change documented:** Clients that POST `flavor-001` or expect `flv-001` in responses will break. Mitigation: communicate change; no backward compat layer needed for demo.
+
+### 2026-08-08T21:54:30.921+00:00 — Feedback blob persistence test coverage
+- Expanded Functions tests to cover UTC date partitioning, blob naming, enum string serialization, `FeedbackId` cross-validation, and upload-failure propagation; documented the current lack of an orchestrator test harness for asserting the persist-before-human-review ordering automatically.

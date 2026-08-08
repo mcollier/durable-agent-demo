@@ -35,3 +35,6 @@
 - `appsettings.Development.json` and `local.settings.json` (gitignored) — updated on disk only
 
 **Pattern:** Queue env vars follow `{DOMAIN}_QUEUE_NAME` — `FEEDBACK_QUEUE_NAME` for `inbound-feedback`, `ORDER_QUEUE_NAME` for `inbound-orders`.
+
+### 2026-08-08T21:54:30.921+00:00 — Customer feedback blob container provisioning
+- Added the `customer-feedback` blob container in `infra/main.bicep`, confirmed existing storage-account-scope `Storage Blob Data Contributor` access was sufficient, and removed the redundant deployed `CUSTOMER_FEEDBACK_BLOB_SERVICE_URI` app setting in the follow-up simplification round.
