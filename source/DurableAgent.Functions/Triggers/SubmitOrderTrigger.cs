@@ -26,7 +26,7 @@ public sealed class SubmitOrderTrigger(ILogger<SubmitOrderTrigger> logger, IOrde
 
     [Function(nameof(SubmitOrderTrigger))]
     public async Task<HttpResponseData> RunAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "orders")]
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "order")]
         HttpRequestData request,
         CancellationToken cancellationToken)
     {

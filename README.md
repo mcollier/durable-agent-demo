@@ -184,7 +184,7 @@ az bicep build --file infra/main.bicep --stdout
 
 ### Order Queue Path
 
-1. A client sends a `POST` request to `/api/orders` with an `OrderRequest` JSON body.
+1. A client sends a `POST` request to `/api/order` with an `OrderRequest` JSON body.
 2. **`SubmitOrderTrigger`** validates the request and enqueues it to the `inbound-orders` Service Bus queue via `IOrderQueueSender`.
 3. **`InboundOrderTrigger`** receives the message from Service Bus and runs the **`order-processing-workflow`** — a sequential multi-agent pipeline:
    - **`OrderIntakeAgent`** validates and normalises the order against business rules.

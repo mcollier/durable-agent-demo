@@ -167,7 +167,7 @@ public sealed class OrderModel(IHttpClientFactory httpClientFactory, ILogger<Ord
         };
 
         var httpClient = httpClientFactory.CreateClient("func");
-        const string ordersUrl = "api/orders";
+        const string ordersUrl = "api/order";
         try
         {
             using var content = JsonContent.Create(orderData, options: JsonOptions);
