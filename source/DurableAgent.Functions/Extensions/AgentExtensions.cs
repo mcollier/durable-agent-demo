@@ -77,6 +77,9 @@ namespace DurableAgent.Functions.Extensions
                 .WithHandoffs(promotionAgent, [orderResolutionAgent])
                 .WithHandoffs(escalationAgent, [orderResolutionAgent])
                 .WithAutonomousMode()
+                // Note: WithMaxRounds is not available on HandoffWorkflowBuilder in this version.
+                // The autonomous mode relies on the agent deciding when resolution is complete.
+                // Monitor orchestration history length in production to detect runaway loops.
                 .Build();
 #pragma warning restore MAAIW001
 

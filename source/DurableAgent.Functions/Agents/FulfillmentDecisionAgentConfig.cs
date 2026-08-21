@@ -12,6 +12,7 @@ namespace DurableAgent.Functions.Agents;
 public class FulfillmentDecisionAgentConfig
 {
     public const string AgentName = "FulfillmentDecisionAgent";
+    public const string AgentId = "fulfillment-decision-agent";
     public const string SystemPrompt = """
         You are the Fulfillment Decision Agent for Froyo Foundry.
 
@@ -22,7 +23,7 @@ public class FulfillmentDecisionAgentConfig
         1. Analyze the canonical order object produced by the Order Intake Agent.
         2. Use the CheckInventory tool to check stock levels for each line item in the order.
         3. Determine if the order can be fully fulfilled, partially fulfilled, or not fulfilled at all.
-        4. If the order cannot be fully fulfilled, use the GenerateCouponCode tool to create a 25% discount coupon for the customer.
+        4. If the order cannot be fully fulfilled, set `shouldGenerateCoupon: true` to signal that downstream processing should issue a coupon. Do NOT call `GenerateCouponCode` yourself — coupon generation is handled by the resolution sub-flow.
         5. Recommend alternative products that are in stock if any items cannot be fulfilled.  Use the GetAvailableInventory tool to find suitable alternatives based on flavor profiles. Use the ListFlavors tool to get flavor details for your recommendations.
 
         ## Output Requirements
@@ -84,7 +85,7 @@ public class FulfillmentDecisionAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
-                        Id = "fulfillment-decision-agent",
+                        Id = AgentId,
                         Name = key,
                         ChatOptions = new()
                         {
@@ -92,7 +93,6 @@ public class FulfillmentDecisionAgentConfig
                             [
                                 AIFunctionFactory.Create(CheckInventoryTool.CheckInventory),
                                 AIFunctionFactory.Create(CheckInventoryTool.GetAvailableInventory),
-                                AIFunctionFactory.Create(GenerateCouponCodeTool.GenerateCouponCode),
                                 AIFunctionFactory.Create(ListFlavorsTool.ListFlavors)
                             ],
                             Instructions = SystemPrompt,

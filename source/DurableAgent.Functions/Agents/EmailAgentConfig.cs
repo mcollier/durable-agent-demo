@@ -10,6 +10,7 @@ namespace DurableAgent.Functions.Agents;
 public class EmailAgentConfig
 {
     public const string AgentName = "EmailAgent";
+    public const string AgentId = "email-agent";
     public const string SystemPrompt = """
         # Follow-Up Email Agent — Froyo Foundry
 
@@ -45,6 +46,7 @@ public class EmailAgentConfig
                 AIAgent agent = new ChatClientAgent(
                    options: new ChatClientAgentOptions
                    {
+                       Id = AgentId,
                        Name = key,
                        ChatOptions = new()
                        {
