@@ -11,7 +11,6 @@ namespace DurableAgent.Functions.Agents;
 public class OrderIntakeAgentConfig
 {
     public const string AgentName = "OrderIntakeAgent";
-    public const string AgentId = "order-intake-agent";
     public const string SystemPrompt = """
         You are the Order Intake Agent for Froyo Foundry.
 
@@ -86,7 +85,6 @@ public class OrderIntakeAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
-                        Id = AgentId,
                         Name = key,
                         ChatOptions = new()
                         {

@@ -12,7 +12,6 @@ namespace DurableAgent.Functions.Agents;
 public class CustomerServiceAgentConfig
 {
     public const string AgentName = "CustomerServiceAgent";
-    public const string AgentId = "customer-service-agent";
     public const string SystemPrompt = """
         # Customer Feedback Agent — Froyo Foundry
 
@@ -109,7 +108,6 @@ public class CustomerServiceAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions()
                     {
-                        Id = AgentId,
                         Name = AgentName,
                         ChatOptions = customerServiceAgentOptions
                     },

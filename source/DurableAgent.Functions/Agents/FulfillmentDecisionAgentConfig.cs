@@ -12,7 +12,6 @@ namespace DurableAgent.Functions.Agents;
 public class FulfillmentDecisionAgentConfig
 {
     public const string AgentName = "FulfillmentDecisionAgent";
-    public const string AgentId = "fulfillment-decision-agent";
     public const string SystemPrompt = """
         You are the Fulfillment Decision Agent for Froyo Foundry.
 
@@ -85,7 +84,6 @@ public class FulfillmentDecisionAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
-                        Id = AgentId,
                         Name = key,
                         ChatOptions = new()
                         {
