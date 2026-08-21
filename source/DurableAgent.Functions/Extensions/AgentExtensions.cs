@@ -100,10 +100,12 @@ namespace DurableAgent.Functions.Extensions
 #pragma warning restore MAAIW001
 
             // Expose the resolution sub-workflow as an agent node in the outer WorkflowBuilder graph.
-            // Stable id/name are required so the durable entity lookup matches the registered workflow.
+            // The name must match what AddWorkflow registers: the workflow's Name property.
+            // Do NOT set id — with id set the durable entity key becomes "{name}_{id}", causing
+            // a "not found" error. With id=null the key is just the name: "order-resolution-workflow".
             AIAgent orderResolutionWorkflowAgent = orderResolutionWorkflow.AsAIAgent(
-                id: "order-resolution-workflow",
-                name: "order_resolution_workflow",
+                id: null,
+                name: "order-resolution-workflow",
                 description: "Resolves fulfillment exceptions via handoff between Substitution, Promotion, and Escalation agents");
 
             // Condition: the FulfillmentDecisionAgent output is a ChatMessage whose Text is
