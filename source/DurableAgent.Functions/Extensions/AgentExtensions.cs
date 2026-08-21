@@ -99,9 +99,12 @@ namespace DurableAgent.Functions.Extensions
                 .Build();
 #pragma warning restore MAAIW001
 
-            // Expose the resolution sub-workflow as an agent so it can participate as
-            // a node in the outer WorkflowBuilder graph.
-            AIAgent orderResolutionWorkflowAgent = orderResolutionWorkflow.AsAIAgent();
+            // Expose the resolution sub-workflow as an agent node in the outer WorkflowBuilder graph.
+            // Stable id/name are required so the durable entity lookup matches the registered workflow.
+            AIAgent orderResolutionWorkflowAgent = orderResolutionWorkflow.AsAIAgent(
+                id: "order-resolution-workflow",
+                name: "order_resolution_workflow",
+                description: "Resolves fulfillment exceptions via handoff between Substitution, Promotion, and Escalation agents");
 
             // Condition: the FulfillmentDecisionAgent output is a ChatMessage whose Text is
             // a JSON-serialized FulfillmentDecisionResult. Route to resolution when there is a shortfall.
@@ -148,6 +151,9 @@ namespace DurableAgent.Functions.Extensions
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
 
+                // Register the resolution sub-workflow so the durable hosting layer creates a named entity
+                // that the outer workflow can find when routing through the resolution node.
+                options.Workflows.AddWorkflow(orderResolutionWorkflow, exposeStatusEndpoint: false, exposeMcpToolTrigger: false);
                 options.Workflows.AddWorkflow(orderProcessingWorkflow, exposeStatusEndpoint: true, exposeMcpToolTrigger: false);
             });
 
