@@ -92,6 +92,7 @@ public class CustomerMessagingAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
+                        Id = "customer-messaging-agent",
                         Name = key,
                         ChatOptions = new()
                         {

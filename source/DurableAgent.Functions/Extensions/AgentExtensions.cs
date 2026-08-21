@@ -1,9 +1,13 @@
+#pragma warning disable MAAIW001 // Suppress experimental API warning for AgentWorkflowBuilder.CreateHandoffBuilderWith
 using DurableAgent.Functions.Agents;
+using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AzureFunctions;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 
 namespace DurableAgent.Functions.Extensions
 {
@@ -12,6 +16,11 @@ namespace DurableAgent.Functions.Extensions
     /// </summary>
     public static class AgentExtensions
     {
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         /// <summary>
         /// Registers all AI agent configurations into the dependency injection container.
         /// </summary>
@@ -24,6 +33,10 @@ namespace DurableAgent.Functions.Extensions
             CustomerMessagingAgentConfig.RegisterAgent(builder);
             FulfillmentDecisionAgentConfig.RegisterAgent(builder);
             OrderIntakeAgentConfig.RegisterAgent(builder);
+            OrderResolutionAgentConfig.RegisterAgent(builder);
+            SubstitutionAgentConfig.RegisterAgent(builder);
+            PromotionAgentConfig.RegisterAgent(builder);
+            EscalationAgentConfig.RegisterAgent(builder);
 
             return builder;
         }
@@ -46,14 +59,67 @@ namespace DurableAgent.Functions.Extensions
             var orderIntakeAgent = sp.GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName);
             var fulfillmentDecisionAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
             var customerMessagingAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
+            var orderResolutionAgent = sp.GetRequiredKeyedService<AIAgent>(OrderResolutionAgentConfig.AgentName);
+            var substitutionAgent = sp.GetRequiredKeyedService<AIAgent>(SubstitutionAgentConfig.AgentName);
+            var promotionAgent = sp.GetRequiredKeyedService<AIAgent>(PromotionAgentConfig.AgentName);
+            var escalationAgent = sp.GetRequiredKeyedService<AIAgent>(EscalationAgentConfig.AgentName);
 
+            // Build the Order Resolution handoff sub-workflow.
+            // This dynamic sub-flow handles fulfillment exceptions: the OrderResolutionAgent
+            // coordinates with Substitution, Promotion, and Escalation specialists via handoffs,
+            // then returns a final resolution before CustomerMessaging sends the customer message.
+            Workflow orderResolutionWorkflow = AgentWorkflowBuilder
+                .CreateHandoffBuilderWith(orderResolutionAgent)
+                .WithHandoffs(orderResolutionAgent, [substitutionAgent, promotionAgent, escalationAgent])
+                .WithHandoffs(substitutionAgent, [orderResolutionAgent])
+                .WithHandoffs(promotionAgent, [orderResolutionAgent])
+                .WithHandoffs(escalationAgent, [orderResolutionAgent])
+                .WithAutonomousMode()
+                .Build();
+
+            // Expose the resolution sub-workflow as an agent so it can participate as
+            // a node in the outer WorkflowBuilder graph.
+            AIAgent orderResolutionWorkflowAgent = orderResolutionWorkflow.AsAIAgent();
+
+            // Condition: the FulfillmentDecisionAgent output is a ChatMessage whose Text is
+            // a JSON-serialized FulfillmentDecisionResult. Route to resolution when there is a shortfall.
+            static bool RequiresResolution(object? message)
+            {
+                var text = message switch
+                {
+                    ChatMessage cm => cm.Text,
+                    AgentResponse ar => ar.Text,
+                    _ => message?.ToString()
+                };
+
+                if (string.IsNullOrWhiteSpace(text)) return false;
+
+                try
+                {
+                    var result = JsonSerializer.Deserialize<FulfillmentDecisionResult>(text, JsonOptions);
+                    return result is not null && !result.CanFullyFulfill;
+                }
+                catch (JsonException)
+                {
+                    return false;
+                }
+            }
+
+            static bool IsFullyFulfilled(object? message) => !RequiresResolution(message);
+
+            // Build the outer order-processing-workflow with conditional branching:
+            //   OrderIntake → FulfillmentDecision
+            //     ├─(CanFullyFulfill=true)──────────────────────────→ CustomerMessaging
+            //     └─(CanFullyFulfill=false)→ OrderResolution (handoff) → CustomerMessaging
             Workflow orderProcessingWorkflow = new WorkflowBuilder(orderIntakeAgent)
-                                            .WithName("order-processing-workflow")
-                                            .WithDescription("Workflow to process customer orders")
-                                            .AddEdge(orderIntakeAgent, fulfillmentDecisionAgent)
-                                            .AddEdge(fulfillmentDecisionAgent, customerMessagingAgent)
-                                            .WithOutputFrom(customerMessagingAgent)
-                                            .Build();
+                .WithName("order-processing-workflow")
+                .WithDescription("Workflow to process customer orders with dynamic resolution for fulfillment exceptions")
+                .AddEdge(orderIntakeAgent, fulfillmentDecisionAgent)
+                .AddEdge<object>(fulfillmentDecisionAgent, customerMessagingAgent, condition: IsFullyFulfilled)
+                .AddEdge<object>(fulfillmentDecisionAgent, orderResolutionWorkflowAgent, condition: RequiresResolution)
+                .AddEdge(orderResolutionWorkflowAgent, customerMessagingAgent)
+                .WithOutputFrom(customerMessagingAgent)
+                .Build();
 
             builder.ConfigureDurableOptions(options =>
             {

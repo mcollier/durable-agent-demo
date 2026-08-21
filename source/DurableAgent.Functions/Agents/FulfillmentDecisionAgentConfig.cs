@@ -84,6 +84,7 @@ public class FulfillmentDecisionAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
+                        Id = "fulfillment-decision-agent",
                         Name = key,
                         ChatOptions = new()
                         {

@@ -85,6 +85,7 @@ public class OrderIntakeAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
+                        Id = "order-intake-agent",
                         Name = key,
                         ChatOptions = new()
                         {
