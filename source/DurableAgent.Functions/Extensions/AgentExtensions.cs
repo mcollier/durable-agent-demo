@@ -1,3 +1,4 @@
+using DurableAgent.Core.Models;
 using DurableAgent.Functions.Agents;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
@@ -79,12 +80,22 @@ namespace DurableAgent.Functions.Extensions
                 // turnLimit=8: coordinator + up to 3 specialists + return handoffs, with headroom.
                 // Default would be 50 turns per agent, which is far too permissive for this bounded sub-flow.
                 .WithAutonomousMode(turnLimit: 8, continuationPrompt: "Continue resolving the fulfillment exception.")
-                // Stop as soon as the OrderResolutionAgent emits a JSON result containing an "outcome" field,
-                // which signals it has finished delegating and produced its final OrderResolutionResult.
+                // Stop as soon as any assistant message deserializes cleanly as an OrderResolutionResult
+                // with both required fields populated. String-matching on "outcome" alone is too weak —
+                // specialist agents may mention "outcome" in natural language during intermediate turns.
                 .WithTerminationCondition(conversation =>
                     conversation.Any(m =>
-                        m.Role == ChatRole.Assistant &&
-                        m.Text?.Contains("\"outcome\"", StringComparison.OrdinalIgnoreCase) == true))
+                    {
+                        if (m.Role != ChatRole.Assistant || string.IsNullOrWhiteSpace(m.Text)) return false;
+                        try
+                        {
+                            var result = JsonSerializer.Deserialize<OrderResolutionResult>(m.Text, JsonOptions);
+                            return result is not null
+                                && !string.IsNullOrWhiteSpace(result.OrderId)
+                                && !string.IsNullOrWhiteSpace(result.CustomerEmail);
+                        }
+                        catch (JsonException) { return false; }
+                    }))
                 .Build();
 #pragma warning restore MAAIW001
 
