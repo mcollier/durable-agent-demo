@@ -76,10 +76,15 @@ namespace DurableAgent.Functions.Extensions
                 .WithHandoffs(substitutionAgent, [orderResolutionAgent])
                 .WithHandoffs(promotionAgent, [orderResolutionAgent])
                 .WithHandoffs(escalationAgent, [orderResolutionAgent])
-                .WithAutonomousMode()
-                // Note: WithMaxRounds is not available on HandoffWorkflowBuilder in this version.
-                // The autonomous mode relies on the agent deciding when resolution is complete.
-                // Monitor orchestration history length in production to detect runaway loops.
+                // turnLimit=8: coordinator + up to 3 specialists + return handoffs, with headroom.
+                // Default would be 50 turns per agent, which is far too permissive for this bounded sub-flow.
+                .WithAutonomousMode(turnLimit: 8, continuationPrompt: "Continue resolving the fulfillment exception.")
+                // Stop as soon as the OrderResolutionAgent emits a JSON result containing an "outcome" field,
+                // which signals it has finished delegating and produced its final OrderResolutionResult.
+                .WithTerminationCondition(conversation =>
+                    conversation.Any(m =>
+                        m.Role == ChatRole.Assistant &&
+                        m.Text?.Contains("\"outcome\"", StringComparison.OrdinalIgnoreCase) == true))
                 .Build();
 #pragma warning restore MAAIW001
 
