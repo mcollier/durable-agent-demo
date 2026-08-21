@@ -1,4 +1,3 @@
-#pragma warning disable MAAIW001 // Suppress experimental API warning for AgentWorkflowBuilder.CreateHandoffBuilderWith
 using DurableAgent.Functions.Agents;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
@@ -68,14 +67,18 @@ namespace DurableAgent.Functions.Extensions
             // This dynamic sub-flow handles fulfillment exceptions: the OrderResolutionAgent
             // coordinates with Substitution, Promotion, and Escalation specialists via handoffs,
             // then returns a final resolution before CustomerMessaging sends the customer message.
+#pragma warning disable MAAIW001 // AgentWorkflowBuilder.CreateHandoffBuilderWith is experimental
             Workflow orderResolutionWorkflow = AgentWorkflowBuilder
                 .CreateHandoffBuilderWith(orderResolutionAgent)
+                .WithName("order-resolution-workflow")
+                .WithDescription("Dynamic handoff sub-flow that resolves fulfillment exceptions via Substitution, Promotion, or Escalation specialists")
                 .WithHandoffs(orderResolutionAgent, [substitutionAgent, promotionAgent, escalationAgent])
                 .WithHandoffs(substitutionAgent, [orderResolutionAgent])
                 .WithHandoffs(promotionAgent, [orderResolutionAgent])
                 .WithHandoffs(escalationAgent, [orderResolutionAgent])
                 .WithAutonomousMode()
                 .Build();
+#pragma warning restore MAAIW001
 
             // Expose the resolution sub-workflow as an agent so it can participate as
             // a node in the outer WorkflowBuilder graph.
