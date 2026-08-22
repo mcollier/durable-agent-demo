@@ -33,4 +33,13 @@ public class SubstitutionAgentConfigTests
     {
         Assert.Contains("flavor", SubstitutionAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [InlineData("CustomerMessagingAgent")]
+    [InlineData("PromotionAgent")]
+    [InlineData("EscalationAgent")]
+    public void SystemPrompt_MentionsEveryAllowedHandoff(string target)
+    {
+        Assert.Contains(target, SubstitutionAgentConfig.SystemPrompt);
+    }
 }

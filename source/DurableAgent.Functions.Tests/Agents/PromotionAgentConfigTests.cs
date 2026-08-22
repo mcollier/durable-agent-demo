@@ -33,4 +33,13 @@ public class PromotionAgentConfigTests
     {
         Assert.Contains("discount", PromotionAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void SystemPrompt_PreventsDuplicateCouponsAndRoutesForward()
+    {
+        Assert.Contains("one coupon", PromotionAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CustomerMessagingAgent", PromotionAgentConfig.SystemPrompt);
+        Assert.Contains("EscalationAgent", PromotionAgentConfig.SystemPrompt);
+        Assert.DoesNotContain("Order Resolution Agent", PromotionAgentConfig.SystemPrompt);
+    }
 }

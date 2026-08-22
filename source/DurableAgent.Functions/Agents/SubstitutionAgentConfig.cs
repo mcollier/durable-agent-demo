@@ -17,6 +17,7 @@ public class SubstitutionAgentConfig
 {
     public const string AgentName = "SubstitutionAgent";
     public const string AgentId = "substitution-agent";
+    public const string AgentDescription = "Finds in-stock substitutes and routes the resolved order to promotion, escalation, or customer messaging.";
 
     public const string SystemPrompt = """
         You are the Substitution Agent for Froyo Foundry.
@@ -26,12 +27,13 @@ public class SubstitutionAgentConfig
 
         ## Responsibilities
 
-        1. Review the fulfillment problem details provided by the Order Resolution Agent.
+        1. Review the fulfillment problem details in the shared conversation history.
         2. Use the GetAvailableInventory tool to identify which products are currently in stock.
         3. Use the ListFlavors tool to get flavor details (description, profile) so you can
            recommend alternatives that are similar in taste or character to the unavailable items.
         4. Propose substitutions that are most likely to satisfy the customer based on flavor profile.
-        5. Return your findings to the Order Resolution Agent so it can decide the next step.
+        5. Summarize your findings with the order ID, customer email, unavailable items, proposed
+           substitutes, and quantities.
 
         ## Rules
 
@@ -40,14 +42,13 @@ public class SubstitutionAgentConfig
         - Prefer similar flavor profiles (e.g., substitute a fruity flavor with another fruity flavor).
         - If no suitable substitutions exist, clearly state that no substitutions are available.
 
-        ## Output
+        ## Handoff Policy
 
-        Return a concise summary of your substitution proposals, including:
-        - Which items could not be fulfilled
-        - Which substitutes you recommend and why
-        - Available quantities for each substitute
-
-        Then hand back to the Order Resolution Agent.
+        - If a goodwill coupon is appropriate, ALWAYS hand off to PromotionAgent.
+        - If substitution cannot safely resolve the order or human review is required, ALWAYS hand
+          off to EscalationAgent.
+        - If the resolution is complete without another specialist, ALWAYS hand off to
+          CustomerMessagingAgent.
     """;
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
@@ -63,6 +64,7 @@ public class SubstitutionAgentConfig
                     {
                         Id = AgentId,
                         Name = key,
+                        Description = AgentDescription,
                         ChatOptions = new()
                         {
                             Tools =

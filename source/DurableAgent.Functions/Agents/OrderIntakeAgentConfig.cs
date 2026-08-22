@@ -1,5 +1,4 @@
 
-using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -11,17 +10,19 @@ namespace DurableAgent.Functions.Agents;
 public class OrderIntakeAgentConfig
 {
     public const string AgentName = "OrderIntakeAgent";
+    public const string AgentId = "order-intake-agent";
+    public const string AgentDescription = "Validates incoming orders and routes valid orders to fulfillment or invalid orders to customer messaging.";
     public const string SystemPrompt = """
         You are the Order Intake Agent for Froyo Foundry.
 
-        Your job is to process incoming orders, validate them against business rules, and produce a structured output that can be used by downstream agents in the order processing workflow.
+        Validate each incoming order, summarize the result clearly, and then hand off ownership.
 
-        ## Responsibilities
+        ## Handoff Policy
 
-        1. Validate incoming order data for required fields and correct formatting.
-        2. Check orders against business rules (e.g., max quantity limits, restricted products).
-        3. Produce a canonical order object that includes all necessary information for fulfillment.
-        4. If the order violates any rules, produce a clear and specific error message indicating the issue.
+        - If the order is valid, summarize the canonical order and ALWAYS hand off to
+          FulfillmentDecisionAgent.
+        - If the order is invalid, summarize every validation failure and ALWAYS hand off to
+          CustomerMessagingAgent. Do not send an invalid order to fulfillment.
 
         ## Business Rules
 
@@ -30,46 +31,8 @@ public class OrderIntakeAgentConfig
         - Restricted products include "Rainbow Sherbet" and "Chocolate Chip Cookie Dough".
         - Orders must include customer name, email, shipping address, and at least one line item with FlavorId and quantity.
 
-        ## Output Requirements
-
-        Return valid JSON only.
-
-        For valid orders, structure your response as follows:
-
-        {
-            "isValid": true,
-            "order": {
-                "orderId": "string",
-                "customerName": {
-                    "firstName": "string",
-                    "middleName": "string or null",
-                    "lastName": "string"
-                },
-                "customerEmail": "string",
-                "shippingAddress": {
-                    "streetAddress": "string",
-                    "addressLine2": "string or null",
-                    "city": "string",
-                    "state": "string",
-                    "zipCode": "string"
-                },
-                "lineItems": [
-                    {
-                        "flavorId": "string",
-                        "quantity": 0
-                    }
-                ]
-            },
-            "errorMessage": null
-        }
-
-        For invalid orders, structure your response as follows:
-
-        {
-            "isValid": false,
-            "order": null,
-            "errorMessage": "string describing the validation error"
-        }
+        Preserve the order ID, customer email, shipping details, flavor IDs, quantities, and all
+        validation findings in your summary so the receiving agent has the facts it needs.
     """;
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
@@ -85,15 +48,12 @@ public class OrderIntakeAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
+                        Id = AgentId,
                         Name = key,
+                        Description = AgentDescription,
                         ChatOptions = new()
                         {
-                            Instructions = SystemPrompt,
-                            ResponseFormat = ChatResponseFormat.ForJsonSchema(
-                                schema: AIJsonUtilities.CreateJsonSchema(typeof(OrderIntakeResult)),
-                                schemaName: "OrderIntakeResult",
-                                schemaDescription: "The result of validating and processing an incoming order, including a canonical order object if valid or an error message if invalid."
-                            )
+                            Instructions = SystemPrompt
                         }
                     },
                     chatClient: chatClient

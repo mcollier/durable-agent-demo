@@ -1,13 +1,10 @@
-using DurableAgent.Core.Models;
 using DurableAgent.Functions.Agents;
-using DurableAgent.Functions.Models;
+using DurableAgent.Functions.Workflows;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AzureFunctions;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json;
 
 namespace DurableAgent.Functions.Extensions
 {
@@ -16,11 +13,6 @@ namespace DurableAgent.Functions.Extensions
     /// </summary>
     public static class AgentExtensions
     {
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
         /// <summary>
         /// Registers all AI agent configurations into the dependency injection container.
         /// </summary>
@@ -33,7 +25,6 @@ namespace DurableAgent.Functions.Extensions
             CustomerMessagingAgentConfig.RegisterAgent(builder);
             FulfillmentDecisionAgentConfig.RegisterAgent(builder);
             OrderIntakeAgentConfig.RegisterAgent(builder);
-            OrderResolutionAgentConfig.RegisterAgent(builder);
             SubstitutionAgentConfig.RegisterAgent(builder);
             PromotionAgentConfig.RegisterAgent(builder);
             EscalationAgentConfig.RegisterAgent(builder);
@@ -59,103 +50,23 @@ namespace DurableAgent.Functions.Extensions
             var orderIntakeAgent = sp.GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName);
             var fulfillmentDecisionAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
             var customerMessagingAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
-            var orderResolutionAgent = sp.GetRequiredKeyedService<AIAgent>(OrderResolutionAgentConfig.AgentName);
             var substitutionAgent = sp.GetRequiredKeyedService<AIAgent>(SubstitutionAgentConfig.AgentName);
             var promotionAgent = sp.GetRequiredKeyedService<AIAgent>(PromotionAgentConfig.AgentName);
             var escalationAgent = sp.GetRequiredKeyedService<AIAgent>(EscalationAgentConfig.AgentName);
 
-            // Build the Order Resolution handoff sub-workflow.
-            // This dynamic sub-flow handles fulfillment exceptions: the OrderResolutionAgent
-            // coordinates with Substitution, Promotion, and Escalation specialists via handoffs,
-            // then returns a final resolution before CustomerMessaging sends the customer message.
-#pragma warning disable MAAIW001 // AgentWorkflowBuilder.CreateHandoffBuilderWith is experimental
-            Workflow orderResolutionWorkflow = AgentWorkflowBuilder
-                .CreateHandoffBuilderWith(orderResolutionAgent)
-                .WithName("order-resolution-workflow")
-                .WithDescription("Dynamic handoff sub-flow that resolves fulfillment exceptions via Substitution, Promotion, or Escalation specialists")
-                .WithHandoffs(orderResolutionAgent, [substitutionAgent, promotionAgent, escalationAgent])
-                .WithHandoffs(substitutionAgent, [orderResolutionAgent])
-                .WithHandoffs(promotionAgent, [orderResolutionAgent])
-                .WithHandoffs(escalationAgent, [orderResolutionAgent])
-                // turnLimit=8: coordinator + up to 3 specialists + return handoffs, with headroom.
-                // Default would be 50 turns per agent, which is far too permissive for this bounded sub-flow.
-                .WithAutonomousMode(turnLimit: 8, continuationPrompt: "Continue resolving the fulfillment exception.")
-                // Stop as soon as any assistant message deserializes cleanly as an OrderResolutionResult
-                // with both required fields populated. String-matching on "outcome" alone is too weak —
-                // specialist agents may mention "outcome" in natural language during intermediate turns.
-                .WithTerminationCondition(conversation =>
-                    conversation.Any(m =>
-                    {
-                        if (m.Role != ChatRole.Assistant || string.IsNullOrWhiteSpace(m.Text)) return false;
-                        try
-                        {
-                            var result = JsonSerializer.Deserialize<OrderResolutionResult>(m.Text, JsonOptions);
-                            return result is not null
-                                && !string.IsNullOrWhiteSpace(result.OrderId)
-                                && !string.IsNullOrWhiteSpace(result.CustomerEmail);
-                        }
-                        catch (JsonException) { return false; }
-                    }))
-                .Build();
-#pragma warning restore MAAIW001
-
-            // Expose the resolution sub-workflow as an agent node in the outer WorkflowBuilder graph.
-            // The name must match what AddWorkflow registers: the workflow's Name property.
-            // Do NOT set id — with id set the durable entity key becomes "{name}_{id}", causing
-            // a "not found" error. With id=null the key is just the name: "order-resolution-workflow".
-            AIAgent orderResolutionWorkflowAgent = orderResolutionWorkflow.AsAIAgent(
-                id: null,
-                name: "order-resolution-workflow",
-                description: "Resolves fulfillment exceptions via handoff between Substitution, Promotion, and Escalation agents");
-
-            // Condition: the FulfillmentDecisionAgent output is a ChatMessage whose Text is
-            // a JSON-serialized FulfillmentDecisionResult. Route to resolution when there is a shortfall.
-            static bool RequiresResolution(object? message)
-            {
-                var text = message switch
-                {
-                    ChatMessage cm => cm.Text,
-                    AgentResponse ar => ar.Text,
-                    _ => message?.ToString()
-                };
-
-                if (string.IsNullOrWhiteSpace(text)) return false;
-
-                try
-                {
-                    var result = JsonSerializer.Deserialize<FulfillmentDecisionResult>(text, JsonOptions);
-                    return result is not null && !result.CanFullyFulfill;
-                }
-                catch (JsonException)
-                {
-                    return false;
-                }
-            }
-
-            static bool IsFullyFulfilled(object? message) => !RequiresResolution(message);
-
-            // Build the outer order-processing-workflow with conditional branching:
-            //   OrderIntake → FulfillmentDecision
-            //     ├─(CanFullyFulfill=true)──────────────────────────→ CustomerMessaging
-            //     └─(CanFullyFulfill=false)→ OrderResolution (handoff) → CustomerMessaging
-            Workflow orderProcessingWorkflow = new WorkflowBuilder(orderIntakeAgent)
-                .WithName("order-processing-workflow")
-                .WithDescription("Workflow to process customer orders with dynamic resolution for fulfillment exceptions")
-                .AddEdge(orderIntakeAgent, fulfillmentDecisionAgent)
-                .AddEdge<object>(fulfillmentDecisionAgent, customerMessagingAgent, condition: IsFullyFulfilled)
-                .AddEdge<object>(fulfillmentDecisionAgent, orderResolutionWorkflowAgent, condition: RequiresResolution)
-                .AddEdge(orderResolutionWorkflowAgent, customerMessagingAgent)
-                .WithOutputFrom(customerMessagingAgent)
-                .Build();
+            Workflow orderProcessingWorkflow = OrderWorkflowFactory.Create(
+                orderIntakeAgent,
+                fulfillmentDecisionAgent,
+                substitutionAgent,
+                promotionAgent,
+                escalationAgent,
+                customerMessagingAgent);
 
             builder.ConfigureDurableOptions(options =>
             {
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
 
-                // Register the resolution sub-workflow so the durable hosting layer creates a named entity
-                // that the outer workflow can find when routing through the resolution node.
-                options.Workflows.AddWorkflow(orderResolutionWorkflow, exposeStatusEndpoint: false, exposeMcpToolTrigger: false);
                 options.Workflows.AddWorkflow(orderProcessingWorkflow, exposeStatusEndpoint: true, exposeMcpToolTrigger: false);
             });
 

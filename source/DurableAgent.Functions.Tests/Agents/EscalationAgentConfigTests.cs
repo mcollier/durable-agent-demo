@@ -33,4 +33,11 @@ public class EscalationAgentConfigTests
     {
         Assert.Contains("escalat", EscalationAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void SystemPrompt_HandsOffToCustomerMessaging()
+    {
+        Assert.Contains("CustomerMessagingAgent", EscalationAgentConfig.SystemPrompt);
+        Assert.DoesNotContain("Order Resolution Agent", EscalationAgentConfig.SystemPrompt);
+    }
 }

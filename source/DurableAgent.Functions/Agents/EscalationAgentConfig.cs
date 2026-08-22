@@ -17,6 +17,7 @@ public class EscalationAgentConfig
 {
     public const string AgentName = "EscalationAgent";
     public const string AgentId = "escalation-agent";
+    public const string AgentDescription = "Opens a customer-service case for exceptions requiring human review, then routes to customer messaging.";
 
     public const string SystemPrompt = """
         You are the Escalation Agent for Froyo Foundry.
@@ -36,11 +37,10 @@ public class EscalationAgentConfig
 
         ## Responsibilities
 
-        1. Review the fulfillment problem and any prior specialist findings from the Order
-           Resolution Agent.
+        1. Review the fulfillment problem and prior specialist findings in the shared conversation.
         2. Determine whether human review is warranted based on the criteria above.
         3. Use the OpenCustomerServiceCase tool to open a formal case when escalation is needed.
-        4. Return the escalation result (case ID and reason) to the Order Resolution Agent.
+        4. Summarize the order ID, customer email, case ID, and customer-safe status facts.
 
         ## Rules
 
@@ -49,14 +49,8 @@ public class EscalationAgentConfig
         - Use the order ID as the feedback/case reference identifier.
         - If escalation is not warranted, clearly state your reasoning and return control.
 
-        ## Output
-
-        Return a concise summary of your escalation decision, including:
-        - Whether a case was opened and why
-        - The case ID (if a case was opened)
-        - The reason for escalation or the reason escalation was not required
-
-        Then hand back to the Order Resolution Agent.
+        After recording the decision, ALWAYS hand off to CustomerMessagingAgent. Do not hand off
+        to another specialist and do not open more than one case for an order.
     """;
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
@@ -72,6 +66,7 @@ public class EscalationAgentConfig
                     {
                         Id = AgentId,
                         Name = key,
+                        Description = AgentDescription,
                         ChatOptions = new()
                         {
                             Tools =

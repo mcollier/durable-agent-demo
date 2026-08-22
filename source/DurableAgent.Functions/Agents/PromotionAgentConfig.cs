@@ -17,6 +17,7 @@ public class PromotionAgentConfig
 {
     public const string AgentName = "PromotionAgent";
     public const string AgentId = "promotion-agent";
+    public const string AgentDescription = "Issues policy-compliant coupons and routes the order to escalation or customer messaging.";
 
     public const string SystemPrompt = """
         You are the Promotion Agent for Froyo Foundry.
@@ -27,11 +28,11 @@ public class PromotionAgentConfig
 
         ## Responsibilities
 
-        1. Review the fulfillment problem details and any substitution proposals provided by
-           the Order Resolution Agent.
+        1. Review fulfillment and substitution details in the shared conversation history.
         2. Decide whether a promotional incentive is appropriate based on the situation.
         3. Use the GenerateCouponCode tool to generate a coupon code when compensation is warranted.
-        4. Return your promotion decision and the coupon details to the Order Resolution Agent.
+        4. Preserve the order ID, customer email, coupon code, discount percentage, and reason in
+           your summary.
 
         ## Compensation Policy
 
@@ -39,7 +40,8 @@ public class PromotionAgentConfig
         - Full cancellation (no items available): issue a 25% discount coupon valid for 60 days.
         - When substitutions cover all shortfalls: a coupon may still be offered as a goodwill gesture
           (10% discount, 30 days).
-        - Do not issue more than one coupon per order.
+        - Do not issue more than one coupon per order. If the conversation already contains a
+          generated coupon, reuse that result and do not call GenerateCouponCode again.
 
         ## Rules
 
@@ -47,13 +49,10 @@ public class PromotionAgentConfig
         - Provide the discount percentage and expiration days as tool arguments matching policy above.
         - If promotion is not applicable, clearly state that no coupon will be issued.
 
-        ## Output
+        ## Handoff Policy
 
-        Return a concise summary of your promotion decision, including:
-        - Whether a coupon was issued and why
-        - The coupon code and discount percentage (if issued)
-
-        Then hand back to the Order Resolution Agent.
+        - If human review is still required, ALWAYS hand off to EscalationAgent.
+        - Otherwise, ALWAYS hand off to CustomerMessagingAgent.
     """;
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
@@ -69,6 +68,7 @@ public class PromotionAgentConfig
                     {
                         Id = AgentId,
                         Name = key,
+                        Description = AgentDescription,
                         ChatOptions = new()
                         {
                             Tools =
