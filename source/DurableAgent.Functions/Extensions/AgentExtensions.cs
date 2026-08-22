@@ -23,9 +23,8 @@ namespace DurableAgent.Functions.Extensions
             CustomerServiceAgentConfig.RegisterAgent(builder);
             EmailAgentConfig.RegisterAgent(builder);
             CustomerMessagingAgentConfig.RegisterAgent(builder);
-            FulfillmentDecisionAgentConfig.RegisterAgent(builder);
+            FulfillmentAgentConfig.RegisterAgent(builder);
             OrderIntakeAgentConfig.RegisterAgent(builder);
-            SubstitutionAgentConfig.RegisterAgent(builder);
 
             return builder;
         }
@@ -46,14 +45,12 @@ namespace DurableAgent.Functions.Extensions
             var customerServiceAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerServiceAgentConfig.AgentName);
             var emailAgent = sp.GetRequiredKeyedService<AIAgent>(EmailAgentConfig.AgentName);
             var orderIntakeAgent = sp.GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName);
-            var fulfillmentDecisionAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
+            var fulfillmentAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentAgentConfig.AgentName);
             var customerMessagingAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
-            var substitutionAgent = sp.GetRequiredKeyedService<AIAgent>(SubstitutionAgentConfig.AgentName);
 
             Workflow orderProcessingWorkflow = OrderWorkflowFactory.Create(
                 orderIntakeAgent,
-                fulfillmentDecisionAgent,
-                substitutionAgent,
+                fulfillmentAgent,
                 customerMessagingAgent);
 
             builder.ConfigureDurableOptions(options =>
@@ -64,8 +61,7 @@ namespace DurableAgent.Functions.Extensions
                 foreach (AIAgent workflowAgent in new[]
                 {
                     orderIntakeAgent,
-                    fulfillmentDecisionAgent,
-                    substitutionAgent,
+                    fulfillmentAgent,
                     customerMessagingAgent
                 })
                 {

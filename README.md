@@ -78,7 +78,7 @@ source/
     Workflows/                  # OrderProcessingWorkflow — sequential multi-agent workflow
     Activities/                 # SendCustomerEmail, ProcessFeedback
     Agents/                     # Agent config classes: CustomerServiceAgent, EmailAgent,
-                                #   OrderIntakeAgent, FulfillmentDecisionAgent,
+                                #   OrderIntakeAgent, FulfillmentAgent,
                                 #   CustomerMessagingAgent
     Extensions/                 # AgentExtensions, AIServiceExtensions,
                                 #   EmailServiceExtensions, WorkflowExtensions
@@ -86,7 +86,7 @@ source/
                                 #   IOrderQueueSender, ServiceBusOrderQueueSender,
                                 #   StoreRepository, FlavorRepository, InventoryRepository
     Models/                     # FeedbackSubmissionRequest, SendCustomerEmailInput,
-                                #   OrderRequest, OrderIntakeResult, FulfillmentDecisionResult,
+                                #   OrderRequest, OrderIntakeResult, OrderFulfillmentResult,
                                 #   CustomerMessageResult, EmailSettings
     Tools/                      # AI tool functions: GenerateCouponCode, GetStoreDetails,
                                 #   ListFlavors, OpenCustomerServiceCase,
@@ -188,9 +188,9 @@ az bicep build --file infra/main.bicep --stdout
 2. **`SubmitOrderTrigger`** validates the request and enqueues it to the `inbound-orders` Service Bus queue via `IOrderQueueSender`.
 3. **`InboundOrderTrigger`** receives the message from Service Bus and runs the **`order-processing-workflow`** — a sequential multi-agent pipeline:
    - **`OrderIntakeAgent`** validates and normalises the order against business rules.
-   - **`FulfillmentDecisionAgent`** checks inventory (via `CheckInventoryTool`) and generates a coupon code if stock is short.
+   - **`FulfillmentAgent`** checks inventory, selects an in-stock substitute when needed, and chooses a policy-approved coupon tier when stock is short.
    - **`CustomerMessagingAgent`** crafts an HTML customer message based on the fulfillment outcome.
-4. The trigger sends the composed customer message to the configured recipient address via **Azure Communication Services**.
+4. **`CustomerMessagingAgent`** sends the composed message via **Azure Communication Services** and returns the final workflow result.
 
 ### AI Agent Tools
 
@@ -199,14 +199,14 @@ The project exposes **7 tool functions** across its agents:
 | Tool | Used By | Description |
 |---|---|---|
 | `GetCurrentUtcDateTime` | CustomerServiceAgent | Returns the current UTC timestamp |
-| `GenerateCouponCode` | CustomerServiceAgent, FulfillmentDecisionAgent | Generates a discount coupon code |
+| `GenerateCouponCode` | CustomerServiceAgent, FulfillmentAgent | Generates a discount coupon code using an approved tier |
 | `GetStoreDetails` | CustomerServiceAgent | Looks up store info by store ID |
-| `ListFlavors` | CustomerServiceAgent, FulfillmentDecisionAgent | Lists the available frozen yogurt flavor catalog |
+| `ListFlavors` | CustomerServiceAgent, FulfillmentAgent | Lists the available frozen yogurt flavor catalog |
 | `OpenCustomerServiceCase` | CustomerServiceAgent | Opens a customer service support case |
-| `CheckInventory` | FulfillmentDecisionAgent | Returns available inventory quantity for a flavor ID |
+| `CheckInventory` | FulfillmentAgent | Returns available inventory quantity for a flavor ID |
 | `RedactPii` | (general use) | Redacts personally identifiable information from text |
 
-The `CustomerServiceAgent` uses 5 of these (`GetCurrentUtcDateTime`, `GenerateCouponCode`, `GetStoreDetails`, `ListFlavors`, `OpenCustomerServiceCase`). The order-processing workflow agents (`FulfillmentDecisionAgent`) use `CheckInventory` and `GenerateCouponCode`.
+The `CustomerServiceAgent` uses 5 of these (`GetCurrentUtcDateTime`, `GenerateCouponCode`, `GetStoreDetails`, `ListFlavors`, `OpenCustomerServiceCase`). The order-processing `FulfillmentAgent` uses `CheckInventory`, `ListFlavors`, and `GenerateCouponCode`.
 
 ### Sample Message
 

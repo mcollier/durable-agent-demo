@@ -14,11 +14,13 @@ public class CustomerMessagingAgentConfigTests
     [Fact]
     public void SystemPrompt_HandlesEveryTerminalRoute()
     {
+        Assert.Contains("OrderFulfillmentResult", CustomerMessagingAgentConfig.SystemPrompt);
         Assert.Contains("invalid order", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("full fulfillment", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("substitute", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("no substitute", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("coupon", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("when orderId is unavailable", CustomerMessagingAgentConfig.SystemPrompt);
         Assert.DoesNotContain("handoff", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("escalation", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
