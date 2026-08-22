@@ -64,9 +64,10 @@ trigger starts it by posting the raw serialized order to:
 POST /api/workflows/order-processing-workflow/run
 ```
 
-Agent names and IDs are stable so the generated durable activity names remain stable. The workflow
-agents are registered through the workflow definition rather than exposed as standalone agent HTTP
-or MCP endpoints.
+Agent names and IDs are stable so the generated durable activity names remain stable. Each workflow
+agent is also registered under its graph executor ID (`{Name}_{Id}`), because the durable activity
+uses that ID when resolving the backing durable agent entity. These private aliases do not expose
+standalone HTTP or MCP endpoints.
 
 This topology replaces executor identities used by earlier graph versions. Drain or terminate
 in-flight `order-processing-workflow` instances before deploying the change; their checkpoints are
