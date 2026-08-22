@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Runtime.CompilerServices;
 using DurableAgent.Functions.Workflows;
 using FakeItEasy;
@@ -134,6 +135,18 @@ public class OrderWorkflowFactoryTests
     {
         Assert.Throws<InvalidOperationException>(() => OrderWorkflowFactory.IsValidOrder(output));
         Assert.Throws<InvalidOperationException>(() => OrderWorkflowFactory.CanFullyFulfill(output));
+    }
+
+    [Fact]
+    public void WhenDurableAgentOutputIsReceived_ThenEnvelopeInputIsExtracted()
+    {
+        const string DurableInput =
+            """["{\"input\":\"{\\\"isValid\\\":true}\",\"state\":{}}"]""";
+        JsonElement input = JsonSerializer.Deserialize<JsonElement>(DurableInput);
+
+        string result = AgentTurnMessage.GetText(input);
+
+        Assert.Equal("""{"isValid":true}""", result);
     }
 
     [Fact]

@@ -32,6 +32,10 @@ The published Workflows 1.18 package uses a chat protocol for agent executors. A
 the generated message list followed by a `TurnToken`. A switch attached directly to an agent can
 also observe protocol messages that are not routing results.
 
+The DurableTask 1.16 adapter additionally serializes routed activity input as an array of
+`{"input": ..., "state": ...}` envelopes. Turn adapters normalize that durable wire shape and the
+in-process `ChatMessage` shape before starting the next agent.
+
 `OrderWorkflowFactory` therefore starts with a deterministic input adapter that converts the raw
 order JSON into a user message and turn token. It binds each agent with incoming-message forwarding
 disabled and uses deterministic turn-forwarder executors around conditional branches. Each
