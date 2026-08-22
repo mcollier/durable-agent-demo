@@ -33,26 +33,22 @@ Durable execution checkpoints completed agent turns. If the orchestration replay
 recorded Fulfillment output instead of asking the model to choose a substitute and coupon again.
 The workflow path is deterministic while the bounded Fulfillment judgment is durably recorded.
 
-## Durable Agent Turns
+## Sequential Durable Workflow
 
-The published Workflows 1.18 package uses a chat protocol for agent executors. An agent turn emits
-the generated message list followed by a `TurnToken`.
+The three agents are the workflow nodes:
 
-The DurableTask 1.16 adapter additionally serializes routed activity input as an array of
-`{"input": ..., "state": ...}` envelopes. Turn adapters normalize that durable wire shape and the
-in-process `ChatMessage` shape before starting the next agent.
+```csharp
+new WorkflowBuilder(orderIntakeAgent)
+    .WithName("order-processing-workflow")
+    .AddEdge(orderIntakeAgent, fulfillmentAgent)
+    .AddEdge(fulfillmentAgent, customerMessagingAgent)
+    .Build();
+```
 
-`OrderWorkflowFactory` therefore starts with a deterministic input adapter that converts the raw
-order JSON into a user message and turn token. It binds each agent with incoming-message forwarding
-disabled and uses deterministic turn-forwarder executors between agents. Each
-forwarder:
-
-1. receives only a completed agent response;
-2. forwards that response to the fixed next agent;
-3. sends the `TurnToken` that starts the next agent.
-
-The adapters contain no AI or business decisions. The terminal executor returns the final customer
-message as its typed result so the durable workflow result is populated.
+The workflow is registered with `options.Workflows.AddWorkflow(...)`. The Azure Functions hosting
+extension maps the graph to a durable orchestration, maps each agent executor to a durable activity,
+and generates the HTTP endpoint. No custom start, forwarding, routing, or output executors are part
+of the graph.
 
 The invalid-order no-op is enforced by the Fulfillment agent's instructions. The current agent
 hosting API exposes one static tool set for every invocation, so it does not provide a hard
@@ -68,13 +64,13 @@ trigger starts it by posting the raw serialized order to:
 POST /api/workflows/order-processing-workflow/run
 ```
 
-Agent names and IDs are stable. Durable registrations also include private aliases matching each
-graph executor key (`{Name}_{Id}`), which prevents durable entity lookup failures without exposing
-additional HTTP or MCP endpoints.
+Agent names and IDs are stable so the generated durable activity names remain stable. The workflow
+agents are registered through the workflow definition rather than exposed as standalone agent HTTP
+or MCP endpoints.
 
-This topology replaces executor identities used by the earlier four-agent graph. Drain or terminate
-in-flight `order-processing-workflow` instances before deploying the change; existing checkpoints
-from the old topology are not compatible with the new executor set.
+This topology replaces executor identities used by earlier graph versions. Drain or terminate
+in-flight `order-processing-workflow` instances before deploying the change; their checkpoints are
+not compatible with the new executor set.
 
 ## Failure Behavior
 
@@ -90,4 +86,4 @@ inventory, substitution, or coupon data.
 4. A shortfall without a substitute issues one approved coupon and sends one apologetic message.
 
 Reference:
-<https://learn.microsoft.com/en-us/azure/durable-task/sdks/durable-agents-microsoft-agent-framework?tabs=csharp&pivots=azure-functions#graph-based-workflows-with-microsoft-agent-framework>
+<https://devblogs.microsoft.com/dotnet/durable-workflows-in-microsoft-agent-framework/>

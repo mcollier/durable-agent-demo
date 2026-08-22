@@ -58,26 +58,6 @@ namespace DurableAgent.Functions.Extensions
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
 
-                foreach (AIAgent workflowAgent in new[]
-                {
-                    orderIntakeAgent,
-                    fulfillmentAgent,
-                    customerMessagingAgent
-                })
-                {
-                    string executorId = orderProcessingWorkflow.ReflectExecutors().Keys.Single(
-                        id => id.StartsWith($"{workflowAgent.Name}_", StringComparison.Ordinal));
-
-                    options.Agents.AddAIAgentFactory(
-                        executorId,
-                        _ => workflowAgent,
-                        agentOptions =>
-                        {
-                            agentOptions.HttpTrigger.IsEnabled = false;
-                            agentOptions.McpToolTrigger.IsEnabled = false;
-                        });
-                }
-
                 options.Workflows.AddWorkflow(
                     orderProcessingWorkflow,
                     exposeStatusEndpoint: true,

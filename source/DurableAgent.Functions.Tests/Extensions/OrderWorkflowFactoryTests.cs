@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using DurableAgent.Functions.Workflows;
 using FakeItEasy;
 using Microsoft.Agents.AI;
@@ -28,13 +27,9 @@ public class OrderWorkflowFactoryTests
             workflow.ReflectExecutors().Keys);
         Assert.Equal(
             [
-                "CustomerMessageOutputExecutor",
                 "CustomerMessagingAgent",
-                "ForwardToCustomerMessaging",
-                "ForwardToFulfillment",
                 "FulfillmentAgent",
-                "OrderIntakeAgent",
-                "OrderWorkflowStartExecutor"
+                "OrderIntakeAgent"
             ],
             workflow.ReflectExecutors().Keys
                 .Select(GetAgentName)
@@ -43,7 +38,7 @@ public class OrderWorkflowFactoryTests
     }
 
     [Fact]
-    public void WhenWorkflowIsBuilt_ThenItHasNoBusinessRoutingExecutors()
+    public void WhenWorkflowIsBuilt_ThenOrderIntakeIsTheStartNode()
     {
         AgentSet agents = CreateAgents();
 
@@ -52,13 +47,12 @@ public class OrderWorkflowFactoryTests
             agents.Fulfillment,
             agents.CustomerMessaging);
 
-        Assert.Equal("OrderWorkflowStartExecutor", workflow.StartExecutorId);
+        Assert.Equal("OrderIntakeAgent_order_intake_agent", workflow.StartExecutorId);
         Assert.DoesNotContain(
             workflow.ReflectExecutors().Keys,
-            id => id.Contains("Substitution", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(
-            workflow.ReflectExecutors().Keys,
-            id => id.Contains("Switch", StringComparison.OrdinalIgnoreCase));
+            id => id.StartsWith("ForwardTo", StringComparison.Ordinal));
+        Assert.DoesNotContain("OrderWorkflowStartExecutor", workflow.ReflectExecutors().Keys);
+        Assert.DoesNotContain("CustomerMessageOutputExecutor", workflow.ReflectExecutors().Keys);
     }
 
     [Fact]
@@ -79,18 +73,6 @@ public class OrderWorkflowFactoryTests
         Assert.Equal(
             first.ReflectExecutors().Keys.Order().ToArray(),
             second.ReflectExecutors().Keys.Order().ToArray());
-    }
-
-    [Fact]
-    public void WhenDurableAgentOutputIsReceived_ThenEnvelopeInputIsExtracted()
-    {
-        const string DurableInput =
-            """["{\"input\":\"{\\\"isValidOrder\\\":true}\",\"state\":{}}"]""";
-        JsonElement input = JsonSerializer.Deserialize<JsonElement>(DurableInput);
-
-        string result = AgentTurnMessage.GetText(input);
-
-        Assert.Equal("""{"isValidOrder":true}""", result);
     }
 
     [Theory]
@@ -132,7 +114,10 @@ public class OrderWorkflowFactoryTests
     private static async Task<string> ExecuteWorkflowAsync(Workflow workflow, string input)
     {
         string output = string.Empty;
-        await using StreamingRun run = await InProcessExecution.RunStreamingAsync(workflow, input);
+        await using StreamingRun run = await InProcessExecution.RunStreamingAsync(
+            workflow,
+            new ChatMessage(ChatRole.User, input));
+        await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
 
         await foreach (WorkflowEvent workflowEvent in run.WatchStreamAsync())
         {
