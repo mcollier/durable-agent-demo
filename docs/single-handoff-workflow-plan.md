@@ -2,8 +2,8 @@
 
 ## Goal
 
-Use one durable Microsoft Agent Framework handoff workflow for the complete order lifecycle. This
-avoids wrapping a nested workflow with `AsAIAgent()`, which caused workflow/agent registry identity
+Use one Microsoft Agent Framework handoff workflow for the complete order lifecycle. This avoids
+wrapping a nested workflow with `AsAIAgent()`, which caused workflow/agent registry identity
 mismatches at runtime.
 
 ## Participants
@@ -66,13 +66,33 @@ case creation.
 
 The durable packages have no 1.18 release on NuGet at the time of implementation.
 
+## Durable Hosting Boundary
+
+The 1.16 durable workflow runner cannot directly start a 1.18 handoff workflow. It converts the
+entire run request to one string, while `HandoffStart` deliberately buffers that message until it
+receives a separate typed `TurnToken`. Direct registration therefore runs only `HandoffStart` and
+then completes with no active executor.
+
+Until the durable adapter supports the handoff chat protocol, the complete handoff workflow is
+registered once as the named durable agent `order-processing-workflow`. `WorkflowHostAgent`
+supplies the message and turn token expected by the handoff workflow, and the Azure Functions
+durable-agent entity provides reliable fire-and-forget invocation. The inbound trigger calls:
+
+```text
+POST /api/agents/order-processing-workflow/run?wait=false
+```
+
+The request body contains a `message` string whose value is the serialized order. The stable
+workflow-agent name and ID prevent the anonymous GUID entity lookup failures seen with the former
+nested workflow.
+
 ## Validation
 
 Tests cover workflow composition, stable reconstructed executor identities, prompt routing
 contracts, and terminal detection. Runtime validation must confirm:
 
-- only `order-processing-workflow` is registered;
-- no workflow-as-agent GUID entity is created;
+- only the named `order-processing-workflow` durable agent is registered for order processing;
+- no anonymous workflow-as-agent GUID entity is created;
 - no `Agent '...' not found` error occurs;
 - Customer Messaging runs last and sends one email.
 

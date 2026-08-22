@@ -61,13 +61,13 @@ namespace DurableAgent.Functions.Extensions
                 promotionAgent,
                 escalationAgent,
                 customerMessagingAgent);
+            AIAgent orderProcessingAgent = OrderWorkflowFactory.CreateAgent(orderProcessingWorkflow);
 
             builder.ConfigureDurableOptions(options =>
             {
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
-
-                options.Workflows.AddWorkflow(orderProcessingWorkflow, exposeStatusEndpoint: true, exposeMcpToolTrigger: false);
+                options.Agents.AddAIAgent(orderProcessingAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
             });
 
             return builder;

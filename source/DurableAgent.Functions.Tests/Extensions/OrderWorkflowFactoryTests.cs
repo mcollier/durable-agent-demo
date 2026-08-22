@@ -111,6 +111,24 @@ public class OrderWorkflowFactoryTests
     }
 
     [Fact]
+    public void WhenWorkflowIsHostedAsAgent_ThenItsIdentityIsStable()
+    {
+        AgentSet agents = CreateAgents();
+        Workflow workflow = OrderWorkflowFactory.Create(
+            agents.OrderIntake,
+            agents.FulfillmentDecision,
+            agents.Substitution,
+            agents.Promotion,
+            agents.Escalation,
+            agents.CustomerMessaging);
+
+        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
+
+        Assert.Equal(OrderWorkflowFactory.WorkflowName, workflowAgent.Id);
+        Assert.Equal(OrderWorkflowFactory.WorkflowName, workflowAgent.Name);
+    }
+
+    [Fact]
     public void WhenConversationIsEmpty_ThenWorkflowDoesNotTerminate()
     {
         Assert.False(OrderWorkflowFactory.IsCustomerMessageComplete([]));
@@ -167,7 +185,7 @@ public class OrderWorkflowFactoryTests
             agents.Promotion,
             agents.Escalation,
             agents.CustomerMessaging);
-        AIAgent workflowAgent = workflow.AsAIAgent(id: "test-order-workflow", name: "test-order-workflow");
+        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
 
         AgentResponse response = await workflowAgent.RunAsync("Process order order-1.");
 
@@ -194,7 +212,7 @@ public class OrderWorkflowFactoryTests
             agents.Promotion,
             agents.Escalation,
             agents.CustomerMessaging);
-        AIAgent workflowAgent = workflow.AsAIAgent(id: "test-order-workflow", name: "test-order-workflow");
+        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
 
         AgentResponse response = await workflowAgent.RunAsync("Process order order-1.");
 
@@ -226,7 +244,7 @@ public class OrderWorkflowFactoryTests
             agents.Promotion,
             agents.Escalation,
             agents.CustomerMessaging);
-        AIAgent workflowAgent = workflow.AsAIAgent(id: "test-order-workflow", name: "test-order-workflow");
+        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
 
         await workflowAgent.RunAsync("Process invalid order order-1.");
 
@@ -249,7 +267,7 @@ public class OrderWorkflowFactoryTests
             agents.Promotion,
             agents.Escalation,
             agents.CustomerMessaging);
-        AIAgent workflowAgent = workflow.AsAIAgent(id: "test-order-workflow", name: "test-order-workflow");
+        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
 
         await workflowAgent.RunAsync("Process order order-1.");
 

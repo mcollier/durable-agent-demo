@@ -58,6 +58,16 @@ internal static class OrderWorkflowFactory
         return workflow;
     }
 
+    internal static AIAgent CreateAgent(Workflow workflow)
+    {
+        ArgumentNullException.ThrowIfNull(workflow);
+
+        return workflow.AsAIAgent(
+            id: WorkflowName,
+            name: WorkflowName,
+            description: workflow.Description);
+    }
+
     internal static bool IsCustomerMessageComplete(IEnumerable<ChatMessage> conversation) =>
         conversation.Any(message =>
         {
