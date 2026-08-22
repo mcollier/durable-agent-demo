@@ -5,19 +5,20 @@ namespace DurableAgent.Functions.Tests.Agents;
 public class FulfillmentDecisionAgentConfigTests
 {
     [Fact]
-    public void AgentIdentity_IsStable()
+    public void AgentIdentity_UsesDurableRegistryName()
     {
         Assert.Equal("FulfillmentDecisionAgent", FulfillmentDecisionAgentConfig.AgentName);
-        Assert.Equal("fulfillment-decision-agent", FulfillmentDecisionAgentConfig.AgentId);
         Assert.False(string.IsNullOrWhiteSpace(FulfillmentDecisionAgentConfig.AgentDescription));
     }
 
     [Fact]
-    public void SystemPrompt_DescribesEveryAllowedHandoff()
+    public void SystemPrompt_OnlyDeterminesFulfillment()
     {
-        Assert.Contains("CustomerMessagingAgent", FulfillmentDecisionAgentConfig.SystemPrompt);
-        Assert.Contains("SubstitutionAgent", FulfillmentDecisionAgentConfig.SystemPrompt);
-        Assert.Contains("PromotionAgent", FulfillmentDecisionAgentConfig.SystemPrompt);
-        Assert.Contains("EscalationAgent", FulfillmentDecisionAgentConfig.SystemPrompt);
+        Assert.Contains("canFullyFulfill", FulfillmentDecisionAgentConfig.SystemPrompt);
+        Assert.Contains("valid JSON", FulfillmentDecisionAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("handoff", FulfillmentDecisionAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("PromotionAgent", FulfillmentDecisionAgentConfig.SystemPrompt);
+        Assert.DoesNotContain("EscalationAgent", FulfillmentDecisionAgentConfig.SystemPrompt);
+        Assert.DoesNotContain("generate a coupon", FulfillmentDecisionAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
 }

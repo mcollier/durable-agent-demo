@@ -1,54 +1,43 @@
-
+using DurableAgent.Functions.Models;
+using DurableAgent.Functions.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using DurableAgent.Functions.Tools;
 
 namespace DurableAgent.Functions.Agents;
 
-/// <summary>
-/// Configuration for the Substitution Agent — a specialist in the Order Resolution
-/// handoff sub-flow that finds acceptable replacement flavors or products when the
-/// originally requested items are unavailable.
-/// </summary>
 public class SubstitutionAgentConfig
 {
     public const string AgentName = "SubstitutionAgent";
     public const string AgentId = "substitution-agent";
-    public const string AgentDescription = "Finds in-stock substitutes and routes the resolved order to promotion, escalation, or customer messaging.";
-
+    public const string AgentDescription = "Finds an in-stock substitute and issues a goodwill coupon for fulfillment shortfalls.";
     public const string SystemPrompt = """
         You are the Substitution Agent for Froyo Foundry.
 
-        Your job is to find acceptable replacement flavors or products when one or more
-        items in a customer's order cannot be fulfilled due to insufficient inventory.
+        Resolve a fulfillment shortfall and return valid JSON matching the
+        FulfillmentDecisionResult response schema.
 
         ## Responsibilities
 
-        1. Review the fulfillment problem details in the shared conversation history.
-        2. Use the GetAvailableInventory tool to identify which products are currently in stock.
-        3. Use the ListFlavors tool to get flavor details (description, profile) so you can
-           recommend alternatives that are similar in taste or character to the unavailable items.
-        4. Propose substitutions that are most likely to satisfy the customer based on flavor profile.
-        5. Summarize your findings with the order ID, customer email, unavailable items, proposed
-           substitutes, and quantities.
+        1. Use GetAvailableInventory to find products that are currently in stock.
+        2. Use ListFlavors to compare flavor profiles.
+        3. Recommend the closest in-stock flavor as an alternative when a suitable substitute exists.
+        4. If no suitable substitute exists, leave alternativeRecommendations empty and preserve
+           the original shortfall details.
+        5. Always call GenerateCouponCode exactly once with discountPercent 25 (a 25% discount)
+           and expirationDays 30.
+        6. Include the returned code and a discountPercent of 25 in coupon.
 
         ## Rules
 
-        - Only recommend items that are actually in stock according to GetAvailableInventory.
-        - Do not recommend the originally unavailable item as a substitute.
-        - Prefer similar flavor profiles (e.g., substitute a fruity flavor with another fruity flavor).
-        - If no suitable substitutions exist, clearly state that no substitutions are available.
-
-        ## Handoff Policy
-
-        - If a goodwill coupon is appropriate, ALWAYS hand off to PromotionAgent.
-        - If substitution cannot safely resolve the order or human review is required, ALWAYS hand
-          off to EscalationAgent.
-        - If the resolution is complete without another specialist, ALWAYS hand off to
-          CustomerMessagingAgent.
+        - Recommend only products confirmed in stock.
+        - Never recommend the unavailable original item.
+        - Never fabricate inventory or coupon codes.
+        - Set shouldGenerateCoupon to true and keep canFullyFulfill false.
+        - A no suitable substitute result still requires one coupon.
+        - Return JSON only. Do not discuss routing or workflows.
     """;
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
@@ -59,7 +48,7 @@ public class SubstitutionAgentConfig
             {
                 var chatClient = sp.GetRequiredService<IChatClient>();
 
-                AIAgent agent = new ChatClientAgent(
+                return new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
                         Id = AgentId,
@@ -70,15 +59,17 @@ public class SubstitutionAgentConfig
                             Tools =
                             [
                                 AIFunctionFactory.Create(CheckInventoryTool.GetAvailableInventory),
-                                AIFunctionFactory.Create(ListFlavorsTool.ListFlavors)
+                                AIFunctionFactory.Create(ListFlavorsTool.ListFlavors),
+                                AIFunctionFactory.Create(GenerateCouponCodeTool.GenerateCouponCode)
                             ],
-                            Instructions = SystemPrompt
+                            Instructions = SystemPrompt,
+                            ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                                schema: AIJsonUtilities.CreateJsonSchema(typeof(FulfillmentDecisionResult)),
+                                schemaName: nameof(FulfillmentDecisionResult),
+                                schemaDescription: "The fulfillment result enriched with a substitute and coupon.")
                         }
                     },
-                    chatClient: chatClient
-                );
-
-                return agent;
+                    chatClient: chatClient);
             });
     }
 }

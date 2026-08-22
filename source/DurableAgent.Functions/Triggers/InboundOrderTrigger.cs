@@ -41,13 +41,10 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
 
         logger.LogInformation("Received order {OrderReference}.", order.OrderReference);
 
-        // Host the handoff workflow as a durable agent because the durable workflow runner cannot
-        // supply the separate TurnToken required to start a handoff orchestration.
         var client = httpClientFactory.CreateClient("self");
-        string orderJson = JsonSerializer.Serialize(order, JsonOptions);
-        using var content = JsonContent.Create(new { message = orderJson });
+        using var content = JsonContent.Create(order, options: JsonOptions);
         using var response = await client.PostAsync(
-            "api/agents/order-processing-workflow/run?wait=false", content, cancellationToken);
+            "api/workflows/order-processing-workflow/run", content, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {

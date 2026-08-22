@@ -57,11 +57,9 @@ public class InboundOrderTriggerTests
         Assert.Single(handler.Requests);
         var request = handler.Requests[0];
         Assert.Equal(HttpMethod.Post, request.method);
-        Assert.Equal("http://localhost/api/agents/order-processing-workflow/run?wait=false", request.uri);
+        Assert.Equal("http://localhost/api/workflows/order-processing-workflow/run", request.uri);
 
-        using JsonDocument payload = JsonDocument.Parse(request.body);
-        string workflowMessage = payload.RootElement.GetProperty("message").GetString()!;
-        var sent = JsonSerializer.Deserialize<OrderRequest>(workflowMessage, JsonOptions);
+        var sent = JsonSerializer.Deserialize<OrderRequest>(request.body, JsonOptions);
         Assert.Equal(order.OrderReference, sent?.OrderReference);
     }
 

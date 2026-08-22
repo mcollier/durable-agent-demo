@@ -1,87 +1,66 @@
-using FakeItEasy;
+using System.Runtime.CompilerServices;
 using DurableAgent.Functions.Workflows;
+using FakeItEasy;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
 
 namespace DurableAgent.Functions.Tests.Extensions;
 
 public class OrderWorkflowFactoryTests
 {
     [Fact]
-    public void WhenWorkflowIsBuilt_ThenItContainsOnlyTheSixOrderParticipants()
+    public void WhenWorkflowIsBuilt_ThenItContainsOnlyFourOrderAgents()
     {
-        var agents = CreateAgents();
+        AgentSet agents = CreateAgents();
 
         Workflow workflow = OrderWorkflowFactory.Create(
             agents.OrderIntake,
             agents.FulfillmentDecision,
             agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
             agents.CustomerMessaging);
 
         Assert.Equal(OrderWorkflowFactory.WorkflowName, workflow.Name);
-        Assert.Equal(8, workflow.ReflectExecutors().Count);
+        Assert.Contains("OrderIntakeAgent_order_intake_agent", workflow.ReflectExecutors().Keys);
+        Assert.Contains(
+            "FulfillmentDecisionAgent_fulfillment_decision_agent",
+            workflow.ReflectExecutors().Keys);
+        Assert.Contains("SubstitutionAgent_substitution_agent", workflow.ReflectExecutors().Keys);
+        Assert.Contains(
+            "CustomerMessagingAgent_customer_messaging_agent",
+            workflow.ReflectExecutors().Keys);
         Assert.Equal(
             [
+                "CustomerMessageOutputExecutor",
                 "CustomerMessagingAgent",
-                "EscalationAgent",
+                "ForwardToCustomerMessaging",
+                "ForwardToFulfillment",
+                "ForwardToSubstitution",
                 "FulfillmentDecisionAgent",
                 "OrderIntakeAgent",
-                "PromotionAgent",
+                "OrderWorkflowStartExecutor",
                 "SubstitutionAgent"
             ],
             workflow.ReflectExecutors().Keys
-                .Where(id => id is not "HandoffStart" and not "HandoffEnd")
                 .Select(GetAgentName)
                 .Order()
                 .ToArray());
-        Assert.DoesNotContain(
-            workflow.ReflectExecutors().Keys,
-            id => id.Contains("OrderResolution", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public void WhenWorkflowIsBuilt_ThenOrderIntakeIsTheStartingAgent()
+    public void WhenWorkflowIsBuilt_ThenInputAdapterStartsTheWorkflow()
     {
-        var agents = CreateAgents();
+        AgentSet agents = CreateAgents();
 
         Workflow workflow = OrderWorkflowFactory.Create(
             agents.OrderIntake,
             agents.FulfillmentDecision,
             agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
             agents.CustomerMessaging);
 
-        Assert.Equal("HandoffStart", workflow.StartExecutorId);
-        Assert.Contains(
-            workflow.ReflectEdges()[workflow.StartExecutorId],
-            edge => edge.Connection.SinkIds.Any(
-                id => id.StartsWith("OrderIntakeAgent", StringComparison.Ordinal)));
-    }
-
-    [Fact]
-    public void WhenWorkflowIsBuilt_ThenItUsesHandoffInfrastructureRatherThanASubworkflow()
-    {
-        var agents = CreateAgents();
-
-        Workflow workflow = OrderWorkflowFactory.Create(
-            agents.OrderIntake,
-            agents.FulfillmentDecision,
-            agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
-            agents.CustomerMessaging);
-
-        Assert.Contains("HandoffStart", workflow.ReflectExecutors().Keys);
-        Assert.Contains("HandoffEnd", workflow.ReflectExecutors().Keys);
-        Assert.DoesNotContain(
-            workflow.ReflectExecutors().Keys,
-            id => id.Contains("workflow", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("OrderWorkflowStartExecutor", workflow.StartExecutorId);
+        Assert.DoesNotContain("HandoffStart", workflow.ReflectExecutors().Keys);
+        Assert.DoesNotContain("HandoffEnd", workflow.ReflectExecutors().Keys);
     }
 
     [Fact]
@@ -94,292 +73,253 @@ public class OrderWorkflowFactoryTests
             firstAgents.OrderIntake,
             firstAgents.FulfillmentDecision,
             firstAgents.Substitution,
-            firstAgents.Promotion,
-            firstAgents.Escalation,
             firstAgents.CustomerMessaging);
         Workflow second = OrderWorkflowFactory.Create(
             secondAgents.OrderIntake,
             secondAgents.FulfillmentDecision,
             secondAgents.Substitution,
-            secondAgents.Promotion,
-            secondAgents.Escalation,
             secondAgents.CustomerMessaging);
 
         Assert.Equal(
-            first.ReflectExecutors().Keys.Order().ToArray(),
-            second.ReflectExecutors().Keys.Order().ToArray());
-    }
-
-    [Fact]
-    public void WhenWorkflowIsHostedAsAgent_ThenItsIdentityIsStable()
-    {
-        AgentSet agents = CreateAgents();
-        Workflow workflow = OrderWorkflowFactory.Create(
-            agents.OrderIntake,
-            agents.FulfillmentDecision,
-            agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
-            agents.CustomerMessaging);
-
-        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
-
-        Assert.Equal(OrderWorkflowFactory.WorkflowName, workflowAgent.Id);
-        Assert.Equal(OrderWorkflowFactory.WorkflowName, workflowAgent.Name);
-    }
-
-    [Fact]
-    public void WhenConversationIsEmpty_ThenWorkflowDoesNotTerminate()
-    {
-        Assert.False(OrderWorkflowFactory.IsCustomerMessageComplete([]));
+            first.ReflectExecutors().Keys.Select(GetAgentName).Order().ToArray(),
+            second.ReflectExecutors().Keys.Select(GetAgentName).Order().ToArray());
     }
 
     [Theory]
-    [InlineData("The specialist included orderId and message in prose.")]
-    [InlineData("{ not valid json")]
-    [InlineData("""{"orderId":"","message":"Ready"}""")]
-    [InlineData("""{"orderId":"order-1","message":""}""")]
-    public void WhenMessageIsNotACompleteCustomerResult_ThenWorkflowDoesNotTerminate(string text)
+    [MemberData(nameof(ValidIntakeMessages))]
+    public void WhenIntakeResultIsValid_ThenValidPredicateReturnsTrue(object message)
     {
-        ChatMessage message = new(ChatRole.Assistant, text);
-
-        Assert.False(OrderWorkflowFactory.IsCustomerMessageComplete([message]));
+        Assert.True(OrderWorkflowFactory.IsValidOrder(message));
     }
 
-    [Fact]
-    public void WhenCompleteCustomerResultIsPresent_ThenWorkflowTerminates()
+    public static TheoryData<object> ValidIntakeMessages => new()
     {
-        string json = JsonSerializer.Serialize(new
+        """{"isValid":true,"order":null,"errorMessage":null}""",
+        new ChatMessage(ChatRole.Assistant, """{"isValid":true,"order":null,"errorMessage":null}"""),
+        new AgentResponse(new ChatMessage(
+            ChatRole.Assistant,
+            """{"isValid":true,"order":null,"errorMessage":null}""")),
+        new List<ChatMessage>
         {
-            orderId = "order-1",
-            message = "Your order is ready."
-        });
-        ChatMessage message = new(ChatRole.Assistant, json);
-
-        Assert.True(OrderWorkflowFactory.IsCustomerMessageComplete([message]));
-    }
+            new(ChatRole.Assistant, """{"isValid":true,"order":null,"errorMessage":null}""")
+        }
+    };
 
     [Fact]
-    public void WhenCompleteResultComesFromUser_ThenWorkflowDoesNotTerminate()
+    public void WhenIntakeResultIsInvalid_ThenValidPredicateReturnsFalse()
     {
-        ChatMessage message = new(
-            ChatRole.User,
-            """{"orderId":"order-1","message":"Your order is ready."}""");
-
-        Assert.False(OrderWorkflowFactory.IsCustomerMessageComplete([message]));
+        Assert.False(OrderWorkflowFactory.IsValidOrder(
+            """{"isValid":false,"order":null,"errorMessage":"Missing email"}"""));
     }
 
     [Fact]
-    public async Task WhenOrderIsFulfillable_ThenAgentsHandoffDirectlyToCustomerMessaging()
+    public void WhenFulfillmentCanComplete_ThenFulfillmentPredicateReturnsTrue()
+    {
+        Assert.True(OrderWorkflowFactory.CanFullyFulfill(
+            """{"orderId":"order-1","customerEmail":"customer@example.com","items":[],"canFullyFulfill":true,"shouldGenerateCoupon":false,"coupon":null,"alternativeRecommendations":[]}"""));
+    }
+
+    [Fact]
+    public void WhenFulfillmentHasShortfall_ThenFulfillmentPredicateReturnsFalse()
+    {
+        Assert.False(OrderWorkflowFactory.CanFullyFulfill(
+            """{"orderId":"order-1","customerEmail":"customer@example.com","items":[],"canFullyFulfill":false,"shouldGenerateCoupon":true,"coupon":null,"alternativeRecommendations":[]}"""));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not-json")]
+    [InlineData("""{"unexpected":true}""")]
+    public void WhenRoutingOutputIsMalformed_ThenPredicateFailsClearly(string output)
+    {
+        Assert.Throws<InvalidOperationException>(() => OrderWorkflowFactory.IsValidOrder(output));
+        Assert.Throws<InvalidOperationException>(() => OrderWorkflowFactory.CanFullyFulfill(output));
+    }
+
+    [Fact]
+    public async Task WhenOrderIsInvalid_ThenItRoutesDirectlyToCustomerMessaging()
     {
         List<string> invocations = [];
-        AgentSet agents = CreateScriptedAgents(
-            invocations,
-            fulfillmentTarget: "CustomerMessagingAgent",
-            substitutionTarget: null,
-            promotionTarget: null);
+        AgentSet agents = CreateScriptedAgents(invocations, isValid: false, canFullyFulfill: false);
         Workflow workflow = OrderWorkflowFactory.Create(
             agents.OrderIntake,
             agents.FulfillmentDecision,
             agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
             agents.CustomerMessaging);
-        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
 
-        AgentResponse response = await workflowAgent.RunAsync("Process order order-1.");
-
-        Assert.True(
-            invocations.SequenceEqual(
-                ["OrderIntakeAgent", "FulfillmentDecisionAgent", "CustomerMessagingAgent"]),
-            $"Unexpected invocation sequence: {string.Join(", ", invocations)}. Response: {response.Text}");
-        Assert.Contains("order-1", response.Text);
-    }
-
-    [Fact]
-    public async Task WhenSubstitutionAndPromotionAreNeeded_ThenBothRunBeforeCustomerMessaging()
-    {
-        List<string> invocations = [];
-        AgentSet agents = CreateScriptedAgents(
-            invocations,
-            fulfillmentTarget: "SubstitutionAgent",
-            substitutionTarget: "PromotionAgent",
-            promotionTarget: "CustomerMessagingAgent");
-        Workflow workflow = OrderWorkflowFactory.Create(
-            agents.OrderIntake,
-            agents.FulfillmentDecision,
-            agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
-            agents.CustomerMessaging);
-        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
-
-        AgentResponse response = await workflowAgent.RunAsync("Process order order-1.");
-
-        Assert.True(
-            invocations.SequenceEqual([
-                "OrderIntakeAgent",
-                "FulfillmentDecisionAgent",
-                "SubstitutionAgent",
-                "PromotionAgent",
-                "CustomerMessagingAgent"
-            ]),
-            $"Unexpected invocation sequence: {string.Join(", ", invocations)}. Response: {response.Text}");
-    }
-
-    [Fact]
-    public async Task WhenOrderIsInvalid_ThenIntakeHandsDirectlyToCustomerMessaging()
-    {
-        List<string> invocations = [];
-        AgentSet agents = CreateScriptedAgents(
-            invocations,
-            fulfillmentTarget: "CustomerMessagingAgent",
-            substitutionTarget: null,
-            promotionTarget: null,
-            intakeTarget: "CustomerMessagingAgent");
-        Workflow workflow = OrderWorkflowFactory.Create(
-            agents.OrderIntake,
-            agents.FulfillmentDecision,
-            agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
-            agents.CustomerMessaging);
-        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
-
-        await workflowAgent.RunAsync("Process invalid order order-1.");
+        string response = await ExecuteWorkflowAsync(workflow, "Process invalid order order-1.");
 
         Assert.Equal(["OrderIntakeAgent", "CustomerMessagingAgent"], invocations);
+        Assert.Contains("order-1", response);
     }
 
     [Fact]
-    public async Task WhenHumanReviewIsRequired_ThenEscalationRunsBeforeCustomerMessaging()
+    public async Task WhenOrderIsFulfillable_ThenItSkipsSubstitution()
     {
         List<string> invocations = [];
-        AgentSet agents = CreateScriptedAgents(
-            invocations,
-            fulfillmentTarget: "EscalationAgent",
-            substitutionTarget: null,
-            promotionTarget: null);
+        AgentSet agents = CreateScriptedAgents(invocations, isValid: true, canFullyFulfill: true);
         Workflow workflow = OrderWorkflowFactory.Create(
             agents.OrderIntake,
             agents.FulfillmentDecision,
             agents.Substitution,
-            agents.Promotion,
-            agents.Escalation,
             agents.CustomerMessaging);
-        AIAgent workflowAgent = OrderWorkflowFactory.CreateAgent(workflow);
 
-        await workflowAgent.RunAsync("Process order order-1.");
+        await ExecuteWorkflowAsync(workflow, "Process order order-1.");
 
         Assert.Equal(
-            ["OrderIntakeAgent", "FulfillmentDecisionAgent", "EscalationAgent", "CustomerMessagingAgent"],
+            ["OrderIntakeAgent", "FulfillmentDecisionAgent", "CustomerMessagingAgent"],
             invocations);
     }
 
-    private static AgentSet CreateAgents() => new(
-        CreateAgent("order-intake-agent", "OrderIntakeAgent"),
-        CreateAgent("fulfillment-decision-agent", "FulfillmentDecisionAgent"),
-        CreateAgent("substitution-agent", "SubstitutionAgent"),
-        CreateAgent("promotion-agent", "PromotionAgent"),
-        CreateAgent("escalation-agent", "EscalationAgent"),
-        CreateAgent("customer-messaging-agent", "CustomerMessagingAgent"));
-
-    private static AgentSet CreateScriptedAgents(
-        List<string> invocations,
-        string fulfillmentTarget,
-        string? substitutionTarget,
-        string? promotionTarget,
-        string intakeTarget = "FulfillmentDecisionAgent") => new(
-        CreateScriptedAgent("order-intake-agent", "OrderIntakeAgent", intakeTarget, invocations),
-        CreateScriptedAgent(
-            "fulfillment-decision-agent",
-            "FulfillmentDecisionAgent",
-            fulfillmentTarget,
-            invocations),
-        CreateScriptedAgent("substitution-agent", "SubstitutionAgent", substitutionTarget, invocations),
-        CreateScriptedAgent("promotion-agent", "PromotionAgent", promotionTarget, invocations),
-        CreateScriptedAgent("escalation-agent", "EscalationAgent", "CustomerMessagingAgent", invocations),
-        CreateScriptedAgent("customer-messaging-agent", "CustomerMessagingAgent", null, invocations));
-
-    private static AIAgent CreateAgent(string id, string name)
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task WhenOrderHasShortfall_ThenSubstitutionAlwaysRunsBeforeCustomerMessaging(
+        bool substituteAvailable)
     {
-        return A.Fake<IChatClient>().AsAIAgent(
+        List<string> invocations = [];
+        AgentSet agents = CreateScriptedAgents(
+            invocations,
+            isValid: true,
+            canFullyFulfill: false,
+            substituteAvailable);
+        Workflow workflow = OrderWorkflowFactory.Create(
+            agents.OrderIntake,
+            agents.FulfillmentDecision,
+            agents.Substitution,
+            agents.CustomerMessaging);
+
+        string response = await ExecuteWorkflowAsync(workflow, "Process order order-1.");
+
+        Assert.Equal(
+            [
+                "OrderIntakeAgent",
+                "FulfillmentDecisionAgent",
+                "SubstitutionAgent",
+                "CustomerMessagingAgent"
+            ],
+            invocations);
+        Assert.Contains("order-1", response);
+    }
+
+    private static AgentSet CreateAgents() => new(
+        CreateAgent("OrderIntakeAgent"),
+        CreateAgent("FulfillmentDecisionAgent"),
+        CreateAgent("SubstitutionAgent"),
+        CreateAgent("CustomerMessagingAgent"));
+
+    private static AIAgent CreateAgent(string name) =>
+        A.Fake<IChatClient>().AsAIAgent(
             new ChatClientAgentOptions
             {
-                Id = id,
+                Id = GetAgentId(name),
                 Name = name,
                 Description = $"{name} test agent"
             });
+
+    private static async Task<string> ExecuteWorkflowAsync(Workflow workflow, string input)
+    {
+        string output = string.Empty;
+        await using StreamingRun run = await InProcessExecution.RunStreamingAsync(
+            workflow,
+            input);
+
+        await foreach (WorkflowEvent workflowEvent in run.WatchStreamAsync())
+        {
+            switch (workflowEvent)
+            {
+                case WorkflowOutputEvent outputEvent:
+                    output = outputEvent.Data switch
+                    {
+                        ChatMessage message => message.Text,
+                        AgentResponse response => response.Text,
+                        string text => text,
+                        _ => outputEvent.Data?.ToString() ?? string.Empty
+                    };
+                    break;
+                case WorkflowErrorEvent workflowError:
+                    throw workflowError.Exception
+                        ?? new InvalidOperationException("The workflow failed.");
+                case ExecutorFailedEvent executorFailure:
+                    throw new InvalidOperationException(
+                        $"Executor '{executorFailure.ExecutorId}' failed: {executorFailure.Data}");
+            }
+        }
+
+        return output;
     }
 
+    private static AgentSet CreateScriptedAgents(
+        List<string> invocations,
+        bool isValid,
+        bool canFullyFulfill,
+        bool substituteAvailable = true) => new(
+        CreateScriptedAgent(
+            "OrderIntakeAgent",
+            invocations,
+            isValid
+                ? """{"isValid":true,"order":null,"errorMessage":null}"""
+                : """{"isValid":false,"order":null,"errorMessage":"Missing email"}"""),
+        CreateScriptedAgent(
+            "FulfillmentDecisionAgent",
+            invocations,
+            $$"""{"orderId":"order-1","customerEmail":"customer@example.com","items":[],"canFullyFulfill":{{canFullyFulfill.ToString().ToLowerInvariant()}},"shouldGenerateCoupon":{{(!canFullyFulfill).ToString().ToLowerInvariant()}},"coupon":null,"alternativeRecommendations":[]}"""),
+        CreateScriptedAgent(
+            "SubstitutionAgent",
+            invocations,
+            substituteAvailable
+                ? """{"orderId":"order-1","customerEmail":"customer@example.com","items":[],"canFullyFulfill":false,"shouldGenerateCoupon":true,"coupon":{"code":"FRYOCUPON-TEST-25PCT-30D","discountPercent":25},"alternativeRecommendations":[{"sku":"STR-TUB","productName":"Strawberry"}]}"""
+                : """{"orderId":"order-1","customerEmail":"customer@example.com","items":[],"canFullyFulfill":false,"shouldGenerateCoupon":true,"coupon":{"code":"FRYOCUPON-TEST-25PCT-30D","discountPercent":25},"alternativeRecommendations":[]}"""),
+        CreateScriptedAgent(
+            "CustomerMessagingAgent",
+            invocations,
+            """{"orderId":"order-1","message":"Your order has been processed."}"""));
+
     private static AIAgent CreateScriptedAgent(
-        string id,
         string name,
-        string? handoffTarget,
-        List<string> invocations)
+        List<string> invocations,
+        string response)
     {
-        var client = new ScriptedChatClient((options) =>
+        var client = new ScriptedChatClient(() =>
         {
             invocations.Add(name);
-            if (handoffTarget is null)
-            {
-                return new ChatResponse(new ChatMessage(
-                    ChatRole.Assistant,
-                    """{"orderId":"order-1","message":"Your order has been processed."}"""));
-            }
-
-            AITool handoffTool = options?.Tools?.ElementAt(GetHandoffIndex(name, handoffTarget))
-                ?? throw new InvalidOperationException($"No handoff tool for {handoffTarget} was provided to {name}.");
-
-            return new ChatResponse(new ChatMessage(
-                ChatRole.Assistant,
-                [new FunctionCallContent($"{name}-handoff", handoffTool.Name)]));
+            return new ChatResponse(new ChatMessage(ChatRole.Assistant, response));
         });
 
         return client.AsAIAgent(
             new ChatClientAgentOptions
             {
-                Id = id,
+                Id = GetAgentId(name),
                 Name = name,
                 Description = $"{name} test agent"
             });
     }
 
-    private static string GetAgentName(string executorId) =>
-        executorId.Split('_', 2, StringSplitOptions.None)[0];
-
-    private static int GetHandoffIndex(string source, string target) => (source, target) switch
-    {
-        ("OrderIntakeAgent", "FulfillmentDecisionAgent") => 0,
-        ("OrderIntakeAgent", "CustomerMessagingAgent") => 1,
-        ("FulfillmentDecisionAgent", "CustomerMessagingAgent") => 0,
-        ("FulfillmentDecisionAgent", "SubstitutionAgent") => 1,
-        ("FulfillmentDecisionAgent", "PromotionAgent") => 2,
-        ("FulfillmentDecisionAgent", "EscalationAgent") => 3,
-        ("SubstitutionAgent", "CustomerMessagingAgent") => 0,
-        ("SubstitutionAgent", "PromotionAgent") => 1,
-        ("SubstitutionAgent", "EscalationAgent") => 2,
-        ("PromotionAgent", "CustomerMessagingAgent") => 0,
-        ("PromotionAgent", "EscalationAgent") => 1,
-        ("EscalationAgent", "CustomerMessagingAgent") => 0,
-        _ => throw new InvalidOperationException($"Unsupported handoff from {source} to {target}.")
-    };
-
     private sealed record AgentSet(
         AIAgent OrderIntake,
         AIAgent FulfillmentDecision,
         AIAgent Substitution,
-        AIAgent Promotion,
-        AIAgent Escalation,
         AIAgent CustomerMessaging);
 
-    private sealed class ScriptedChatClient(Func<ChatOptions?, ChatResponse> responseFactory) : IChatClient
+    private static string GetAgentName(string executorId) =>
+        executorId.Split('_', 2, StringSplitOptions.None)[0];
+
+    private static string GetAgentId(string name) => name switch
+    {
+        "OrderIntakeAgent" => "order-intake-agent",
+        "FulfillmentDecisionAgent" => "fulfillment-decision-agent",
+        "SubstitutionAgent" => "substitution-agent",
+        "CustomerMessagingAgent" => "customer-messaging-agent",
+        _ => throw new InvalidOperationException($"Unknown test agent {name}.")
+    };
+
+    private sealed class ScriptedChatClient(Func<ChatResponse> responseFactory) : IChatClient
     {
         public Task<ChatResponse> GetResponseAsync(
             IEnumerable<ChatMessage> messages,
             ChatOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(responseFactory(options));
+            Task.FromResult(responseFactory());
 
         public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
             IEnumerable<ChatMessage> messages,

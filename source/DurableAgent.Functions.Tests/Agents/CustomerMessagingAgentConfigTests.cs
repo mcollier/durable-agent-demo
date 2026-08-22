@@ -5,21 +5,21 @@ namespace DurableAgent.Functions.Tests.Agents;
 public class CustomerMessagingAgentConfigTests
 {
     [Fact]
-    public void AgentIdentity_IsStable()
+    public void AgentIdentity_UsesDurableRegistryName()
     {
         Assert.Equal("CustomerMessagingAgent", CustomerMessagingAgentConfig.AgentName);
-        Assert.Equal("customer-messaging-agent", CustomerMessagingAgentConfig.AgentId);
         Assert.False(string.IsNullOrWhiteSpace(CustomerMessagingAgentConfig.AgentDescription));
     }
 
     [Fact]
-    public void SystemPrompt_UsesConversationHistoryAndProducesTerminalOutput()
+    public void SystemPrompt_HandlesEveryTerminalRoute()
     {
-        Assert.Contains("conversation history", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("validation", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("substitution", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("invalid order", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("full fulfillment", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("substitute", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("no substitute", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("coupon", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("escalation", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("final", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("handoff", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("escalation", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
 }

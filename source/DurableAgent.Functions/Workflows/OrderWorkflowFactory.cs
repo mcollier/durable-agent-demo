@@ -1,15 +1,14 @@
+using System.Text.Json;
 using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
-using System.Text.Json;
 
 namespace DurableAgent.Functions.Workflows;
 
 internal static class OrderWorkflowFactory
 {
     internal const string WorkflowName = "order-processing-workflow";
-    private const int AutonomousTurnLimit = 4;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,73 +19,91 @@ internal static class OrderWorkflowFactory
         AIAgent orderIntakeAgent,
         AIAgent fulfillmentDecisionAgent,
         AIAgent substitutionAgent,
-        AIAgent promotionAgent,
-        AIAgent escalationAgent,
         AIAgent customerMessagingAgent)
     {
         ArgumentNullException.ThrowIfNull(orderIntakeAgent);
         ArgumentNullException.ThrowIfNull(fulfillmentDecisionAgent);
         ArgumentNullException.ThrowIfNull(substitutionAgent);
-        ArgumentNullException.ThrowIfNull(promotionAgent);
-        ArgumentNullException.ThrowIfNull(escalationAgent);
         ArgumentNullException.ThrowIfNull(customerMessagingAgent);
 
-#pragma warning disable MAAIW001 // AgentWorkflowBuilder.CreateHandoffBuilderWith is experimental
-        Workflow workflow = AgentWorkflowBuilder
-            .CreateHandoffBuilderWith(orderIntakeAgent)
-            .WithName(WorkflowName)
-            .WithDescription("Processes orders through fulfillment and specialist resolution before notifying the customer")
-            .WithHandoffs(orderIntakeAgent, [fulfillmentDecisionAgent, customerMessagingAgent])
-            .WithHandoffs(
-                fulfillmentDecisionAgent,
-                [customerMessagingAgent, substitutionAgent, promotionAgent, escalationAgent])
-            .WithHandoffs(
-                substitutionAgent,
-                [customerMessagingAgent, promotionAgent, escalationAgent])
-            .WithHandoffs(
-                promotionAgent,
-                [customerMessagingAgent, escalationAgent])
-            .WithHandoff(escalationAgent, customerMessagingAgent)
-            .WithAutonomousMode(
-                turnLimit: AutonomousTurnLimit,
-                continuationPrompt: "Continue processing the order and hand off to the appropriate next agent.")
-            .WithTerminationCondition(IsCustomerMessageComplete)
-            .WithOutputFrom(customerMessagingAgent)
-            .Build();
-#pragma warning restore MAAIW001
-
-        return workflow;
-    }
-
-    internal static AIAgent CreateAgent(Workflow workflow)
-    {
-        ArgumentNullException.ThrowIfNull(workflow);
-
-        return workflow.AsAIAgent(
-            id: WorkflowName,
-            name: WorkflowName,
-            description: workflow.Description);
-    }
-
-    internal static bool IsCustomerMessageComplete(IEnumerable<ChatMessage> conversation) =>
-        conversation.Any(message =>
+        AIAgentHostOptions agentHostOptions = new()
         {
-            if (message.Role != ChatRole.Assistant || string.IsNullOrWhiteSpace(message.Text))
-            {
-                return false;
-            }
+            ForwardIncomingMessages = false,
+            ReassignOtherAgentsAsUsers = true
+        };
+        ExecutorBinding orderIntake = orderIntakeAgent.BindAsExecutor(agentHostOptions);
+        ExecutorBinding fulfillmentDecision = fulfillmentDecisionAgent.BindAsExecutor(agentHostOptions);
+        ExecutorBinding substitution = substitutionAgent.BindAsExecutor(agentHostOptions);
+        ExecutorBinding customerMessaging = customerMessagingAgent.BindAsExecutor(agentHostOptions);
 
-            try
-            {
-                CustomerMessageResult? result =
-                    JsonSerializer.Deserialize<CustomerMessageResult>(message.Text, JsonOptions);
-                return result is not null
-                    && !string.IsNullOrWhiteSpace(result.OrderId)
-                    && !string.IsNullOrWhiteSpace(result.Message);
-            }
-            catch (JsonException)
-            {
-                return false;
-            }
-        });
+        AgentTurnForwarderExecutor fulfillmentTurn = new("ForwardToFulfillment");
+        AgentTurnForwarderExecutor substitutionTurn = new("ForwardToSubstitution");
+        AgentTurnForwarderExecutor customerMessagingTurn = new("ForwardToCustomerMessaging");
+        OrderWorkflowStartExecutor start = new();
+        CustomerMessageOutputExecutor output = new();
+
+        return new WorkflowBuilder(start)
+            .WithName(WorkflowName)
+            .WithDescription("Validates orders, checks fulfillment, resolves shortfalls, and notifies customers")
+            .AddEdge(start, orderIntake)
+            .AddSwitch(orderIntake, switchBuilder => switchBuilder
+                .AddCase<List<ChatMessage>>(
+                    message => HasResponse(message) && IsValidOrder(message),
+                    fulfillmentTurn)
+                .AddCase<List<ChatMessage>>(
+                    message => HasResponse(message) && !IsValidOrder(message),
+                    customerMessagingTurn))
+            .AddEdge(fulfillmentTurn, fulfillmentDecision)
+            .AddSwitch(fulfillmentDecision, switchBuilder => switchBuilder
+                .AddCase<List<ChatMessage>>(
+                    message => HasResponse(message) && CanFullyFulfill(message),
+                    customerMessagingTurn)
+                .AddCase<List<ChatMessage>>(
+                    message => HasResponse(message) && !CanFullyFulfill(message),
+                    substitutionTurn))
+            .AddEdge(substitutionTurn, substitution)
+            .AddEdge(substitution, customerMessagingTurn)
+            .AddEdge(customerMessagingTurn, customerMessaging)
+            .AddEdge(customerMessaging, output)
+            .WithOutputFrom(output)
+            .Build();
+    }
+
+    internal static bool IsValidOrder(object? message) =>
+        DeserializeResult<OrderIntakeResult>(message).IsValid;
+
+    internal static bool CanFullyFulfill(object? message) =>
+        DeserializeResult<FulfillmentDecisionResult>(message).CanFullyFulfill;
+
+    private static bool HasResponse(IEnumerable<ChatMessage>? messages) =>
+        messages?.Any(message => !string.IsNullOrWhiteSpace(message.Text)) == true;
+
+    private static TResult DeserializeResult<TResult>(object? message)
+    {
+        string text = message switch
+        {
+            string value => value,
+            ChatMessage value when !string.IsNullOrWhiteSpace(value.Text) => value.Text,
+            AgentResponse value when !string.IsNullOrWhiteSpace(value.Text) => value.Text,
+            IEnumerable<ChatMessage> values => values.LastOrDefault(
+                value => !string.IsNullOrWhiteSpace(value.Text))?.Text
+                    ?? throw CreateRoutingException<TResult>(),
+            _ => throw CreateRoutingException<TResult>()
+        };
+
+        try
+        {
+            return JsonSerializer.Deserialize<TResult>(text, JsonOptions)
+                ?? throw CreateRoutingException<TResult>();
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException(
+                $"Workflow routing expected a valid {typeof(TResult).Name} JSON response.",
+                exception);
+        }
+    }
+
+    private static InvalidOperationException CreateRoutingException<TResult>() =>
+        new($"Workflow routing expected a non-empty {typeof(TResult).Name} response.");
 }

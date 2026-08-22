@@ -1,4 +1,4 @@
-
+using DurableAgent.Functions.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -11,41 +11,39 @@ public class OrderIntakeAgentConfig
 {
     public const string AgentName = "OrderIntakeAgent";
     public const string AgentId = "order-intake-agent";
-    public const string AgentDescription = "Validates incoming orders and routes valid orders to fulfillment or invalid orders to customer messaging.";
+    public const string AgentDescription = "Validates incoming orders and returns a structured intake decision.";
     public const string SystemPrompt = """
         You are the Order Intake Agent for Froyo Foundry.
 
-        Validate each incoming order, summarize the result clearly, and then hand off ownership.
-
-        ## Handoff Policy
-
-        - If the order is valid, summarize the canonical order and ALWAYS hand off to
-          FulfillmentDecisionAgent.
-        - If the order is invalid, summarize every validation failure and ALWAYS hand off to
-          CustomerMessagingAgent. Do not send an invalid order to fulfillment.
+        Validate the incoming order and return valid JSON matching the required response schema.
 
         ## Business Rules
 
         - Maximum quantity per item is 10.
         - Minimum quantity per item is 1.
         - Restricted products include "Rainbow Sherbet" and "Chocolate Chip Cookie Dough".
-        - Orders must include customer name, email, shipping address, and at least one line item with FlavorId and quantity.
+        - Orders must include customer name, email, shipping address, and at least one line item
+          with FlavorId and quantity.
 
-        Preserve the order ID, customer email, shipping details, flavor IDs, quantities, and all
-        validation findings in your summary so the receiving agent has the facts it needs.
+        ## Output
+
+        - For a valid order, set isValid to true, populate the canonical order, and set
+          errorMessage to null.
+        - For an invalid order, set isValid to false, set order to null, and describe every
+          validation failure in errorMessage.
+        - Preserve the order ID, customer details, shipping address, flavor IDs, and quantities.
+        - Return JSON only. Do not discuss routing, workflows, or other agents.
     """;
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
     {
-
         builder.AddAIAgent(
             name: AgentName,
             (sp, key) =>
             {
-                // Get the IChatClient from the DI container
                 var chatClient = sp.GetRequiredService<IChatClient>();
 
-                AIAgent agent = new ChatClientAgent(
+                return new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
                         Id = AgentId,
@@ -53,13 +51,14 @@ public class OrderIntakeAgentConfig
                         Description = AgentDescription,
                         ChatOptions = new()
                         {
-                            Instructions = SystemPrompt
+                            Instructions = SystemPrompt,
+                            ResponseFormat = ChatResponseFormat.ForJsonSchema(
+                                schema: AIJsonUtilities.CreateJsonSchema(typeof(OrderIntakeResult)),
+                                schemaName: nameof(OrderIntakeResult),
+                                schemaDescription: "The structured order validation result.")
                         }
                     },
-                    chatClient: chatClient
-                );
-
-                return agent;
+                    chatClient: chatClient);
             });
     }
 }

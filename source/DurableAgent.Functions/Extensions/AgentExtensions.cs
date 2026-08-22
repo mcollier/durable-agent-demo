@@ -26,8 +26,6 @@ namespace DurableAgent.Functions.Extensions
             FulfillmentDecisionAgentConfig.RegisterAgent(builder);
             OrderIntakeAgentConfig.RegisterAgent(builder);
             SubstitutionAgentConfig.RegisterAgent(builder);
-            PromotionAgentConfig.RegisterAgent(builder);
-            EscalationAgentConfig.RegisterAgent(builder);
 
             return builder;
         }
@@ -51,23 +49,43 @@ namespace DurableAgent.Functions.Extensions
             var fulfillmentDecisionAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
             var customerMessagingAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
             var substitutionAgent = sp.GetRequiredKeyedService<AIAgent>(SubstitutionAgentConfig.AgentName);
-            var promotionAgent = sp.GetRequiredKeyedService<AIAgent>(PromotionAgentConfig.AgentName);
-            var escalationAgent = sp.GetRequiredKeyedService<AIAgent>(EscalationAgentConfig.AgentName);
 
             Workflow orderProcessingWorkflow = OrderWorkflowFactory.Create(
                 orderIntakeAgent,
                 fulfillmentDecisionAgent,
                 substitutionAgent,
-                promotionAgent,
-                escalationAgent,
                 customerMessagingAgent);
-            AIAgent orderProcessingAgent = OrderWorkflowFactory.CreateAgent(orderProcessingWorkflow);
 
             builder.ConfigureDurableOptions(options =>
             {
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
-                options.Agents.AddAIAgent(orderProcessingAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
+
+                foreach (AIAgent workflowAgent in new[]
+                {
+                    orderIntakeAgent,
+                    fulfillmentDecisionAgent,
+                    substitutionAgent,
+                    customerMessagingAgent
+                })
+                {
+                    string executorId = orderProcessingWorkflow.ReflectExecutors().Keys.Single(
+                        id => id.StartsWith($"{workflowAgent.Name}_", StringComparison.Ordinal));
+
+                    options.Agents.AddAIAgentFactory(
+                        executorId,
+                        _ => workflowAgent,
+                        agentOptions =>
+                        {
+                            agentOptions.HttpTrigger.IsEnabled = false;
+                            agentOptions.McpToolTrigger.IsEnabled = false;
+                        });
+                }
+
+                options.Workflows.AddWorkflow(
+                    orderProcessingWorkflow,
+                    exposeStatusEndpoint: true,
+                    exposeMcpToolTrigger: false);
             });
 
             return builder;
