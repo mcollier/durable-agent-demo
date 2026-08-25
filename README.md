@@ -206,7 +206,7 @@ The project exposes **7 tool functions** across its agents:
 | `CheckInventory` | FulfillmentAgent | Returns available inventory quantity for a flavor ID |
 | `RedactPii` | (general use) | Redacts personally identifiable information from text |
 
-The `CustomerServiceAgent` uses 5 of these (`GetCurrentUtcDateTime`, `GenerateCouponCode`, `GetStoreDetails`, `ListFlavors`, `OpenCustomerServiceCase`). The order-processing `FulfillmentAgent` uses `CheckInventory`, `ListFlavors`, and `GenerateCouponCode`.
+The `CustomerServiceAgent` uses 5 of these (`GetCurrentUtcDateTime`, `GenerateCouponCode`, `GetStoreDetails`, `ListFlavors`, `OpenCustomerServiceCase`). The order-processing `FulfillmentAgent` uses `CheckInventory`, `GetAvailableInventory`, `ListFlavors`, and `GenerateCouponCode`.
 
 ### Sample Message
 
