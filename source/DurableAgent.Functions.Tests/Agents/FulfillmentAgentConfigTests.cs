@@ -46,4 +46,20 @@ public class FulfillmentAgentConfigTests
         Assert.Contains("valid JSON", FulfillmentAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("later step", FulfillmentAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void SystemPrompt_PreservesCustomerNameFromIntakeResult()
+    {
+        Assert.Contains("customerName", FulfillmentAgentConfig.SystemPrompt);
+        Assert.Contains("Never invent or alter it", FulfillmentAgentConfig.SystemPrompt);
+        Assert.Contains("top-level customerName", FulfillmentAgentConfig.SystemPrompt);
+    }
+
+    [Fact]
+    public void SystemPrompt_PreservesCustomerNameEvenWhenOrderIsInvalid()
+    {
+        Assert.Contains(
+            "Copy the input's top-level customerName into the output unchanged, if present.",
+            FulfillmentAgentConfig.SystemPrompt);
+    }
 }

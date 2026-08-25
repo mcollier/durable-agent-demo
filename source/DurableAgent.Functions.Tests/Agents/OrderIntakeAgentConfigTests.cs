@@ -40,4 +40,13 @@ public class OrderIntakeAgentConfigTests
         Assert.DoesNotContain("Rainbow Sherbet", OrderIntakeAgentConfig.SystemPrompt);
         Assert.DoesNotContain("Chocolate Chip Cookie Dough", OrderIntakeAgentConfig.SystemPrompt);
     }
+
+    [Fact]
+    public void SystemPrompt_PopulatesCustomerNameRegardlessOfValidity()
+    {
+        Assert.Contains("regardless of whether the order is valid", OrderIntakeAgentConfig.SystemPrompt);
+        Assert.Contains(
+            "The top-level customerName must still be populated",
+            OrderIntakeAgentConfig.SystemPrompt);
+    }
 }

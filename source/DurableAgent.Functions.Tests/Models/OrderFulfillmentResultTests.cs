@@ -21,6 +21,28 @@ public class OrderFulfillmentResultTests
         Assert.Empty(result.Items);
         Assert.Empty(result.AlternativeRecommendations);
         Assert.Null(result.Coupon);
+        Assert.Null(result.CustomerName);
+    }
+
+    [Fact]
+    public void WhenOrderIsValid_ThenCustomerNameCanBePreserved()
+    {
+        OrderFulfillmentResult result = new()
+        {
+            IsValidOrder = true,
+            OrderId = "order-1",
+            CustomerEmail = "customer@example.com",
+            CustomerName = new OrderCustomerName
+            {
+                FirstName = "Jane",
+                LastName = "Doe"
+            },
+            CanFullyFulfill = true
+        };
+
+        Assert.NotNull(result.CustomerName);
+        Assert.Equal("Jane", result.CustomerName.FirstName);
+        Assert.Equal("Doe", result.CustomerName.LastName);
     }
 
     [Theory]

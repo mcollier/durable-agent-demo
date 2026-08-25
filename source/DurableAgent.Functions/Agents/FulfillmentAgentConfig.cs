@@ -22,17 +22,21 @@ public class FulfillmentAgentConfig
         If isValid is false:
         - Do not call any tools.
         - Set isValidOrder to false and preserve errorMessage in validationError.
-        - Leave order identifiers null when unavailable, items and alternativeRecommendations empty,
-          canFullyFulfill false, and coupon null.
+        - Copy the input's top-level customerName into the output unchanged, if present.
+          Never invent it.
+        - Leave order identifiers null when unavailable, items and alternativeRecommendations
+          empty, canFullyFulfill false, and coupon null.
 
         ## Valid Order
 
-        1. Call CheckInventory for every line item using its canonical FlavorId.
-        2. Record requested, available, fulfillable, and shortfall quantities.
-        3. Set canFullyFulfill to true only when every original item has zero shortfall.
-        4. When every shortfall is zero, do not call substitution or coupon tools; return no
+        1. Copy the input's top-level customerName (firstName, middleName, lastName) into the
+           output unchanged. Never invent or alter it.
+        2. Call CheckInventory for every line item using its canonical FlavorId.
+        3. Record requested, available, fulfillable, and shortfall quantities.
+        4. Set canFullyFulfill to true only when every original item has zero shortfall.
+        5. When every shortfall is zero, do not call substitution or coupon tools; return no
            alternatives and a null coupon.
-        5. When any item has a shortfall:
+        6. When any item has a shortfall:
            - Call GetAvailableInventory and ListFlavors.
            - Select the closest suitable substitute only from products confirmed in stock.
            - Never recommend the unavailable original item.

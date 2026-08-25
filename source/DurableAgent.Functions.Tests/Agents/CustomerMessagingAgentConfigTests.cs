@@ -24,4 +24,12 @@ public class CustomerMessagingAgentConfigTests
         Assert.DoesNotContain("handoff", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("escalation", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void SystemPrompt_GreetsCustomerByFirstAndLastName()
+    {
+        Assert.Contains("customerName", CustomerMessagingAgentConfig.SystemPrompt);
+        Assert.Contains("{firstName} {lastName}", CustomerMessagingAgentConfig.SystemPrompt);
+        Assert.Contains("Never invent", CustomerMessagingAgentConfig.SystemPrompt, StringComparison.OrdinalIgnoreCase);
+    }
 }

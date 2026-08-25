@@ -35,11 +35,16 @@ public class OrderIntakeAgentConfig
 
         ## Output
 
+        - Always populate the top-level customerName (firstName, middleName, lastName) when a
+          customer name can be parsed from the input, regardless of whether the order is valid.
+          Only leave it null if no name information is present at all in the input.
         - For a valid order, set isValid to true, populate the canonical order, and set
           errorMessage to null.
         - For an invalid order, set isValid to false, set order to null, and describe every
           validation failure in errorMessage. If multiple line items have invalid or
           restricted FlavorIds, list every one of them (not just the first) in errorMessage.
+          The top-level customerName must still be populated per the rule above, even though
+          order is null.
         - Preserve the order ID, customer details, shipping address, flavor IDs, and quantities.
         - Return JSON only. Do not discuss routing, workflows, or other agents.
     """;

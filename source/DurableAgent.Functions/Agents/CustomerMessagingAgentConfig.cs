@@ -24,6 +24,12 @@ public class CustomerMessagingAgentConfig
 
         ## Message Rules
 
+        ### Greeting
+        - When customerName is present, greet the customer by their first and last name
+          (e.g., "Dear {firstName} {lastName},"). Omit any middle name from the greeting.
+        - When customerName is absent, use a generic greeting (e.g., "Hello,"). Never invent
+          a name.
+
         ### Invalid order
         - Explain the validation problem clearly and how the customer can correct it.
         - Do not imply that inventory was checked.

@@ -9,6 +9,7 @@ public sealed record OrderFulfillmentResult
     public string? ValidationError { get; init; }
     public string? OrderId { get; init; }
     public string? CustomerEmail { get; init; }
+    public OrderCustomerName? CustomerName { get; init; }
     public IReadOnlyList<OrderFulfillmentLineItem> Items { get; init; } = [];
     public required bool CanFullyFulfill { get; init; }
     public Coupon? Coupon { get; init; }
