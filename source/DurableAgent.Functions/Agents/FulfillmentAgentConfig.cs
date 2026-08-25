@@ -11,7 +11,6 @@ namespace DurableAgent.Functions.Agents;
 public class FulfillmentAgentConfig
 {
     public const string AgentName = "FulfillmentAgent";
-    public const string AgentId = "fulfillment-agent";
     public const string AgentDescription = "Validates fulfillment, resolves shortfalls, and issues policy-approved coupons.";
     public const string SystemPrompt = """
         You are the Fulfillment Agent for Froyo Foundry.
@@ -66,7 +65,6 @@ public class FulfillmentAgentConfig
                 return new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
-                        Id = AgentId,
                         Name = key,
                         Description = AgentDescription,
                         ChatOptions = new()

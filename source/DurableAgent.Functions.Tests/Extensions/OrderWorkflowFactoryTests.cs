@@ -20,11 +20,15 @@ public class OrderWorkflowFactoryTests
             agents.CustomerMessaging);
 
         Assert.Equal(OrderWorkflowFactory.WorkflowName, workflow.Name);
-        Assert.Contains("OrderIntakeAgent_order_intake_agent", workflow.ReflectExecutors().Keys);
-        Assert.Contains("FulfillmentAgent_fulfillment_agent", workflow.ReflectExecutors().Keys);
         Assert.Contains(
-            "CustomerMessagingAgent_customer_messaging_agent",
-            workflow.ReflectExecutors().Keys);
+            workflow.ReflectExecutors().Keys,
+            id => HasDefaultExecutorId(id, "OrderIntakeAgent"));
+        Assert.Contains(
+            workflow.ReflectExecutors().Keys,
+            id => HasDefaultExecutorId(id, "FulfillmentAgent"));
+        Assert.Contains(
+            workflow.ReflectExecutors().Keys,
+            id => HasDefaultExecutorId(id, "CustomerMessagingAgent"));
         Assert.Equal(
             [
                 "CustomerMessagingAgent",
@@ -47,7 +51,7 @@ public class OrderWorkflowFactoryTests
             agents.Fulfillment,
             agents.CustomerMessaging);
 
-        Assert.Equal("OrderIntakeAgent_order_intake_agent", workflow.StartExecutorId);
+        Assert.True(HasDefaultExecutorId(workflow.StartExecutorId, "OrderIntakeAgent"));
         Assert.DoesNotContain(
             workflow.ReflectExecutors().Keys,
             id => id.StartsWith("ForwardTo", StringComparison.Ordinal));
@@ -56,7 +60,7 @@ public class OrderWorkflowFactoryTests
     }
 
     [Fact]
-    public void WhenWorkflowIsRebuilt_ThenExecutorIdentitiesRemainStable()
+    public void WhenWorkflowIsRebuilt_ThenExecutorIdentitiesUseFreshDefaultIds()
     {
         AgentSet firstAgents = CreateAgents();
         AgentSet secondAgents = CreateAgents();
@@ -71,8 +75,11 @@ public class OrderWorkflowFactoryTests
             secondAgents.CustomerMessaging);
 
         Assert.Equal(
-            first.ReflectExecutors().Keys.Order().ToArray(),
-            second.ReflectExecutors().Keys.Order().ToArray());
+            first.ReflectExecutors().Keys.Select(GetAgentName).Order(),
+            second.ReflectExecutors().Keys.Select(GetAgentName).Order());
+        Assert.False(
+            first.ReflectExecutors().Keys.Order()
+                .SequenceEqual(second.ReflectExecutors().Keys.Order()));
     }
 
     [Theory]
@@ -106,7 +113,6 @@ public class OrderWorkflowFactoryTests
         A.Fake<IChatClient>().AsAIAgent(
             new ChatClientAgentOptions
             {
-                Id = GetAgentId(name),
                 Name = name,
                 Description = $"{name} test agent"
             });
@@ -189,7 +195,6 @@ public class OrderWorkflowFactoryTests
         return client.AsAIAgent(
             new ChatClientAgentOptions
             {
-                Id = GetAgentId(name),
                 Name = name,
                 Description = $"{name} test agent"
             });
@@ -211,13 +216,12 @@ public class OrderWorkflowFactoryTests
     private static string GetAgentName(string executorId) =>
         executorId.Split('_', 2, StringSplitOptions.None)[0];
 
-    private static string GetAgentId(string name) => name switch
+    private static bool HasDefaultExecutorId(string executorId, string agentName)
     {
-        "OrderIntakeAgent" => "order-intake-agent",
-        "FulfillmentAgent" => "fulfillment-agent",
-        "CustomerMessagingAgent" => "customer-messaging-agent",
-        _ => throw new InvalidOperationException($"Unknown test agent {name}.")
-    };
+        string prefix = $"{agentName}_";
+        return executorId.StartsWith(prefix, StringComparison.Ordinal)
+            && Guid.TryParseExact(executorId[prefix.Length..], "N", out _);
+    }
 
     private sealed class ScriptedChatClient(Func<ChatResponse> responseFactory) : IChatClient
     {

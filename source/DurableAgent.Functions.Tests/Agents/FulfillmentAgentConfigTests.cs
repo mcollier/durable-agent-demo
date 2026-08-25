@@ -9,7 +9,6 @@ public class FulfillmentAgentConfigTests
     public void AgentIdentity_ReflectsExpandedResponsibility()
     {
         Assert.Equal("FulfillmentAgent", FulfillmentAgentConfig.AgentName);
-        Assert.Equal("fulfillment-agent", FulfillmentAgentConfig.AgentId);
         Assert.False(string.IsNullOrWhiteSpace(FulfillmentAgentConfig.AgentDescription));
     }
 

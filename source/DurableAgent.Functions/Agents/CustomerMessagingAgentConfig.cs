@@ -15,7 +15,6 @@ namespace DurableAgent.Functions.Agents;
 public class CustomerMessagingAgentConfig
 {
     public const string AgentName = "CustomerMessagingAgent";
-    public const string AgentId = "customer-messaging-agent";
     public const string AgentDescription = "Creates and sends the final customer-facing order status message.";
     public const string SystemPrompt = """
         You are the Customer Messaging Agent for Froyo Foundry.
@@ -84,7 +83,6 @@ public class CustomerMessagingAgentConfig
                 AIAgent agent = new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
-                        Id = AgentId,
                         Name = key,
                         Description = AgentDescription,
                         ChatOptions = new()

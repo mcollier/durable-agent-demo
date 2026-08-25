@@ -58,19 +58,9 @@ namespace DurableAgent.Functions.Extensions
             {
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
-                foreach ((string executorId, AIAgent workflowAgent) in ResolveWorkflowAgentAliases(
-                    orderProcessingWorkflow,
-                    [orderIntakeAgent, fulfillmentAgent, customerMessagingAgent]))
-                {
-                    options.Agents.AddAIAgentFactory(
-                        executorId,
-                        _ => workflowAgent,
-                        agentOptions =>
-                        {
-                            agentOptions.HttpTrigger.IsEnabled = false;
-                            agentOptions.McpToolTrigger.IsEnabled = false;
-                        });
-                }
+                options.Agents.AddAIAgent(orderIntakeAgent, enableHttpTrigger: false, enableMcpToolTrigger: false);
+                options.Agents.AddAIAgent(fulfillmentAgent, enableHttpTrigger: false, enableMcpToolTrigger: false);
+                options.Agents.AddAIAgent(customerMessagingAgent, enableHttpTrigger: false, enableMcpToolTrigger: false);
 
                 options.Workflows.AddWorkflow(
                     orderProcessingWorkflow,
@@ -79,25 +69,6 @@ namespace DurableAgent.Functions.Extensions
             });
 
             return builder;
-        }
-
-        internal static IReadOnlyList<(string ExecutorId, AIAgent Agent)> ResolveWorkflowAgentAliases(
-            Workflow workflow,
-            IEnumerable<AIAgent> workflowAgents)
-        {
-            ArgumentNullException.ThrowIfNull(workflow);
-            ArgumentNullException.ThrowIfNull(workflowAgents);
-
-            IReadOnlyCollection<string> executorIds = workflow.ReflectExecutors().Keys;
-            List<(string ExecutorId, AIAgent Agent)> aliases = [];
-            foreach (AIAgent workflowAgent in workflowAgents)
-            {
-                string executorId = executorIds.Single(
-                    id => id.StartsWith($"{workflowAgent.Name}_", StringComparison.Ordinal));
-                aliases.Add((executorId, workflowAgent));
-            }
-
-            return aliases;
         }
     }
 }

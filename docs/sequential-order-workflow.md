@@ -64,10 +64,10 @@ trigger starts it by posting the raw serialized order to:
 POST /api/workflows/order-processing-workflow/run
 ```
 
-Agent names and IDs are stable so the generated durable activity names remain stable. Each workflow
-agent is also registered under its graph executor ID (`{Name}_{Id}`), because the durable activity
-uses that ID when resolving the backing durable agent entity. These private aliases do not expose
-standalone HTTP or MCP endpoints.
+Each workflow agent has a stable `Name` and uses the framework-generated default `Id`. The workflow
+executor ID therefore has the form `{Name}_{32-character GUID}`. Durable dispatch strips that GUID
+suffix and resolves the backing agent by its stable `Name`. The agents are registered under those
+names without standalone HTTP or MCP endpoints; no composite aliases are required.
 
 This topology replaces executor identities used by earlier graph versions. Drain or terminate
 in-flight `order-processing-workflow` instances before deploying the change; their checkpoints are
