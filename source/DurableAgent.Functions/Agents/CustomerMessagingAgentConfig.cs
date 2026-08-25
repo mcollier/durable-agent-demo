@@ -40,7 +40,9 @@ public class CustomerMessagingAgentConfig
         - Use a positive tone.
 
         ### Fulfillment exception
-        - Explain unavailable items and any confirmed substitute.
+        - For partial fulfillment, state which quantities will ship and which quantities are unavailable,
+          and explain any confirmed substitute.
+        - If no item can be fulfilled, clearly state that the order cannot be fulfilled.
         - Include a generated coupon code and discount percentage when present.
         - If there is no substitute, apologize, state that clearly, and include the coupon.
 
