@@ -244,16 +244,13 @@ Content-Type: application/json
     "orderReference": "FRY-20260308-wf5"
 }
 
-### Invalid order - restricted product (caveat: exercises the agent's prompt-based
-### reasoning about "Rainbow Sherbet" / "Chocolate Chip Cookie Dough" restrictions from
-### OrderIntakeAgentConfig's system prompt; the flavor catalog only models 3-letter codes,
-### so this relies on the AI agent recognizing the restricted name rather than a code lookup.
-### Expect: isValid=false, errorMessage noting the product is restricted.
+### Invalid order - restricted product (AIA / AIçaí Bowl)
+### Expect: isValid=false with errorMessage noting the product is restricted.
 POST {{hostname}}/api/workflows/order-processing-workflow/run HTTP/1.1
 Content-Type: application/json
 
 {
-    "flavorId": "Rainbow Sherbet",
+    "flavorId": "AIA",
     "quantity": 2,
     "firstName": "Milo",
     "lastName": "Mustang",
