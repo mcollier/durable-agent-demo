@@ -27,6 +27,7 @@ public class CustomerMessagingAgentConfig
         ### Invalid order
         - Explain the validation problem clearly and how the customer can correct it.
         - Do not imply that inventory was checked.
+        - Do not expose internal systems, agents, tools, workflows, or field names.
 
         ### Full fulfillment
         - Confirm the full order will ship soon.

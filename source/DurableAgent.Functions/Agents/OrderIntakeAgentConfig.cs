@@ -1,4 +1,5 @@
 using DurableAgent.Functions.Models;
+using DurableAgent.Functions.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -20,7 +21,15 @@ public class OrderIntakeAgentConfig
 
         - Maximum quantity per item is 10.
         - Minimum quantity per item is 1.
-        - Restricted products include "Rainbow Sherbet" and "Chocolate Chip Cookie Dough".
+        - You **MUST** call the `ListFlavors` tool on every request to retrieve the canonical
+          flavor catalog. Never assume or invent flavor data.
+        - Every line item's FlavorId **MUST** match a FlavorId returned by `ListFlavors`
+          (case-insensitive comparison). If **any** line item references a FlavorId that is
+          not present in the catalog, the entire order is invalid.
+        - Restricted products (not permitted in orders): FlavorId "AIA" (AIçaí Bowl) — this
+          is the only restricted flavor. Confirm this FlavorId against the catalog returned
+          by `ListFlavors`. If any line item references a restricted FlavorId, the entire
+          order is invalid.
         - Orders must include customer name, email, shipping address, and at least one line item
           with FlavorId and quantity.
 
@@ -29,7 +38,8 @@ public class OrderIntakeAgentConfig
         - For a valid order, set isValid to true, populate the canonical order, and set
           errorMessage to null.
         - For an invalid order, set isValid to false, set order to null, and describe every
-          validation failure in errorMessage.
+          validation failure in errorMessage. If multiple line items have invalid or
+          restricted FlavorIds, list every one of them (not just the first) in errorMessage.
         - Preserve the order ID, customer details, shipping address, flavor IDs, and quantities.
         - Return JSON only. Do not discuss routing, workflows, or other agents.
     """;
@@ -49,6 +59,10 @@ public class OrderIntakeAgentConfig
                         Description = AgentDescription,
                         ChatOptions = new()
                         {
+                            Tools =
+                            [
+                                AIFunctionFactory.Create(ListFlavorsTool.ListFlavors),
+                            ],
                             Instructions = SystemPrompt,
                             ResponseFormat = ChatResponseFormat.ForJsonSchema(
                                 schema: AIJsonUtilities.CreateJsonSchema(typeof(OrderIntakeResult)),
