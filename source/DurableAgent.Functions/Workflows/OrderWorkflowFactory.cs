@@ -21,6 +21,7 @@ internal static class OrderWorkflowFactory
             .WithDescription("Validates orders, fulfills them, and notifies customers")
             .AddEdge(orderIntakeAgent, fulfillmentAgent)
             .AddEdge(fulfillmentAgent, customerMessagingAgent)
+            .WithOutputFrom(customerMessagingAgent)
             .Build();
     }
 }
