@@ -9,7 +9,7 @@ public static class GenerateCouponCodeTool
 {
     private static readonly HashSet<int> ApprovedDiscountPercentages = [10, 15, 20, 25];
 
-    [Description("Generates a unique coupon code using an approved discount tier. Call this tool exactly once when a valid order has an inventory shortfall; never fabricate a code.")]
+    [Description("Generates a unique coupon code using an approved discount tier. Never fabricate a code; use the returned value.")]
     public static string GenerateCouponCode(
         [Description("An approved discount percentage: 10, 15, 20, or 25.")] int discountPercent = 10,
         [Description("The number of days from today until the coupon expires.")] int expirationDays = 30)
