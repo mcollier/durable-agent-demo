@@ -1,20 +1,22 @@
 namespace DurableAgent.Functions.Models;
 
 /// <summary>
-/// Represents the result of the fulfillment decision for an order.
+/// Represents the validated fulfillment outcome for an order.
 /// </summary>
-public sealed record FulfillmentDecisionResult
+public sealed record OrderFulfillmentResult
 {
-    public required string OrderId { get; init; }   
-    public required string CustomerEmail { get; init; }
-    public IReadOnlyList<FulfillmentDecisionLineItem> Items { get; init; } = [];
+    public required bool IsValidOrder { get; init; }
+    public string? ValidationError { get; init; }
+    public string? OrderId { get; init; }
+    public string? CustomerEmail { get; init; }
+    public OrderCustomerName? CustomerName { get; init; }
+    public IReadOnlyList<OrderFulfillmentLineItem> Items { get; init; } = [];
     public required bool CanFullyFulfill { get; init; }
-    public required bool ShouldGenerateCoupon { get; init; }
     public Coupon? Coupon { get; init; }
     public IReadOnlyList<AlternativeRecommendation> AlternativeRecommendations { get; init; } = [];
-}   
+}
 
-public sealed record FulfillmentDecisionLineItem
+public sealed record OrderFulfillmentLineItem
 {
     public required string Sku { get; init; }
     public required string ProductName { get; init; }

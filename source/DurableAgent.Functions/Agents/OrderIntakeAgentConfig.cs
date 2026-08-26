@@ -1,5 +1,5 @@
-
 using DurableAgent.Functions.Models;
+using DurableAgent.Functions.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -11,95 +11,71 @@ namespace DurableAgent.Functions.Agents;
 public class OrderIntakeAgentConfig
 {
     public const string AgentName = "OrderIntakeAgent";
+    public const string AgentDescription = "Validates incoming orders and returns a structured intake decision.";
     public const string SystemPrompt = """
         You are the Order Intake Agent for Froyo Foundry.
 
-        Your job is to process incoming orders, validate them against business rules, and produce a structured output that can be used by downstream agents in the order processing workflow.
-
-        ## Responsibilities
-
-        1. Validate incoming order data for required fields and correct formatting.
-        2. Check orders against business rules (e.g., max quantity limits, restricted products).
-        3. Produce a canonical order object that includes all necessary information for fulfillment.
-        4. If the order violates any rules, produce a clear and specific error message indicating the issue.
+        Validate the incoming order and return valid JSON matching the required response schema.
 
         ## Business Rules
 
         - Maximum quantity per item is 10.
         - Minimum quantity per item is 1.
-        - Restricted products include "Rainbow Sherbet" and "Chocolate Chip Cookie Dough".
-        - Orders must include customer name, email, shipping address, and at least one line item with FlavorId and quantity.
+        - You **MUST** call the `ListFlavors` tool on every request to retrieve the canonical
+          flavor catalog. Never assume or invent flavor data.
+        - Every line item's FlavorId **MUST** match a FlavorId returned by `ListFlavors`
+          (case-insensitive comparison). If **any** line item references a FlavorId that is
+          not present in the catalog, the entire order is invalid.
+        - Restricted products (not permitted in orders): FlavorId "AIA" (AIçaí Bowl) — this
+          is the only restricted flavor. Confirm this FlavorId against the catalog returned
+          by `ListFlavors`. If any line item references a restricted FlavorId, the entire
+          order is invalid.
+        - Orders must include customer name, email, shipping address, and at least one line item
+          with FlavorId and quantity.
 
-        ## Output Requirements
+        ## Output
 
-        Return valid JSON only.
-
-        For valid orders, structure your response as follows:
-
-        {
-            "isValid": true,
-            "order": {
-                "orderId": "string",
-                "customerName": {
-                    "firstName": "string",
-                    "middleName": "string or null",
-                    "lastName": "string"
-                },
-                "customerEmail": "string",
-                "shippingAddress": {
-                    "streetAddress": "string",
-                    "addressLine2": "string or null",
-                    "city": "string",
-                    "state": "string",
-                    "zipCode": "string"
-                },
-                "lineItems": [
-                    {
-                        "flavorId": "string",
-                        "quantity": 0
-                    }
-                ]
-            },
-            "errorMessage": null
-        }
-
-        For invalid orders, structure your response as follows:
-
-        {
-            "isValid": false,
-            "order": null,
-            "errorMessage": "string describing the validation error"
-        }
+        - Always populate the top-level customerName (firstName, middleName, lastName) when a
+          customer name can be parsed from the input, regardless of whether the order is valid.
+          Only leave it null if no name information is present at all in the input.
+        - For a valid order, set isValid to true, populate the canonical order, and set
+          errorMessage to null.
+        - For an invalid order, set isValid to false, set order to null, and describe every
+          validation failure in errorMessage. If multiple line items have invalid or
+          restricted FlavorIds, list every one of them (not just the first) in errorMessage.
+          The top-level customerName must still be populated per the rule above, even though
+          order is null.
+        - Map the input's `orderReference` to `order.orderId`, and its top-level `flavorId` and `quantity` to one `order.lineItems` entry; preserve all values unchanged.
+        - Return JSON only. Do not discuss routing, workflows, or other agents.
     """;
 
     public static void RegisterAgent(FunctionsApplicationBuilder builder)
     {
-
         builder.AddAIAgent(
             name: AgentName,
             (sp, key) =>
             {
-                // Get the IChatClient from the DI container
                 var chatClient = sp.GetRequiredService<IChatClient>();
 
-                AIAgent agent = new ChatClientAgent(
+                return new ChatClientAgent(
                     options: new ChatClientAgentOptions
                     {
                         Name = key,
+                        Description = AgentDescription,
                         ChatOptions = new()
                         {
+                            Tools =
+                            [
+                                AIFunctionFactory.Create(ListFlavorsTool.ListFlavors),
+                            ],
                             Instructions = SystemPrompt,
                             ResponseFormat = ChatResponseFormat.ForJsonSchema(
                                 schema: AIJsonUtilities.CreateJsonSchema(typeof(OrderIntakeResult)),
-                                schemaName: "OrderIntakeResult",
-                                schemaDescription: "The result of validating and processing an incoming order, including a canonical order object if valid or an error message if invalid."
-                            )
+                                schemaName: nameof(OrderIntakeResult),
+                                schemaDescription: "The structured order validation result.")
                         }
                     },
-                    chatClient: chatClient
-                );
-
-                return agent;
+                    chatClient: chatClient);
             });
     }
 }

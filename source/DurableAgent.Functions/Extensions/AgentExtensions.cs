@@ -1,4 +1,5 @@
 using DurableAgent.Functions.Agents;
+using DurableAgent.Functions.Workflows;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AzureFunctions;
 using Microsoft.Agents.AI.Workflows;
@@ -22,11 +23,12 @@ namespace DurableAgent.Functions.Extensions
             CustomerServiceAgentConfig.RegisterAgent(builder);
             EmailAgentConfig.RegisterAgent(builder);
             CustomerMessagingAgentConfig.RegisterAgent(builder);
-            FulfillmentDecisionAgentConfig.RegisterAgent(builder);
+            FulfillmentAgentConfig.RegisterAgent(builder);
             OrderIntakeAgentConfig.RegisterAgent(builder);
 
             return builder;
         }
+
 
         /// <summary>
         /// Resolves registered AI agents and configures them as durable agents and workflows
@@ -44,23 +46,26 @@ namespace DurableAgent.Functions.Extensions
             var customerServiceAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerServiceAgentConfig.AgentName);
             var emailAgent = sp.GetRequiredKeyedService<AIAgent>(EmailAgentConfig.AgentName);
             var orderIntakeAgent = sp.GetRequiredKeyedService<AIAgent>(OrderIntakeAgentConfig.AgentName);
-            var fulfillmentDecisionAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentDecisionAgentConfig.AgentName);
+            var fulfillmentAgent = sp.GetRequiredKeyedService<AIAgent>(FulfillmentAgentConfig.AgentName);
             var customerMessagingAgent = sp.GetRequiredKeyedService<AIAgent>(CustomerMessagingAgentConfig.AgentName);
 
-            Workflow orderProcessingWorkflow = new WorkflowBuilder(orderIntakeAgent)
-                                            .WithName("order-processing-workflow")
-                                            .WithDescription("Workflow to process customer orders")
-                                            .AddEdge(orderIntakeAgent, fulfillmentDecisionAgent)
-                                            .AddEdge(fulfillmentDecisionAgent, customerMessagingAgent)
-                                            .WithOutputFrom(customerMessagingAgent)
-                                            .Build();
+            Workflow orderProcessingWorkflow = OrderWorkflowFactory.Create(
+                orderIntakeAgent,
+                fulfillmentAgent,
+                customerMessagingAgent);
 
             builder.ConfigureDurableOptions(options =>
             {
                 options.Agents.AddAIAgent(customerServiceAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
                 options.Agents.AddAIAgent(emailAgent, enableHttpTrigger: true, enableMcpToolTrigger: false);
+                options.Agents.AddAIAgent(orderIntakeAgent, enableHttpTrigger: false, enableMcpToolTrigger: false);
+                options.Agents.AddAIAgent(fulfillmentAgent, enableHttpTrigger: false, enableMcpToolTrigger: false);
+                options.Agents.AddAIAgent(customerMessagingAgent, enableHttpTrigger: false, enableMcpToolTrigger: false);
 
-                options.Workflows.AddWorkflow(orderProcessingWorkflow, exposeStatusEndpoint: true, exposeMcpToolTrigger: false);
+                options.Workflows.AddWorkflow(
+                    orderProcessingWorkflow,
+                    exposeStatusEndpoint: true,
+                    exposeMcpToolTrigger: false);
             });
 
             return builder;

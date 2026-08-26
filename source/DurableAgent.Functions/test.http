@@ -1,5 +1,5 @@
 # @hostname=http://localhost:7071
-@hostname=http://localhost:45233
+@hostname=http://localhost:32917
 
 ### Submit feedback - positive
 
@@ -82,7 +82,7 @@ Content-Type: application/json
     "comment": "The froyo was okay. The staff was very friendly."
 }
 ### Submit order
-POST {{hostname}}/api/orders HTTP/1.1
+POST {{hostname}}/api/order HTTP/1.1
 Content-Type: application/json
 
 {
@@ -140,9 +140,16 @@ Content-Type: application/json
     "orderReference": "FRY-20260308-wf1"
 }
 
-###
+### ============================================================
+### order-processing-workflow — direct workflow invocation tests
+### Runs the OrderIntakeAgent -> FulfillmentAgent -> CustomerMessagingAgent
+### workflow directly (bypasses SubmitOrderTrigger's structural validation),
+### so these cases exercise the OrderIntakeAgent's business-rule validation.
+### ============================================================
 
-POST http://localhost:46619/api/workflows/order-processing-workflow/run HTTP/1.1
+### Happy path - valid order, in-range quantity, all required fields
+### Expect: isValid=true, order fulfilled, and a customer confirmation message.
+POST {{hostname}}/api/workflows/order-processing-workflow/run HTTP/1.1
 Content-Type: application/json
 
 {
@@ -160,11 +167,108 @@ Content-Type: application/json
     "orderReference": "FRY-20260308-wf1"
 }
 
-### Get the status of a workflow run
-GET http://localhost:46619/api/workflows/order-processing-workflow/status/8adc6f2ad3aa4da58fb2d7160312a9fe
+### Invalid order - quantity exceeds the maximum of 10
+### Expect: isValid=false with errorMessage citing the quantity limit.
+POST {{hostname}}/api/workflows/order-processing-workflow/run HTTP/1.1
+Content-Type: application/json
 
-###
-curl http://localhost:46619/api/workflows/order-processing-workflow/status/8adc6f2ad3aa4da58fb2d7160312a9fe
+{
+    "flavorId": "VNE",
+    "quantity": 11,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "streetAddress": "123 Froyo Lane",
+    "addressLine2": "Apt 4B",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "email": "milo.mustang@example.com",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf2"
+}
+
+### Invalid order - quantity below the minimum of 1
+### Expect: isValid=false with errorMessage citing the quantity minimum.
+POST {{hostname}}/api/workflows/order-processing-workflow/run HTTP/1.1
+Content-Type: application/json
+
+{
+    "flavorId": "VNE",
+    "quantity": 0,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "streetAddress": "123 Froyo Lane",
+    "addressLine2": "Apt 4B",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "email": "milo.mustang@example.com",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf3"
+}
+
+### Invalid order - unknown/nonexistent flavorId
+### Expect: isValid=false; the agent cannot resolve "ZZZ" to a known flavor.
+POST {{hostname}}/api/workflows/order-processing-workflow/run HTTP/1.1
+Content-Type: application/json
+
+{
+    "flavorId": "ZZZ",
+    "quantity": 2,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "streetAddress": "123 Froyo Lane",
+    "addressLine2": "Apt 4B",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "email": "milo.mustang@example.com",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf4"
+}
+
+### Invalid order - missing required customer/shipping fields (no email, no streetAddress)
+### Expect: isValid=false with errorMessage listing both missing fields.
+POST {{hostname}}/api/workflows/order-processing-workflow/run HTTP/1.1
+Content-Type: application/json
+
+{
+    "flavorId": "VNE",
+    "quantity": 2,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf5"
+}
+
+### Invalid order - restricted product (AIA / AIçaí Bowl)
+### Expect: isValid=false with errorMessage noting the product is restricted.
+POST {{hostname}}/api/workflows/order-processing-workflow/run HTTP/1.1
+Content-Type: application/json
+
+{
+    "flavorId": "AIA",
+    "quantity": 2,
+    "firstName": "Milo",
+    "lastName": "Mustang",
+    "streetAddress": "123 Froyo Lane",
+    "addressLine2": "Apt 4B",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "78701",
+    "email": "milo.mustang@example.com",
+    "phoneNumber": "(555) 012-3456",
+    "orderReference": "FRY-20260308-wf6"
+}
+
+### Get the status of a workflow run
+### Replace {{workflowInstanceId}} below with the instance ID returned in the response
+### body/headers of one of the "run" requests above.
+@workflowInstanceId=423cb730aced41b0904dd9709ed7408f
+GET {{hostname}}/api/workflows/order-processing-workflow/status/{{workflowInstanceId}}
 
 ###
 
@@ -173,3 +277,16 @@ Content-Type: text/plain
 
 12345
 
+### Raise the event
+@instanceId=3ac5d2a1be4c41349cb632d7731e090c
+POST http://localhost:34343/runtime/webhooks/durabletask/instances/{{instanceId}}/raiseEvent/HumanReviewCompleted
+Content-Type: application/json
+
+true
+
+###
+
+POST /runtime/webhooks/durabletask/instances/MyInstanceId/raiseEvent/Approval&code=XXX
+Content-Type: application/json
+
+"true"

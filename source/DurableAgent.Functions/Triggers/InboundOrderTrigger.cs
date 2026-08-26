@@ -41,7 +41,6 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
 
         logger.LogInformation("Received order {OrderReference}.", order.OrderReference);
 
-        // Call the order-processing workflow HTTP endpoint exposed by the Durable Functions framework.
         var client = httpClientFactory.CreateClient("self");
         using var content = JsonContent.Create(order, options: JsonOptions);
         using var response = await client.PostAsync(
@@ -63,7 +62,7 @@ public sealed class InboundOrderTrigger(ILogger<InboundOrderTrigger> logger,
         }
 
         logger.LogInformation(
-            "Workflow completed for order {OrderReference}. Status={StatusCode}",
+            "Workflow started for order {OrderReference}. Status={StatusCode}",
             order.OrderReference, response.StatusCode);
     }
 }

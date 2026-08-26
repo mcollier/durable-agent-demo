@@ -8,6 +8,13 @@ public sealed record OrderIntakeResult
     /// <summary>True when the order passed intake validation.</summary>
     public required bool IsValid { get; init; }
 
+    /// <summary>
+    /// The customer's name, populated whenever it can be parsed from the incoming request —
+    /// independent of overall validity. Downstream agents (e.g. fulfillment, messaging) use
+    /// this to address the customer by name even when the order itself is invalid.
+    /// </summary>
+    public OrderCustomerName? CustomerName { get; init; }
+
     /// <summary>The normalized order payload when validation succeeds.</summary>
     public Order? Order { get; init; }
 
