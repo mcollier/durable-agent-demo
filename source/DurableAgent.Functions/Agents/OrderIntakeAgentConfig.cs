@@ -45,7 +45,7 @@ public class OrderIntakeAgentConfig
           restricted FlavorIds, list every one of them (not just the first) in errorMessage.
           The top-level customerName must still be populated per the rule above, even though
           order is null.
-        - Preserve the order ID, customer details, shipping address, flavor IDs, and quantities.
+        - Map the input's `orderReference` to `order.orderId`, and its top-level `flavorId` and `quantity` to one `order.lineItems` entry; preserve all values unchanged.
         - Return JSON only. Do not discuss routing, workflows, or other agents.
     """;
 
