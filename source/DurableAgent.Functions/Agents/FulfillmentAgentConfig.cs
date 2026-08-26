@@ -31,11 +31,12 @@ public class FulfillmentAgentConfig
 
         1. Copy the input's top-level customerName (firstName, middleName, lastName) into the
            output unchanged. Never invent or alter it.
-        2. Call CheckInventory for every line item using its canonical FlavorId.
+        2. Call ListFlavors once to resolve each line item's required productName, and call
+           CheckInventory for every line item using its canonical FlavorId.
         3. Record requested, available, fulfillable, and shortfall quantities.
         4. Set canFullyFulfill to true only when every original item has zero shortfall.
-        5. When every shortfall is zero, do not call substitution or coupon tools; return no
-           alternatives and a null coupon.
+        5. When every shortfall is zero, do not call GetAvailableInventory or
+           GenerateCouponCode; return no alternatives and a null coupon.
         6. When any item has a shortfall:
            - Call GetAvailableInventory and ListFlavors.
            - Select the closest suitable substitute only from products confirmed in stock.
