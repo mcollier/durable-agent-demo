@@ -30,6 +30,29 @@ public class GenerateCouponCodeToolTests
         Assert.EndsWith("-25PCT-60D", result);
     }
 
+    [Theory]
+    [InlineData(10)]
+    [InlineData(15)]
+    [InlineData(20)]
+    [InlineData(25)]
+    public void WhenCalledWithApprovedTier_ThenGeneratesCoupon(int discountPercent)
+    {
+        string result = GenerateCouponCodeTool.GenerateCouponCode(discountPercent);
+
+        Assert.Contains($"-{discountPercent}PCT-", result);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(30)]
+    [InlineData(100)]
+    public void WhenCalledWithUnapprovedTier_ThenThrows(int discountPercent)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => GenerateCouponCodeTool.GenerateCouponCode(discountPercent));
+    }
+
     [Fact]
     public void WhenCalledTwice_ThenProducesUniqueCodes()
     {
